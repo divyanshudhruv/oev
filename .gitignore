@@ -11,3 +11,4 @@ checkpoints/
 benchmarks/
 *.zip
 *.pt
+.freebuff/

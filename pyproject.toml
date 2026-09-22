@@ -7,7 +7,7 @@ dependencies = ["torch>=2.2", "numpy>=1.26"]
 [project.optional-dependencies]
 dev = ["pytest>=8"]
 data = ["datasets>=2.14"]
-backbone = ["transformers>=4.40", "sentencepiece"]
+backbone = ["transformers>=4.40", "sentencepiece", "protobuf"]
 
 [build-system]
 requires = ["setuptools>=68"]

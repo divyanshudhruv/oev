@@ -55,6 +55,7 @@ class HFBackboneOEV(nn.Module):
         from transformers import AutoModel
 
         self.backbone = AutoModel.from_pretrained(backbone)
+        self.backbone.float()
         d = self.backbone.config.hidden_size
         self.norm = nn.LayerNorm(d)
         self.head = nn.Linear(d, 1)

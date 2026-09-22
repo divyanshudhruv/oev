@@ -43,6 +43,7 @@ def train(preset="tiny", epochs=5, batch_size=64, lr=3e-4, seed=0, max_len=512, 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     if backbone:
         model = HFBackboneOEV(backbone).to(device)
+        model.backbone.float()
         packer = HFTokenPacker(backbone)
         train_dl = DataLoader(OEVDataset(f"{data_dir}/train.jsonl", max_len, packer=packer), batch_size=batch_size, shuffle=True, collate_fn=collate)
         valid_dl = DataLoader(OEVDataset(f"{data_dir}/valid.jsonl", max_len, packer=packer), batch_size=batch_size, collate_fn=collate)

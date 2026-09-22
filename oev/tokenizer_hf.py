@@ -1,8 +1,6 @@
-from transformers import AutoTokenizer, PreTrainedTokenizerFast
-
-
 class HFTokenPacker:
     def __init__(self, name):
+        from transformers import AutoTokenizer, PreTrainedTokenizerFast
         self.name = name
         try:
             self.tok = AutoTokenizer.from_pretrained(name)
