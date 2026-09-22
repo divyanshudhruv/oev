@@ -2,7 +2,7 @@ import argparse
 from pathlib import Path
 import torch
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
 from oev.dataset import OEVDataset, collate
 from oev.model import OEVModel, OEVConfig, PRESETS, HFBackboneOEV
 from oev.tokenizer_hf import HFTokenPacker
@@ -38,27 +38,35 @@ def run_epoch(model, loader, device, opt=None, log_every=0, epoch=0, scaler=None
     return total / n
 
 
+def make_loaders(data_dirs, max_len, batch_size, packer=None):
+    tr, va = [], []
+    for d in data_dirs:
+        tr.append(OEVDataset(f"{d}/train.jsonl", max_len, packer=packer))
+        va.append(OEVDataset(f"{d}/valid.jsonl", max_len, packer=packer))
+    train_dl = DataLoader(ConcatDataset(tr), batch_size=batch_size, shuffle=True, collate_fn=collate)
+    valid_dl = DataLoader(ConcatDataset(va), batch_size=batch_size, shuffle=False, collate_fn=collate)
+    return train_dl, valid_dl
+
+
 def train(preset="tiny", epochs=5, batch_size=64, lr=3e-4, seed=0, max_len=512, data_dir="data", out="checkpoints", backbone=None):
     torch.manual_seed(seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    data_dirs = [d.strip() for d in data_dir.split(",") if d.strip()]
     if backbone:
         model = HFBackboneOEV(backbone).to(device)
         model.backbone.float()
         packer = HFTokenPacker(backbone)
-        train_dl = DataLoader(OEVDataset(f"{data_dir}/train.jsonl", max_len, packer=packer), batch_size=batch_size, shuffle=True, collate_fn=collate)
-        valid_dl = DataLoader(OEVDataset(f"{data_dir}/valid.jsonl", max_len, packer=packer), batch_size=batch_size, collate_fn=collate)
-        head_params = [p for n, p in model.named_parameters() if not n.startswith("backbone")]
+        train_dl, valid_dl = make_loaders(data_dirs, max_len, batch_size, packer=packer)
         groups = [
             {"params": list(model.backbone.parameters()), "lr": 2e-5},
-            {"params": head_params, "lr": 1e-3},
+            {"params": [p for n, p in model.named_parameters() if not n.startswith("backbone")], "lr": 1e-3},
         ]
         opt = torch.optim.AdamW(groups, weight_decay=0.01)
         scaler = torch.amp.GradScaler(enabled=device == "cuda")
     else:
         cfg = OEVConfig(**PRESETS[preset], max_len=max_len)
         model = OEVModel(cfg).to(device)
-        train_dl = DataLoader(OEVDataset(f"{data_dir}/train.jsonl", cfg.max_len), batch_size=batch_size, shuffle=True, collate_fn=collate)
-        valid_dl = DataLoader(OEVDataset(f"{data_dir}/valid.jsonl", cfg.max_len), batch_size=batch_size, collate_fn=collate)
+        train_dl, valid_dl = make_loaders(data_dirs, cfg.max_len, batch_size)
         opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.01)
         scaler = None
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, epochs)
@@ -89,7 +97,7 @@ if __name__ == "__main__":
     p.add_argument("--batch-size", type=int, default=64)
     p.add_argument("--lr", type=float, default=3e-4)
     p.add_argument("--max-len", type=int, default=512)
-    p.add_argument("--data-dir", default="data")
+    p.add_argument("--data-dir", default="data", help="comma-separated list of dataset dirs")
     p.add_argument("--out", default="checkpoints")
     p.add_argument("--backbone", default=None)
     args = p.parse_args()
