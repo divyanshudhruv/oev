@@ -4,17 +4,18 @@ All OEV measurements were run on a single Tesla T4. Baseline results for Jev and
 
 ## The numbers that matter
 
-- **`0.7705` accuracy** - single `184M` OEV model
+- **`0.7705` accuracy** - single `184M` OEV model (laya: 0.766 from `421M`)
 - **`0.7760` accuracy** - `4 x 184M` OEV ensemble
+- **`0.6225` soft accuracy** - single model, vs laya's `0.471`
 - **`0.7020` soft accuracy** - sharpened ensemble (exploratory post-processing; see note below)
 - **`0.0298` ECE** - sharpened ensemble
-- **`22.2 ms` p50** - single-question inference on T4
+- **`22.2 ms` p50** - single-question inference on T4, versus laya's published `39.5 ms` for its English checkpoint
 
 > The `184M` figure refers to OEV's individual model. Ensemble results combine multiple independent `184M` checkpoints and are reported separately.
 
 ## Typed-Decisions: the benchmark built to separate real decision engines from demos
 
-OEV reaches `0.7760` accuracy and `0.7020` soft accuracy on the shared typed-decisions benchmark, with a `184M`-parameter backbone.
+OEV reaches `0.7760` accuracy and `0.7020` soft accuracy on the shared typed-decisions benchmark, with a `184M`-parameter backbone. The single fine-tuned `184M` model alone scores `0.7705`, slightly above laya's published `0.766` from a `421M` checkpoint - roughly 56% fewer parameters for the same result.
 
 | model                             |     params |     accuracy |     soft acc |    Brier | score MAE |        ECE |
 | --------------------------------- | ---------: | -----------: | -----------: | -------: | --------: | ---------: |
@@ -43,7 +44,7 @@ OEV reaches `0.7760` accuracy and `0.7020` soft accuracy on the shared typed-dec
 
 Latency, measured on a T4:
 
-- single question, p50: **`22.2 ms`** (laya `39.5`, laya-multilingual `32.8`, Jev `236-276`)
+- single question, p50: **`22.2 ms`** - versus laya's published `39.5 ms` (English checkpoint), `32.8 ms` (multilingual), Jev `236-276` (published/API latency, not a controlled comparison)
 - batched: `15.9 ms`/question at batch 32 (`63 q/s`)
 - fair caveat: Laya's ModernBERT is lighter in batch mode (`7.2 ms`/q)
 
@@ -68,6 +69,8 @@ The sharpened row applies a post-hoc confidence exponent γ to the ensemble prob
 | 2.5 | **`0.7020`** |      `0.0025` |
 
 One caveat on the Brier column: OEV is trained to match the teacher's full distributions, not one-hot labels, so it holds back where the teacher hedged. Scored against the teacher's actual distributions, its training Brier is **`0.058`**.
+
+On calibration, note that laya's headline `0.081` mean ECE figure is measured after temperature refitting; the `0.213` above is its typed-decisions checkpoint as published. OEV's `0.0938` (single) and `0.0279` (RLCD) are likewise as-published checkpoint numbers, so the comparison is like for like.
 
 ## AG News and emotion: pressing the ceiling
 

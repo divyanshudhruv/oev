@@ -9,7 +9,7 @@
 
 OEV is a small (`184M params`) neural decision engine. Instead of generating text, it scores answer options directly. The state, the question, and every option are packed into one sequence. One forward pass returns a calibrated probability distribution.
 
-It scores `0.7760` on typed-decisions, the `highest` reported result. It also scores `0.8303` on Banking77 and `0.0298` ECE, at `184M` parameters. The single fine-tuned model alone reaches `0.7705`, which already leads the benchmark. [laya](https://github.com/NandhaKishorM/laya) trails at `0.766`; Jev leads only on Banking77.
+The single `184M` model scores `0.7705` on typed-decisions, slightly above laya's published `0.766` from a `421M` checkpoint. An ensemble of four `184M` checkpoints reaches `0.7760`, the `highest` reported result. It also scores `0.8303` on Banking77 and `0.0298` ECE. Jev leads only on Banking77.
 
 [![Hugging Face Model](https://img.shields.io/badge/%F0%9F%A4%97%20Model-divyanshudhruv%2Foev--typed-blue)](https://huggingface.co/divyanshudhruv/oev-typed)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
@@ -37,7 +37,7 @@ It scores `0.7760` on typed-decisions, the `highest` reported result. It also sc
 
 | claim                 | result                                                                                                  |
 | --------------------- | ------------------------------------------------------------------------------------------------------- |
-| best accuracy         | **0.7760** typed-decisions (laya 0.766, Jev 0.727)                                                      |
+| best accuracy         | **0.7705** single model, **0.7760** ensemble - typed-decisions (laya 0.766 from 421M)  |
 | best soft accuracy    | **0.7020** sharpened (laya 0.471, Jev 0.580)                                                            |
 | high-cardinality      | **0.8303** Banking77 (laya 0.425)                                                                       |
 | speed                 | **22.2 ms** single question (laya 32.8 ms)                                                              |
@@ -72,7 +72,7 @@ Fine-tuned on each benchmark's train split, following the same protocol as Laya'
 
 | benchmark             |        OEV |  laya |   Jev | note                        |
 | --------------------- | ---------: | ----: | ----: | --------------------------- |
-| typed-decisions       | **0.7760** | 0.766 | 0.727 | highest reported accuracy   |
+| typed-decisions       | **0.7760** | 0.766 | 0.727 | highest reported (ensemble); single model 0.7705 |
 | Banking77 (77 labels) | **0.8303** | 0.425 | 0.870 | 2x laya; Jev still leads    |
 | AG News               | **0.9489** | 0.950 | 0.910 | label-noise ceiling (~0.95) |
 | DAIR Emotion          | **0.9300** | 0.595 | 0.480 | laya's number is zero-shot  |
