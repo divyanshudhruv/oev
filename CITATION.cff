@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use OEV in your research, please cite it."
+title: "OEV: a small System One decision model"
+authors:
+  - family-names: Dhruv
+    given-names: Divyanshu
+    website: "https://github.com/divyanshudhruv"
+version: 1.0.0
+date-released: "2026-09-23"
+license: Apache-2.0
+repository-code: "https://github.com/divyanshudhruv/oev"
+url: "https://huggingface.co/divyanshudhruv/oev-typed"
+keywords:
+  - decision-model
+  - system-one
+  - calibration
+  - classification
+abstract: >-
+  OEV is a small System One decision model. It reads a state,
+  scores typed questions (choice, noul, score) over it in a
+  single forward pass, and returns calibrated probability
+  distributions. At 184M parameters it matches or exceeds
+  larger published decision models on shared public benchmarks
+  while running at 22 ms per decision.

@@ -1,13 +1,29 @@
 [project]
 name = "oev"
-version = "0.1.0"
+version = "1.0.0"
+description = "System One decision model: typed questions in, calibrated probability distributions out, one forward pass."
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Divyanshu Dhruv" }]
 requires-python = ">=3.10"
 dependencies = ["torch>=2.2", "numpy>=1.26"]
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
 data = ["datasets>=2.14"]
 backbone = ["transformers>=4.40", "sentencepiece", "protobuf"]
+serve = ["fastapi>=0.110", "uvicorn>=0.29"]
+
+[project.scripts]
+oev-serve = "oev.serve:main"
+
+[project.urls]
+Homepage = "https://github.com/divyanshudhruv/oev"
+Model = "https://huggingface.co/divyanshudhruv/oev-typed"
 
 [build-system]
 requires = ["setuptools>=68"]

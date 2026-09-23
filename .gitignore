@@ -12,5 +12,9 @@ benchmarks/
 *.zip
 *.pt
 laya.md
+SUMMARY.md
+HF_MODEL_CARD.md
 .freebuff/
 .DS_Store
+make_charts.py
+make_bigfigure.py

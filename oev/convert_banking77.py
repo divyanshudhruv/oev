@@ -24,7 +24,11 @@ from pathlib import Path
 def download_banking77():
     from datasets import load_dataset
 
-    ds = load_dataset("PolyAI/banking77")
+    try:
+        ds = load_dataset("PolyAI/banking77")
+    except RuntimeError:
+        # new datasets versions dropped script support; use the auto-converted parquet branch
+        ds = load_dataset("PolyAI/banking77", revision="refs/convert/parquet")
     return ds["train"], ds["test"]
 
 

@@ -1,0 +1,9 @@
+services:
+  oev:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      # put your checkpoint at ./checkpoints/oev-tiny.pt
+      - ./checkpoints:/app/checkpoints:ro
+    restart: unless-stopped
