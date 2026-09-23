@@ -7,8 +7,10 @@ dist/
 build/
 docs/
 data/
-checkpoints/
+checkpoints*/
 benchmarks/
 *.zip
 *.pt
+laya.md
 .freebuff/
+.DS_Store

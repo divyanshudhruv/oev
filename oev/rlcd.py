@@ -108,5 +108,6 @@ if __name__ == "__main__":
     p.add_argument("--max-len", type=int, default=None)
     p.add_argument("--out", default="checkpoints_rlcd")
     p.add_argument("--alpha", type=float, default=0.5, help="imitation anchor weight (1 = pure imitation)")
+    p.add_argument("--seed", type=int, default=0)
     args = p.parse_args()
-    rlcd(checkpoint=args.checkpoint, data_dir=args.data_dir, epochs=args.epochs, batch_size=args.batch_size, lr=args.lr, max_len=args.max_len, out=args.out, alpha=args.alpha)
+    rlcd(checkpoint=args.checkpoint, data_dir=args.data_dir, epochs=args.epochs, batch_size=args.batch_size, lr=args.lr, max_len=args.max_len, out=args.out, alpha=args.alpha, seed=args.seed)
