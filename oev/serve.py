@@ -26,7 +26,7 @@ Usage:
 
 import argparse
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from oev.infer import OEV
@@ -44,6 +44,8 @@ class DecideRequest(BaseModel):
 
 @app.post("/decide")
 def decide(req: DecideRequest):
+    if agent is None:
+        raise HTTPException(status_code=503, detail="no checkpoint loaded - run oev-serve --checkpoint ...")
     answers = agent.decide(req.state, req.questions)
     gated = gate(answers, threshold=req.threshold)
     return {
@@ -87,6 +89,8 @@ def _jevify(answers: dict) -> dict:
 @app.post("/v1/systemone")
 def systemone(req: SystemOneRequest):
     """Jev-compatible endpoint: existing TypeSafe clients work by changing baseUrl."""
+    if agent is None:
+        raise HTTPException(status_code=503, detail="no checkpoint loaded - run oev-serve --checkpoint ...")
     answers = agent.decide(req.state, req.questions)
     return {
         "model": req.model,

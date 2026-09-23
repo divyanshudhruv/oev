@@ -1,5 +1,3 @@
-# OEV
-
 <p align="center" style="margin: 24px 0;">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/logo_transp.png" />
@@ -9,15 +7,15 @@
 
 <div align="center">
 
-OEV reads a state, scores every answer option in a *single forward pass*, and returns `calibrated` probability distributions - `22 ms` per decision. No text generation.
+OEV is a small (`184M params`) neural decision engine. Instead of generating text, it scores answer options directly. The state, the question, and every option are packed into one sequence. One forward pass returns a calibrated probability distribution.
 
-It is a `184M`-parameter model (44% the size of laya's `421M`) that scores higher than both laya and Jev on the shared public benchmarks: `0.7760` on `typed-decisions`, `0.8303` on `Banking77`, with an `ECE` of `0.0298`.
+It scores `0.7760` on typed-decisions, the `highest` reported result. It also scores `0.8303` on Banking77 and `0.0298` ECE, at `184M` parameters. The single fine-tuned model alone reaches `0.7705`, which already leads the benchmark. [laya](https://github.com/NandhaKishorM/laya) trails at `0.766`; Jev leads only on Banking77.
 
 [![Hugging Face Model](https://img.shields.io/badge/%F0%9F%A4%97%20Model-divyanshudhruv%2Foev--typed-blue)](https://huggingface.co/divyanshudhruv/oev-typed)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-38%20passing-brightgreen)]()
-[![Python](https://img.shields.io/badge/python-3.10%2B-blue)]()
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.x-ee4c2c)]()
+[![Tests](https://img.shields.io/badge/tests-38%20passing-brightgreen)](https://github.com/divyanshudhruv/oev/actions/workflows/test.yml)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.x-ee4c2c)](https://pytorch.org/get-started/locally/)
 
 </div>
 
@@ -35,7 +33,9 @@ It is a `184M`-parameter model (44% the size of laya's `421M`) that scores highe
 </picture>
 </p>
 
-|                       |                                                                                                         |
+## At a glance
+
+| claim                 | result                                                                                                  |
 | --------------------- | ------------------------------------------------------------------------------------------------------- |
 | best accuracy         | **0.7760** typed-decisions (laya 0.766, Jev 0.727)                                                      |
 | best soft accuracy    | **0.7020** sharpened (laya 0.471, Jev 0.580)                                                            |
@@ -45,14 +45,12 @@ It is a `184M`-parameter model (44% the size of laya's `421M`) that scores highe
 | calibration           | **ECE 0.0298** (laya 0.213)                                                                             |
 | weights & checkpoints | Apache 2.0 - [huggingface.co/divyanshudhruv/oev-typed](https://huggingface.co/divyanshudhruv/oev-typed) |
 
-## Why OEV
-
-- runs at `22.2 ms` per question on a `T4`, no GPU server needed
-- `ECE 0.0298`, so the confidence numbers can actually gate automation
-- handles `77`-label `Banking77` (`0.8303`) because every option gets full tokens
+- `22.2 ms` per question on a `T4` (GPU); CPU latency not yet characterized
+- `ECE 0.0298` on typed-decisions after temperature fitting - measured confidence tracks actual accuracy, so it can gate automation
+- `0.8303` on 77-label `Banking77`: each option is embedded as its own anchor with full tokens, so accuracy scales with label count (Jev still leads there)
 - `184M` params, `Apache 2.0` weights
 
-## How it works
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -64,19 +62,20 @@ flowchart LR
 ```
 
 - **One anchor mechanism** covers all three primitives - options, yes/no pairs, and score levels are each embedded as anchors in one packed sequence
-- **New question types need no new heads**
 - **No text generation** - nothing to parse, nothing to hallucinate
 
-## Benchmarks
+> **New question types need no new heads**
+
+## Benchmarks: OEV vs the published field
 
 Fine-tuned on each benchmark's train split, following the same protocol as Laya's published runs. Complete tables in [BENCHMARKS.md](BENCHMARKS.md).
 
-| benchmark             |        OEV |  laya |   Jev | note                                          |
-| --------------------- | ---------: | ----: | ----: | --------------------------------------------- |
-| typed-decisions       | **0.7760** | 0.766 | 0.727 | best published accuracy                       |
-| Banking77 (77 labels) | **0.8303** | 0.425 | 0.870 | anchor encoding scales; token budget does not |
-| AG News               | **0.9489** | 0.950 | 0.910 | label-noise ceiling (~0.95)                   |
-| DAIR Emotion          | **0.9300** | 0.595 | 0.480 | laya's number is zero-shot                    |
+| benchmark             |        OEV |  laya |   Jev | note                        |
+| --------------------- | ---------: | ----: | ----: | --------------------------- |
+| typed-decisions       | **0.7760** | 0.766 | 0.727 | highest reported accuracy   |
+| Banking77 (77 labels) | **0.8303** | 0.425 | 0.870 | 2x laya; Jev still leads    |
+| AG News               | **0.9489** | 0.950 | 0.910 | label-noise ceiling (~0.95) |
+| DAIR Emotion          | **0.9300** | 0.595 | 0.480 | laya's number is zero-shot  |
 
 <p align="center" style="margin: 24px 0;">
 <picture>
@@ -130,7 +129,7 @@ result = agent.decide("We were charged twice for the same order.", {
 }
 ```
 
-*Confidence gating* - automate when confident, escalate when not:
+_Confidence gating_ - automate when confident, escalate when not:
 
 ```python
 from oev.presets import triage_questions, gate
@@ -154,7 +153,7 @@ Docker:
 docker compose up   # checkpoint at ./checkpoints/oev-tiny.pt
 ```
 
-## Train your own
+## Training
 
 ```bash
 python -m oev.convert_typed
@@ -170,16 +169,20 @@ python -m pytest -q   # 38 tests passing
 
 `train_colab.ipynb` runs the entire pipeline end to end. Full training docs in [BENCHMARKS.md](BENCHMARKS.md).
 
+## Limitations
+
+- every benchmark number is from a checkpoint fine-tuned on that benchmark's train split; zero-shot performance is much weaker
+- the headline ensemble result is an average of four checkpoints; the best single model is `0.7705`
+- CPU latency is uncharacterized - all timings are T4 GPU
+- Banking77 calibration (`ECE 0.186`) is markedly worse than typed-decisions (`0.0298`)
+- English only
+
 ## Roadmap
 
 - [ ] distill the ensemble into one 184M model
 - [ ] INT8 / ONNX export for CPU deployment
 - [ ] multi-question shared-state encoding (one pass, many questions)
 - [ ] b77 confidence-sharpening sweep (ECE `0.186` -> target < `0.10`)
-
-## Citing
-
-If OEV helps your research, cite it via the repo's [CITATION.cff](CITATION.cff) (GitHub renders a "Cite this repository" button from it).
 
 ## Credits
 

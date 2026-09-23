@@ -1,8 +1,8 @@
 """Ready-made question schemas for common workflows.
 
-Mirrors the workflow-preset idea from similar decision-model SDKs: instead of
-hand-writing typed questions for common triage/safety tasks, import a preset
-and call `decide` with your state. Every preset is plain data — edit freely.
+Typed question sets for common workflows, ready to import. Instead of
+hand-writing questions for triage or safety checks, import a preset and
+pass your state to `decide`. Every preset is plain data, edit freely.
 
 Usage:
     from oev.infer import OEV
@@ -103,7 +103,7 @@ def gate(result, threshold=0.85):
     """Confidence-gating recipe: returns (name, payload, confident).
 
     Because OEV's probabilities are trained with proper scoring rules against
-    calibrated targets, confidence is statistically meaningful — automate when
+    calibrated targets, confidence is statistically meaningful, so automate when
     confident, escalate when not:
 
         for name, payload, confident in gate(result, threshold=0.85):

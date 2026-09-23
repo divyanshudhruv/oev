@@ -20,7 +20,7 @@ def rlcd_step(model, batch, device, opt, scaler, alpha=0.5):
     """One RLCD update.
 
     Phase 1 (imitation anchor): soft cross-entropy against the teacher's
-    distribution — keeps the model from drifting off the teacher entirely.
+    distribution, which keeps the model from drifting off the teacher entirely.
     Phase 2 (Brier improvement): evaluate the Brier score of the model's own
     predicted distribution against the teacher's reference; treat (1 - Brier)
     as the reward and follow its gradient (REINFORCE-style, on the argmax
@@ -42,7 +42,7 @@ def rlcd_step(model, batch, device, opt, scaler, alpha=0.5):
 
         # Phase 2: advantage = Brier reward centered by batch mean (baseline).
         # Without centering, the constant positive reward just amplifies the
-        # current argmax — the collapse we saw at 0.41 accuracy.
+        # current argmax, otherwise training collapses to the argmax.
         tgt = batch["targets"]
         b = brier(probs, tgt)
         advantage = ((1.0 - b) - (1.0 - b).detach().mean()).detach()
