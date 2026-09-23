@@ -13,13 +13,17 @@ class HFTokenPacker:
         options = question["options"]
         q_text = question["name"] + ": " + question.get("instructions", question["type"])
         ids = [self.tok.cls_token_id or self.tok.bos_token_id]
-        ids += self.tok.encode(state, add_special_tokens=False)[: max_len // 2]
+        opt_ids = [[self.anchor_id] + self.tok.encode(" " + o, add_special_tokens=False) for o in options]
+        q_ids = self.tok.encode(q_text, add_special_tokens=False)
+        fixed = 1 + 1 + len(q_ids) + sum(len(o) for o in opt_ids)
+        budget = max(1, max_len - fixed)
+        ids += self.tok.encode(state, add_special_tokens=False)[:budget]
         ids += [self.tok.sep_token_id or self.tok.eos_token_id]
-        ids += self.tok.encode(q_text, add_special_tokens=False)
+        ids += q_ids
         anchor_pos = []
-        for o in options:
+        for o in opt_ids:
             anchor_pos.append(len(ids))
-            ids += [self.anchor_id] + self.tok.encode(" " + o, add_special_tokens=False)
+            ids += o
         ids = ids[:max_len]
         label = options.index(str(question["answer"]))
         return ids, anchor_pos, label

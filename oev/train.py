@@ -17,7 +17,11 @@ def run_epoch(model, loader, device, opt=None, log_every=0, epoch=0, scaler=None
         batch = {k: v.to(device) if torch.is_tensor(v) else v for k, v in batch.items()}
         with torch.autocast(device_type=device, dtype=torch.float16, enabled=scaler is not None and device == "cuda"):
             logits = model(batch["ids"], batch["pad_mask"], batch["anchor_pos"]) + batch["logits_mask"]
-            loss = F.cross_entropy(logits, batch["labels"], reduction="sum")
+            log_probs = F.log_softmax(logits.float(), dim=-1)
+            hard = F.nll_loss(log_probs, batch["labels"], reduction="none")
+            soft = -(batch["targets"] * log_probs).sum(-1)
+            per = torch.where(batch["has_target"], soft, hard)
+            loss = per.sum()
         if opt is not None:
             opt.zero_grad()
             if scaler is not None:

@@ -9,6 +9,14 @@ from oev.calibrate import fit_temperature_from_logits
 from oev.tokenizer_hf import HFTokenPacker
 
 
+def stack_ragged(rows):
+    kmax = max(r.numel() for r in rows)
+    out = torch.full((len(rows), kmax), -1e4)
+    for i, r in enumerate(rows):
+        out[i, : r.numel()] = r
+    return out
+
+
 def evaluate_benchmark(checkpoint, data_dir, calibrate=True, batch_size=64):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = load_model(checkpoint, device)
@@ -32,7 +40,7 @@ def evaluate_benchmark(checkpoint, data_dir, calibrate=True, batch_size=64):
                     if row.numel() >= 2:
                         val_logits.append(row)
                         val_labels.append(batch["labels"][i])
-        temperature = fit_temperature_from_logits(torch.stack(val_logits), torch.stack(val_labels))
+        temperature = fit_temperature_from_logits(stack_ragged(val_logits), torch.stack(val_labels))
     else:
         temperature = 1.0
     with torch.no_grad():

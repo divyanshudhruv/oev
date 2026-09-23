@@ -24,27 +24,60 @@ def score_levels(gold_q, criteria):
     return max(n, label + 1, (max(int_levels) + 1 if int_levels else 0))
 
 
+def soft_target(gold_q, options):
+    probs = gold_q.get("probabilities", {})
+    total = 0.0
+    target = []
+    for o in options:
+        p = probs.get(o)
+        if p is None and o == "no":
+            p = probs.get("false")
+        elif p is None and o == "yes":
+            p = probs.get("true")
+        p = float(p) if p is not None else 0.0
+        target.append(p)
+        total += p
+    if total <= 0.0:
+        return None
+    return [p / total for p in target]
+
+
+def _enrich(option, desc):
+    d = (desc or "").strip()
+    return f"{option}: {d}" if d else option
+
+
 def convert_question(qname, q, gold_q):
     t = q["type"]
     crit = q.get("criteria", {})
     base = {"name": qname, "type": t, "instructions": q.get("instructions", t)}
     if t == "choice":
-        options = list(crit.keys())
-        answer = str(gold_q["label"])
-        if answer not in options:
+        keys = list(crit.keys())
+        if str(gold_q["label"]) not in keys:
             return None
+        target = soft_target(gold_q, keys)
+        options = [_enrich(k, crit[k]) for k in keys]
+        answer = options[keys.index(str(gold_q["label"]))]
     elif t == "noul":
         options = NOUL_OPTIONS
+        target = soft_target(gold_q, options)
         answer = "yes" if str(gold_q["label"]).lower() == "true" else "no"
     elif t == "score":
         n = score_levels(gold_q, crit)
-        options = [str(i) for i in range(n)]
-        answer = str(int(gold_q["label"]))
-        if int(answer) >= n:
+        raw = [str(i) for i in range(n)]
+        target = soft_target(gold_q, raw)
+        descs = crit if isinstance(crit, list) else []
+        options = [_enrich(str(i), descs[i] if i < len(descs) else "") for i in range(n)]
+        label = int(gold_q["label"])
+        if label >= n:
             return None
+        answer = options[label]
     else:
         return None
-    return {**base, "options": options, "answer": answer}
+    cq = {**base, "options": options, "answer": answer}
+    if target is not None:
+        cq["target"] = target
+    return cq
 
 
 def convert_rows_typed(rows):

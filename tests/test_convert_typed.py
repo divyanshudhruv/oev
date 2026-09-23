@@ -23,13 +23,13 @@ def fake_rows():
 def test_convert_question_types():
     q = {"type": "choice", "criteria": {"a": "x", "b": "y"}}
     gold = {"label": "b"}
-    assert convert_question("n", q, gold) == {"name": "n", "type": "choice", "instructions": "choice", "options": ["a", "b"], "answer": "b"}
+    assert convert_question("n", q, gold) == {"name": "n", "type": "choice", "instructions": "choice", "options": ["a: x", "b: y"], "answer": "b: y"}
 
     gold_n = {"label": "false"}
     assert convert_question("n", {"type": "noul"}, gold_n)["answer"] == "no"
 
     gold_s = {"label": 1}
-    assert convert_question("n", {"type": "score", "criteria": ["l", "m", "h"]}, gold_s)["options"] == ["0", "1", "2"]
+    assert convert_question("n", {"type": "score", "criteria": ["l", "m", "h"]}, gold_s)["options"] == ["0: l", "1: m", "2: h"]
 
 
 def test_rows_shape_and_domain():
@@ -42,7 +42,7 @@ def test_rows_shape_and_domain():
     churn = next(q for q in r["questions"] if q["name"] == "churn")
     assert churn["type"] == "noul" and churn["options"] == ["no", "yes"] and churn["answer"] == "yes"
     u = next(q for q in r["questions"] if q["name"] == "urgency")
-    assert u["answer"] == "2"
+    assert u["answer"] == "2: high"
 
 
 def test_invalid_questions_skipped():

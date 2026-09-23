@@ -47,6 +47,7 @@ class OEVDataset(Dataset):
             "label": label,
             "type": q["type"],
             "n": len(anchors),
+            "target": q.get("target"),
         }
 
 
@@ -61,6 +62,8 @@ def collate(batch):
     logits_mask = torch.full((B, A), float("-inf"))
     labels = torch.zeros(B, dtype=torch.long)
     types = []
+    targets = torch.zeros(B, A, dtype=torch.float32)
+    has_target = torch.zeros(B, dtype=torch.bool)
     for i, b in enumerate(batch):
         n, l = b["n"], len(b["ids"])
         ids[i, :l] = b["ids"]
@@ -70,6 +73,10 @@ def collate(batch):
         logits_mask[i, :n] = 0.0
         labels[i] = b["label"]
         types.append(b["type"])
+        if b.get("target") is not None:
+            t = b["target"]
+            targets[i, : len(t)] = torch.tensor(t, dtype=torch.float32)
+            has_target[i] = True
     return {
         "ids": ids,
         "pad_mask": pad_mask,
@@ -78,4 +85,6 @@ def collate(batch):
         "logits_mask": logits_mask,
         "labels": labels,
         "types": types,
+        "targets": targets,
+        "has_target": has_target,
     }
