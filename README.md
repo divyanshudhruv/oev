@@ -192,4 +192,4 @@ python -m pytest -q   # 38 tests passing
 
 ## Credits
 
-The interface and benchmark protocol follow [Laya](https://github.com/NandhaKishorM/laya) and the System One model category introduced by TypeSafe's Jev. Their published numbers are quoted here for comparison and remain their measurements.
+The interface and benchmark protocol follow [Laya](https://github.com/NandhaKishorM/laya) and the System One model category introduced by TypeSafe's [Jev](https://typesafe.com). Their published numbers are quoted here for comparison and remain their measurements.
