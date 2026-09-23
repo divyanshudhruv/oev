@@ -18,3 +18,4 @@ HF_MODEL_CARD.md
 .DS_Store
 make_charts.py
 make_bigfigure.py
+dist/

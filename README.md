@@ -16,6 +16,8 @@ The single `184M` model scores `0.7705` on typed-decisions, slightly above laya'
 [![Tests](https://img.shields.io/badge/tests-38%20passing-brightgreen)](https://github.com/divyanshudhruv/oev/actions/workflows/test.yml)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.x-ee4c2c)](https://pytorch.org/get-started/locally/)
+[![HF Space](https://img.shields.io/badge/%F0%9F%A4%97%20Space-oev--demo-yellow)](https://huggingface.co/spaces/divyanshudhruv/oev-demo)
+[![PyPI](https://img.shields.io/pypi/v/oev)](https://pypi.org/project/oev/)
 
 </div>
 
@@ -87,6 +89,8 @@ Fine-tuned on each benchmark's train split, following the same protocol as Laya'
 ## Quickstart
 
 ```bash
+pip install oev          # from PyPI
+# or from source:
 pip install -e .
 ```
 
@@ -179,10 +183,12 @@ python -m pytest -q   # 38 tests passing
 
 ## Roadmap
 
-- [ ] distill the ensemble into one 184M model
+- [ ] distill the ensemble into one 184M model (single-model general skills currently erode after per-benchmark fine-tuning)
 - [ ] INT8 / ONNX export for CPU deployment
 - [ ] multi-question shared-state encoding (one pass, many questions)
 - [ ] b77 confidence-sharpening sweep (ECE `0.186` -> target < `0.10`)
+- [ ] robustness: reduce mild overconfidence on out-of-distribution and garbage inputs
+- [ ] non-English checkpoints (the interface is language-agnostic; the weights are not yet)
 
 ## Credits
 
