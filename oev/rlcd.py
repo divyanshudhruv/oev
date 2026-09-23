@@ -40,15 +40,17 @@ def rlcd_step(model, batch, device, opt, scaler, alpha=0.5):
         soft = -(batch["targets"] * log_probs).sum(-1)
         anchor = soft[batch["has_target"]].mean() if batch["has_target"].any() else soft.mean()
 
-        # Phase 2: reward = 1 - Brier of predicted vs reference distribution
+        # Phase 2: advantage = Brier reward centered by batch mean (baseline).
+        # Without centering, the constant positive reward just amplifies the
+        # current argmax — the collapse we saw at 0.41 accuracy.
         tgt = batch["targets"]
         b = brier(probs, tgt)
-        reward = (1.0 - b).detach()
+        advantage = ((1.0 - b) - (1.0 - b).detach().mean()).detach()
         # score-function gradient: raise probability of the model's own current
         # answer proportional to how well its distribution scored
         picked = probs.argmax(-1)
         score = -log_probs.gather(1, picked.unsqueeze(1)).squeeze(1)
-        rl = -(reward * score).mean()
+        rl = -(advantage * score).mean()
 
         loss = alpha * anchor + (1 - alpha) * rl
     opt.zero_grad()
