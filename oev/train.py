@@ -52,12 +52,16 @@ def make_loaders(data_dirs, max_len, batch_size, packer=None):
     return train_dl, valid_dl
 
 
-def train(preset="tiny", epochs=5, batch_size=64, lr=3e-4, seed=0, max_len=512, data_dir="data", out="checkpoints", backbone=None):
+def train(preset="tiny", epochs=5, batch_size=64, lr=3e-4, seed=0, max_len=512, data_dir="data", out="checkpoints", backbone=None, init=None):
     torch.manual_seed(seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     data_dirs = [d.strip() for d in data_dir.split(",") if d.strip()]
     if backbone:
         model = HFBackboneOEV(backbone).to(device)
+        if init:
+            ckpt = torch.load(init, map_location="cpu", weights_only=False)
+            model.load_state_dict(ckpt["state"])
+            print(f"initialized from {init}")
         model.backbone.float()
         packer = HFTokenPacker(backbone)
         train_dl, valid_dl = make_loaders(data_dirs, max_len, batch_size, packer=packer)
@@ -104,5 +108,6 @@ if __name__ == "__main__":
     p.add_argument("--data-dir", default="data", help="comma-separated list of dataset dirs")
     p.add_argument("--out", default="checkpoints")
     p.add_argument("--backbone", default=None)
+    p.add_argument("--init", default=None, help="checkpoint to initialize weights from (staged fine-tuning)")
     args = p.parse_args()
-    train(preset=args.preset, epochs=args.epochs, batch_size=args.batch_size, lr=args.lr, max_len=args.max_len, data_dir=args.data_dir, out=args.out, backbone=args.backbone)
+    train(preset=args.preset, epochs=args.epochs, batch_size=args.batch_size, lr=args.lr, max_len=args.max_len, data_dir=args.data_dir, out=args.out, backbone=args.backbone, init=args.init)
