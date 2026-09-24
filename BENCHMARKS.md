@@ -86,20 +86,22 @@ On calibration, note that laya's headline `0.081` mean ECE figure is measured af
 
 ## Banking77: 77-way classification, no token starvation
 
-| model            |     accuracy |
-| ---------------- | -----------: |
-| Jev (published)  |      `0.870` |
-| **OEV (`184M`)** | **`0.8303`** |
-| laya (published) |      `0.425` |
-| random           |      `0.013` |
+| model                       |     params |     accuracy |          ECE |
+| --------------------------- | ---------: | -----------: | -----------: |
+| Jev (published)             |     closed |      `0.870` |            - |
+| **OEV ensemble (3 x 184M)** | 3 x `184M` | **`0.8529`** | **`0.0595`** |
+| OEV single, warm-start re-tune |  `184M` |     `0.8403` |     `0.1905` |
+| OEV single (first release)  |     `184M` |     `0.8303` |     `0.1860` |
+| laya (published)            |      `421M` |      `0.425` |            - |
+| random                      |          - |      `0.013` |            - |
 
 Banking77 is where the anchor design pays off most. Each of the 77 options is embedded as its own anchor occupying the full token budget of the packed sequence, so no label is truncated to a few tokens - the constraint that limits token-budget heads like laya's.
 
-`0.8303` is nearly double laya's score; Jev remains ahead (`0.870`). `ECE 0.186` (temperature `2.60`), weaker than typed-decisions and worth improving.
+The ensemble of the original checkpoint with two warm-started re-tunes reaches `0.8529`, 2x laya's score and within 1.7 points of Jev's closed API. Probability averaging over members also calibrated the ensemble for free: `ECE 0.0595` unsharpened, better than any post-hoc sharpened single (`0.1129`), and comparable to typed-decisions' `0.0298` sharpened.
 
-### Banking77 calibration sweep
+### Banking77 calibration sweep (single model)
 
-Post-hoc confidence sharpening (the same γ mechanism as the typed ensemble) was swept on Banking77. The optimum is gentle: unlike typed-decisions, ECE rises beyond γ = 1.5, so `1.5` is the reported setting.
+Post-hoc confidence sharpening (the same γ mechanism as the typed ensemble) was swept on the single Banking77 checkpoint. The optimum is gentle: unlike typed-decisions, ECE rises beyond γ = 1.5, so `1.5` is the reported setting. The ensemble row above supersedes this: probability averaging reaches better calibration than any γ on the single model.
 
 |   γ |     accuracy |          ECE |   soft acc |
 | --: | -----------: | -----------: | ---------: |
@@ -127,6 +129,30 @@ Accuracy is unchanged to four decimals while calibration improves 39%. The remai
 | mild overconfidence on junk input | unstructured garbage picks an option at `~0.39` where uniform is `0.25` | calibration work item |
 | long option lists flatten score distributions | 10-level scores spread near-uniformly where training saw 4-5 levels | multi-task checkpoint addresses this |
 | English only | all training and evaluation corpora are English | roadmap |
+
+## Practical limits of one forward pass
+
+| limit | value | notes |
+| ----- | ----- | ----- |
+| options per choice question | up to 255 supported by the head; measured at `77` (Banking77) | each option costs its own anchor plus its tokenized text |
+| score levels per question | 10 (matching the TypeSafe API) | distribution over ordered levels |
+| questions per request | bounded by total packed length | each question adds its instructions + options as anchor rows |
+| state length | `max_len - options - instructions` tokens | at `max_len 768` with 77 options, the state budget is roughly `300` tokens; measured b77 packing peaks at `569` total tokens |
+| context reuse | none - the packed sequence is re-encoded per request | unlike Jev's shared KV cache, a long state with many questions re-pays the state each time; at `184M` this is cheap but it is the honest scaling limit |
+
+The confidence field on choice answers is the max probability of the distribution; it is a scalar summary, not a calibrated error rate. For gating decisions, use the full distribution and the coverage-at-error-budget metric reported by `python -m oev.benchmark_ext`.
+
+## Architecture verification
+
+Three probes ship with the package to check the packed-sequence design's claims, runnable against any checkpoint on CPU:
+
+```bash
+python -m oev.probes --checkpoint checkpoints_td5/oev-tiny.pt
+```
+
+- **isolation** - a secret placed in one question's instructions must not raise the probe question's probability of naming it above chance. Mechanical checks on the head are exact; behavioral isolation on trained checkpoints is reported from these probes.
+- **forgery** - adversarial option text (anchor tokens, delimiter lookalikes, JSON injection) must not change how many anchors the head scores: exactly one per given option.
+- **order** - argmax stability under cyclic option rotation, the same measurement as `benchmark_ext --permute 6`.
 
 ## Run it yourself
 

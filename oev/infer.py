@@ -7,9 +7,10 @@ from oev.tokenizer_hf import HFTokenPacker
 
 
 class OEV:
-    def __init__(self, checkpoint="checkpoints/oev-tiny.pt", device="cpu"):
+    def __init__(self, checkpoint="checkpoints/oev-tiny.pt", device="cpu", temperature=1.0):
         self.model = load_model(checkpoint, device)
         self.device = device
+        self.temperature = float(temperature)
         if hasattr(self.model.cfg, "max_len"):
             self.max_len = self.model.cfg.max_len
             self.packer = None
@@ -38,7 +39,9 @@ class OEV:
         apos = torch.tensor([anchors], dtype=torch.long)
         with torch.no_grad():
             logits = self.model(t.to(self.device), pad.to(self.device), apos.to(self.device))
-        return F.softmax(logits, dim=-1)[0].tolist()
+        # temperature < 1 sharpens, > 1 flattens; 1.0 is the raw logits.
+        # argmax is unchanged for any temperature.
+        return F.softmax(logits / self.temperature, dim=-1)[0].tolist()
 
     def decide(self, state, questions):
         out = {}

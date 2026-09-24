@@ -1,0 +1,20 @@
+name: sync-space
+
+on:
+  push:
+    branches: [main]
+    paths: ["app.py", "requirements.txt"]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Push to Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -q "huggingface_hub[cli]"
+          hf upload divyanshudhruv/oev-demo app.py app.py --repo-type space
+          hf upload divyanshudhruv/oev-demo requirements.txt requirements.txt --repo-type space

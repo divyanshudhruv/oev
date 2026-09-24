@@ -62,9 +62,33 @@
     },
     {
       "metric": "accuracy",
+      "value": 0.8529,
+      "benchmark": "banking77",
+      "checkpoint": "ensemble of oev-base-banking77 + two warm-started re-tunes (b77_a, b77_b)",
+      "params": "3 x 184M",
+      "eval": "python -m oev.benchmark_ext --ckpts checkpoints_b77/oev-tiny.pt,checkpoints_b77_a/oev-tiny.pt,checkpoints_b77_b/oev-tiny.pt --data-dir data/banking77"
+    },
+    {
+      "metric": "ece",
+      "value": 0.0595,
+      "benchmark": "banking77",
+      "checkpoint": "ensemble of oev-base-banking77 + b77_a + b77_b (unsharpened)",
+      "params": "3 x 184M",
+      "eval": "python -m oev.benchmark_ext --ckpts checkpoints_b77/oev-tiny.pt,checkpoints_b77_a/oev-tiny.pt,checkpoints_b77_b/oev-tiny.pt --data-dir data/banking77"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.8403,
+      "benchmark": "banking77",
+      "checkpoint": "oev-base-banking77-a (warm-started re-tune)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark --checkpoint checkpoints_b77_a/oev-tiny.pt --data-dir data/banking77"
+    },
+    {
+      "metric": "accuracy",
       "value": 0.8303,
       "benchmark": "banking77",
-      "checkpoint": "oev-base-banking77",
+      "checkpoint": "oev-base-banking77 (first release)",
       "params": "184M",
       "eval": "python -m oev.benchmark --checkpoint checkpoints_b77/oev-tiny.pt --data-dir data/banking77"
     },
