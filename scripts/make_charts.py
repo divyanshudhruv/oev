@@ -27,9 +27,12 @@ plt.rcParams.update({
 })
 
 # ---------------- Chart 1: accuracy across benchmarks ----------------
+# Kev publishes no in-domain numbers for these datasets; its published
+# numbers are OOD-suite accuracies, so its bars are omitted here rather
+# than compared apples-to-oranges.
 bench = ["typed-decisions", "AG News", "emotion", "Banking77"]
 laya_vals = [0.766, 0.950, 0.595, 0.425]
-oev_vals = [0.7760, 0.9489, 0.9300, 0.8303]
+oev_vals = [0.7760, 0.9489, 0.9300, 0.8529]
 jev_vals = [0.727, 0.910, 0.480, 0.870]
 
 fig, ax = plt.subplots(figsize=(12, 6.2))
@@ -60,8 +63,11 @@ pts = [
     ("OEV single", 184, 0.7705, ACC[0]),
     ("OEV base (AG News)", 184, 0.9489, ACC[0]),
     ("OEV base (emotion)", 184, 0.9300, ACC[0]),
-    ("OEV b77", 184, 0.8303, ACC[0]),
+    ("OEV b77 (ens)", 3 * 184, 0.8529, ACC[0]),
+    ("OEV b77 single", 184, 0.8403, ACC[0]),
     ("Jev (API, size n/a)", 700, 0.727, ACC[4]),
+    ("Kev-0.8B (OOD suite)", 800, 0.837, ACC[2]),
+    ("Kev-4B (OOD suite)", 4000, 0.852, ACC[2]),
 ]
 for name, params, acc, c in pts:
     ax.scatter(params, acc, s=130, color=c, zorder=3, edgecolors="black", linewidths=0.5)
@@ -70,7 +76,7 @@ for name, params, acc, c in pts:
 ax.set_xlabel("parameters (millions)")
 ax.set_ylabel("accuracy")
 ax.set_title("accuracy vs model size", fontweight="bold")
-ax.set_xlim(0, 800)
+ax.set_xlim(0, 4200)
 fig.tight_layout()
 fig.savefig("assets/params_vs_acc.png", dpi=150)
 plt.close(fig)
@@ -174,7 +180,7 @@ for tag, accent in (("dark", DARK_ACC),):
     ax.set_xlabel("parameters (millions)")
     ax.set_ylabel("accuracy")
     ax.set_title("accuracy vs model size", fontweight="bold")
-    ax.set_xlim(0, 800)
+    ax.set_xlim(0, 4200)
     fig.tight_layout()
     fig.savefig(f"assets/params_vs_acc_{tag}.png", dpi=150)
     plt.close(fig)
@@ -227,7 +233,7 @@ for name, params, acc, c in pts:
                 textcoords="offset points", xytext=(5, 6), fontsize=8)
 ax.set_xlabel("parameters (M)"); ax.set_ylabel("typed-decisions accuracy")
 ax.set_title("accuracy vs size")
-ax.set_xlim(0, 800)
+ax.set_xlim(0, 4200)
 
 # panel 2: per-primitive
 ax = axes[1]

@@ -72,6 +72,12 @@ One caveat on the Brier column: OEV is trained to match the teacher's full distr
 
 On calibration, note that laya's headline `0.081` mean ECE figure is measured after temperature refitting; the `0.213` above is its typed-decisions checkpoint as published. OEV's `0.0938` (single) and `0.0279` (RLCD) are likewise as-published checkpoint numbers, so the comparison is like for like.
 
+## Kev: what can and cannot be compared
+
+Kev (0.8B and 4B, open weights) publishes no in-domain numbers on typed-decisions, AG News, DAIR Emotion or Banking77 - its reported results are on its own out-of-domain suites (0.652 at 0.8B, 0.837 at 4B on its harder split). Comparing those against OEV's in-domain numbers would be apples to oranges, so Kev does not appear in the tables above. Where a like-for-like number exists it will be added: the WANLI/transfer out-of-domain evaluation (planned) measured on both models' own protocols is the only fair battleground, and it is also where OEV currently has no published number.
+
+The honest summary until then: OEV wins every published in-domain row it shares with laya and Jev (except Banking77 vs Jev's 0.870), and has not yet measured the out-of-domain row where Kev published.
+
 ## AG News and emotion: pressing the ceiling
 
 | model                                |     params |      AG News | DAIR Emotion |                     ECE |

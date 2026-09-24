@@ -42,41 +42,66 @@ def load():
 # ---------------- CSS: dark theme, cards, bars ----------------
 
 CSS = """
-.gradio-container { background: #111214 !important; color: #e8e8ea !important; }
-.gradio-container .prose { color: #e8e8ea !important; }
-h1, h2, h3 { color: #ffffff !important; }
+/* everything uses Gradio CSS variables: the theme toggle flips them all at once */
+#colwrap { max-width: 1180px; margin: 0 auto; }
 #header { text-align: center; padding: 18px 0 6px 0; }
 #header h1 { font-size: 2.1em; margin-bottom: 2px; }
-#header p { color: #9aa0a6 !important; font-size: 1.02em; margin: 0; }
-#toolbar { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin: 4px 0 10px 0; }
-#toolbar > div { max-width: 260px !important; }
-#toolbar button.primary, #toolbar button[class*='primary'] { background: #4f9cf9 !important; border: none !important; color: #fff !important; }
-button.lg.primary, .gradio-container button.primary { background: #4f9cf9 !important; border: none !important; color: #ffffff !important; }
-.gradio-container button.primary:hover { background: #3f8ae8 !important; }
-#statusline { color: #9aa0a6 !important; font-size: 0.88em; text-align: right; margin: -6px 0 10px 0; }
-.qcard, .result-card {
-    background: #1b1d21 !important;
-    border: 1px solid #2a2d33 !important;
-    border-radius: 12px !important;
-    padding: 14px 16px !important;
-    margin-bottom: 10px !important;
+#header p { color: var(--body-text-color-subdued); font-size: 1.02em; margin: 0; }
+#toolbar { position: sticky; top: 0; z-index: 50; background: var(--body-background-fill);
+           display: flex; gap: 8px; align-items: center; justify-content: flex-end;
+           margin: 4px 0 10px 0; padding: 8px 0; border-bottom: 1px solid var(--border-color-primary); }
+#toolbar .form, #toolbar .block { border: none !important; background: transparent !important;
+                                  box-shadow: none !important; padding: 0 !important; }
+#toolbar > div { max-width: 240px !important; }
+#theme-btn { max-width: 130px !important; }
+#statusline { color: var(--body-text-color-subdued); font-size: 0.88em; text-align: right; margin: -6px 0 10px 0; }
+.result-card {
+    border: 1px solid var(--border-color-primary);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    background: var(--background-fill-secondary);
 }
-.qname { font-weight: 700; color: #ffffff; font-size: 1.02em; }
-.qtype { color: #7f8691; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.06em; }
-.ansname { color: #4f9cf9; font-weight: 700; font-size: 1.15em; }
+.qname { font-weight: 700; color: var(--body-text-color); font-size: 1.02em; }
+.qtype { color: var(--body-text-color-subdued); font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.06em; }
+.ansname { color: var(--color-accent); font-weight: 700; font-size: 1.15em; }
 .confchip {
     display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 10px;
-    font-size: 0.78em; background: #23303f; color: #8ec2ff;
+    font-size: 0.78em; background: var(--background-fill-primary);
+    color: var(--body-text-color-subdued); border: 1px solid var(--border-color-primary);
 }
-.confchip.low { background: #3a2b23; color: #f0b477; }
+.confchip.low { color: var(--color-warning); border-color: var(--color-warning);
+                background: color-mix(in srgb, var(--color-warning) 12%, transparent); }
 .bar-row { display: flex; align-items: center; gap: 10px; margin: 5px 0; }
-.bar-label { width: 190px; min-width: 190px; font-size: 0.85em; color: #cfd3d9;
+.bar-label { width: 190px; min-width: 190px; font-size: 0.85em; color: var(--body-text-color);
              overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
-.bar-track { flex: 1; height: 8px; background: #26292f; border-radius: 5px; overflow: hidden; }
-.bar-fill { height: 100%; background: #4f9cf9; border-radius: 5px; }
-.bar-fill.win { background: #57b98c; }
-.bar-val { width: 48px; min-width: 48px; font-size: 0.82em; color: #9aa0a6; text-align: right; }
+.bar-track { flex: 1; height: 6px; background: var(--border-color-primary); border-radius: 999px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--body-text-color-subdued); border-radius: 999px; }
+.bar-fill.win { background: var(--body-text-color); }
+.bar-val { width: 48px; min-width: 48px; font-size: 0.82em; color: var(--body-text-color-subdued); text-align: right;
+           font-variant-numeric: tabular-nums; }
+#placeholder { border: 1px dashed var(--border-color-primary); border-radius: 10px; padding: 28px 16px;
+               text-align: center; color: var(--body-text-color-subdued); font-size: 13px; }
 footer { visibility: hidden; }
+"""
+
+# light/dark toggle: flips Gradio's `dark` class; every var() above follows
+THEME_JS = """
+() => {
+    const c = document.querySelector('.gradio-container');
+    const dark = c.classList.toggle('dark');
+    localStorage.setItem('oev-theme', dark ? 'dark' : 'light');
+    return dark ? 'light mode' : 'dark mode';
+}
+"""
+
+THEME_INIT_JS = """
+() => {
+    const saved = localStorage.getItem('oev-theme');
+    const c = document.querySelector('.gradio-container');
+    if (saved === 'light') c.classList.remove('dark');
+    if (saved === 'dark') c.classList.add('dark');
+}
 """
 
 _TYPE_LABEL = {"choice": "choice", "noul": "yes / no", "score": "score"}
@@ -156,8 +181,8 @@ def _decide(state, questions, temperature=1.0):
 
 
 def _error_card(msg) -> str:
-    return (f'<div class="result-card"><span class="ansname" style="color:#f0776b">error</span>'
-            f'<div style="margin-top:6px;color:#cfd3d9">{msg}</div></div>')
+    return (f'<div class="result-card"><span class="ansname" style="color:var(--color-danger)">error</span>'
+            f'<div style="margin-top:6px">{msg}</div></div>')
 
 
 # ---------------- trained workflow presets (verbatim schemas) ----------------
@@ -271,20 +296,22 @@ EXAMPLE_TABS = ["Support triage", "News article", "Review rating", "Return windo
 
 # ---------------- UI ----------------
 
-with gr.Blocks(title="OEV") as demo:
-    with gr.Column(elem_id="header"):
+with gr.Blocks(title="OEV", js=THEME_INIT_JS) as demo:
+    with gr.Column(elem_id="colwrap"):
+      with gr.Column(elem_id="header"):
         gr.Markdown("# OEV\n*Typed questions in. Calibrated probabilities out. One forward pass. Nothing is generated.*")
 
-    with gr.Row(elem_id="toolbar"):
+      with gr.Row(elem_id="toolbar"):
         temp = gr.Slider(0.5, 3.0, value=1.0, step=0.05, label="temperature",
                          info="<1 sharpens, >1 flattens; argmax never changes",
                          container=False, scale=1, min_width=160)
+        theme_btn = gr.Button("light mode", size="sm", scale=0, elem_id="theme-btn")
         order_btn = gr.Button("Order check", size="sm", scale=0)
         decide_btn = gr.Button("Decide", variant="primary", scale=0, min_width=140)
 
-    status = gr.Markdown("", elem_id="statusline")
+      status = gr.Markdown("", elem_id="statusline")
 
-    with gr.Row():
+      with gr.Row():
         with gr.Column(scale=5):
             gr.Markdown("### Examples")
             with gr.Row():
@@ -302,8 +329,8 @@ with gr.Blocks(title="OEV") as demo:
 
         with gr.Column(scale=4):
             gr.Markdown("### Answers")
-            results = gr.HTML('<div class="result-card" style="color:#9aa0a6">Pick an example, '
-                              'edit the state or questions, then press Decide.</div>')
+            results = gr.HTML('<div id="placeholder">Answers appear here. One card per question, '
+                              'with a bar per option.</div>')
 
     # ---- verification tab stays as its own page ----
     with gr.Tab("Verify the architecture"):
@@ -396,7 +423,7 @@ with gr.Blocks(title="OEV") as demo:
         stable = len(set(picks)) == 1
         html = (f'<div class="result-card"><span class="qname">order check · {first}</span>'
                 f'<span class="qtype"> · {len(rows)} rotations</span><br>'
-                f'<span class="ansname" style="color:{"#57b98c" if stable else "#f0b477"}">'
+                f'<span class="ansname" style="color:{"var(--color-success)" if stable else "var(--color-warning)"}">'
                 f'{"stable" if stable else "flips across rotations"}</span>'
                 f'<div style="margin-top:8px">'
                 + "".join(f'<div class="bar-row"><div class="bar-label">rotation {r}</div>'
@@ -407,6 +434,8 @@ with gr.Blocks(title="OEV") as demo:
         return html, status
 
     order_btn.click(_order_check, [state_box, qs_box, temp], [results, status])
+
+    theme_btn.click(None, None, None, js=THEME_JS)
 
     gr.Markdown("*[divyanshudhruv/oev-typed](https://huggingface.co/divyanshudhruv/oev-typed) · 184M params · one forward pass per question set · [probes](https://github.com/divyanshudhruv/oev/blob/main/oev/probes.py)*")
 

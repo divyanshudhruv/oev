@@ -51,6 +51,7 @@ The single `184M` model scores `0.7705` on typed-decisions, slightly above laya'
 - `ECE 0.0298` on typed-decisions after temperature fitting - measured confidence tracks actual accuracy, so it can gate automation
 - `0.8529` on 77-label `Banking77` with `ECE 0.0595`: each option is embedded as its own anchor with full tokens, so accuracy scales with label count (Jev still leads there)
 - `184M` params, `Apache 2.0` weights
+- Kev (0.8B / 4B) publishes no in-domain numbers on these datasets, so it is not in the tables; see [BENCHMARKS.md](BENCHMARKS.md) for the like-for-like comparison plan
 
 ## Architecture
 

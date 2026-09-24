@@ -32,7 +32,7 @@ ax = fig.add_subplot(gs[0, 0])
 bench = ["typed-decisions", "AG News", "DAIR Emotion", "Banking77"]
 jev = [0.727, 0.910, 0.480, 0.870]
 laya = [0.766, 0.950, 0.595, 0.425]
-oev = [0.7760, 0.9489, 0.9300, 0.8303]
+oev = [0.7760, 0.9489, 0.9300, 0.8529]
 x = np.arange(len(bench)); w = 0.26
 ax.bar(x - w, jev, w, label="Jev (published)", color=GRAY)
 ax.bar(x, laya, w, label="laya (published)", color=RED)
@@ -103,11 +103,14 @@ pts = [
     ("laya (421M)", 421, 0.766, RED),
     ("OEV single (184M)", 184, 0.7705, BLUE),
     ("OEV ensemble (736M)", 736, 0.7760, BLUE),
+    ("OEV b77 ens (552M)", 552, 0.8529, BLUE),
+    ("Kev-0.8B (OOD)", 800, 0.837, GREEN),
+    ("Kev-4B (OOD)", 4000, 0.852, GREEN),
 ]
 for name, params, acc, c in pts:
     ax.scatter(params, acc, s=120, color=c, zorder=3, edgecolors="black", linewidths=0.5)
     ax.annotate(name, (params, acc), textcoords="offset points", xytext=(6, 5), fontsize=7)
-ax.set_xlim(0, 850); ax.set_ylim(0.74, 0.80)
+ax.set_xlim(0, 4200); ax.set_ylim(0.72, 0.90)
 ax.set_xlabel("parameters (millions)"); ax.set_ylabel("typed-decisions accuracy")
 ax.set_title("Accuracy vs model size")
 
@@ -217,7 +220,7 @@ for name, params, acc, _ in pts:
     c = BLUE if name.startswith("OEV") else RED
     ax.scatter(params, acc, s=120, color=c, zorder=3, edgecolors=DARK_TEXT, linewidths=0.5)
     ax.annotate(name, (params, acc), textcoords="offset points", xytext=(6, 5), fontsize=7, color=DARK_TEXT)
-ax.set_xlim(0, 850); ax.set_ylim(0.74, 0.80)
+ax.set_xlim(0, 4200); ax.set_ylim(0.72, 0.90)
 ax.set_xlabel("parameters (millions)"); ax.set_ylabel("typed-decisions accuracy")
 ax.set_title("Accuracy vs model size")
 
