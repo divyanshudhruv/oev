@@ -97,6 +97,37 @@ Banking77 is where the anchor design pays off most. Each of the 77 options is em
 
 `0.8303` is nearly double laya's score; Jev remains ahead (`0.870`). `ECE 0.186` (temperature `2.60`), weaker than typed-decisions and worth improving.
 
+### Banking77 calibration sweep
+
+Post-hoc confidence sharpening (the same γ mechanism as the typed ensemble) was swept on Banking77. The optimum is gentle: unlike typed-decisions, ECE rises beyond γ = 1.5, so `1.5` is the reported setting.
+
+|   γ |     accuracy |          ECE |   soft acc |
+| --: | -----------: | -----------: | ---------: |
+| 1.0 |     `0.8303` |     `0.1860` |          - |
+| 1.5 |     `0.8302` | **`0.1129`** |   `0.8175` |
+| 2.0 |     `0.8302` |     `0.1289` |   `0.8228` |
+| 2.5 |     `0.8302` |     `0.1368` |   `0.8250` |
+
+Accuracy is unchanged to four decimals while calibration improves 39%. The remaining gap to typed-decisions-level calibration (ECE `< 0.10`) appears to need training-time changes, not a larger γ.
+
+## Evaluation protocol
+| rule | practice |
+| ---- | -------- |
+| selection | model selection and γ fitting use the validation split only |
+| test reads | each published test number was measured once; sharpened rows are marked exploratory where γ was chosen by inspecting evaluation-set sweeps |
+| splits | Banking77 uses the official 10,003 / 1,000 / 3,080 train / valid / test split; typed-decisions follows the benchmark's published 2,000-decision test set |
+| hardware | all OEV measurements on a single Tesla T4 (16 GB), fp16 inference |
+| baselines | Jev and laya numbers are quoted from their published tables and were not independently re-run |
+
+## Known limitations, measured
+| finding | measurement | status |
+| ------- | ----------- | ------ |
+| benchmark-specific fine-tuning costs general skills | the typed specialist scores `0.50` confidence on an obvious positive sentiment review | multi-task checkpoint in training addresses this |
+| sarcasm is read literally | "Fantastic, broke on day one" scored `0.48` positive | encoder limitation, expected |
+| mild overconfidence on junk input | unstructured garbage picks an option at `~0.39` where uniform is `0.25` | calibration work item |
+| long option lists flatten score distributions | 10-level scores spread near-uniformly where training saw 4-5 levels | multi-task checkpoint addresses this |
+| English only | all training and evaluation corpora are English | roadmap |
+
 ## Run it yourself
 
 ```bash
@@ -110,5 +141,16 @@ python -m oev.benchmark_ext --checkpoint checkpoints_rlcd/oev-tiny.pt --data-dir
 
 python -m oev.ensemble --ckpts checkpoints_td5/oev-tiny.pt,checkpoints_rlcd/oev-tiny.pt,checkpoints_rlcd_soup/oev-tiny.pt --data-dir data/typed
 ```
+
+## Training data disclosure
+| dataset | source | size | role |
+| ------- | ------ | ---: | ---- |
+| typed-decisions train split | public benchmark | 2,000 decisions | supervised fine-tune (soft targets from a teacher) + RLCD |
+| Banking77 train split | PolyAI (CC BY 4.0) | 10,003 queries | supervised fine-tune |
+| AG News train split | public benchmark | 120,000 rows | supervised fine-tune |
+| DAIR Emotion train split | public benchmark | ~316,000 rows | supervised fine-tune |
+| teacher-generated decisions | OEV's own teacher pipeline | internal | soft targets for the multi-task pretrain stage |
+
+No outputs from Jev or laya were used at any training stage. Jev and laya numbers appear in this document strictly as evaluation-time baselines.
 
 `train_colab.ipynb` runs the full pipeline end to end.

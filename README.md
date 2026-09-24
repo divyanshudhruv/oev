@@ -178,7 +178,7 @@ python -m pytest -q   # 38 tests passing
 - every benchmark number is from a checkpoint fine-tuned on that benchmark's train split; zero-shot performance is much weaker
 - the headline ensemble result is an average of four checkpoints; the best single model is `0.7705`
 - CPU latency is uncharacterized - all timings are T4 GPU
-- Banking77 calibration (`ECE 0.186`) is markedly worse than typed-decisions (`0.0298`)
+- Banking77 calibration (`ECE 0.1129` after sharpening, down from `0.186`) is the weakest of the published benchmarks
 - English only
 
 ## Roadmap
@@ -186,7 +186,7 @@ python -m pytest -q   # 38 tests passing
 - [ ] distill the ensemble into one 184M model (single-model general skills currently erode after per-benchmark fine-tuning)
 - [ ] INT8 / ONNX export for CPU deployment
 - [ ] multi-question shared-state encoding (one pass, many questions)
-- [ ] b77 confidence-sharpening sweep (ECE `0.186` -> target < `0.10`)
+- [x] b77 confidence-sharpening sweep (ECE `0.186` -> `0.1129` at γ = 1.5; target `< 0.10` needs training-time calibration)
 - [ ] robustness: reduce mild overconfidence on out-of-distribution and garbage inputs
 - [ ] non-English checkpoints (the interface is language-agnostic; the weights are not yet)
 
