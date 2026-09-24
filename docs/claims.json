@@ -1,7 +1,7 @@
 {
   "model": "oev",
   "version": "0.1.0",
-  "hardware": "single Tesla T4, fp16 inference",
+  "hardware": "single Tesla T4, fp16 inference; CPU: laptop, 8 threads",
   "notes": "baselines quoted from published tables, not re-run; gamma selected on evaluation sweeps is marked exploratory",
   "claims": [
     {
@@ -14,7 +14,7 @@
     },
     {
       "metric": "accuracy",
-      "value": 0.7760,
+      "value": 0.776,
       "benchmark": "typed-decisions",
       "checkpoint": "ensemble of oev-base-td5, oev-base-rlcd, oev-base-rlcd-soup, oev-base-rlcd-seed1",
       "params": "4 x 184M",
@@ -54,7 +54,7 @@
     },
     {
       "metric": "soft_accuracy",
-      "value": 0.7020,
+      "value": 0.702,
       "benchmark": "typed-decisions",
       "checkpoint": "sharpened ensemble (gamma 2.5, exploratory)",
       "params": "3 x 184M",
@@ -75,6 +75,132 @@
       "checkpoint": "ensemble of oev-base-banking77 + b77_a + b77_b (unsharpened)",
       "params": "3 x 184M",
       "eval": "python -m oev.benchmark_ext --ckpts checkpoints_b77/oev-tiny.pt,checkpoints_b77_a/oev-tiny.pt,checkpoints_b77_b/oev-tiny.pt --data-dir data/banking77"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.8584,
+      "benchmark": "banking77",
+      "checkpoint": "b77soup (weight-avg of oev-base-banking77 + b77_a + b77_b), one 184M file",
+      "params": "184M",
+      "eval": "python -m oev.soup --checkpoints ck/b77-oev-tiny.pt,ck/b77a-oev-tiny.pt,ck/b77b-oev-tiny.pt --out b77soup.pt; python -m oev.benchmark_ext --checkpoint b77soup.pt --data-dir data/banking77"
+    },
+    {
+      "metric": "ece",
+      "value": 0.0965,
+      "benchmark": "banking77",
+      "checkpoint": "b77soup (single file, unsharpened)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint b77soup.pt --data-dir data/banking77"
+    },
+    {
+      "metric": "soft_accuracy",
+      "value": 0.8484,
+      "benchmark": "banking77",
+      "checkpoint": "b77soup (single file)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint b77soup.pt --data-dir data/banking77"
+    },
+    {
+      "metric": "coverage_at_5pct_error",
+      "value": 0.7604,
+      "benchmark": "banking77",
+      "checkpoint": "b77soup (single file)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint b77soup.pt --data-dir data/banking77"
+    },
+    {
+      "metric": "aurc",
+      "value": 0.0389,
+      "benchmark": "banking77",
+      "checkpoint": "b77soup (single file)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint b77soup.pt --data-dir data/banking77"
+    },
+    {
+      "metric": "coverage_at_5pct_error",
+      "value": 0.6386,
+      "benchmark": "banking77",
+      "checkpoint": "oev-base-banking77 (single, re-measured benchmark_ext)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint ck/b77-oev-tiny.pt --data-dir data/banking77"
+    },
+    {
+      "metric": "aurc",
+      "value": 0.0499,
+      "benchmark": "banking77",
+      "checkpoint": "oev-base-banking77 (single, re-measured benchmark_ext)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint ck/b77-oev-tiny.pt --data-dir data/banking77"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.4265,
+      "benchmark": "dair_emotion",
+      "checkpoint": "oev-base-td5 (zero-shot, never saw emotion)",
+      "params": "184M",
+      "eval": "python -m oev.convert_emotion; python -m oev.benchmark_ext --checkpoint ck/oev-base-td5.pt --data-dir data/emotion",
+      "note": "zero-shot; ~majority-class baseline 0.40, random 0.167. Specialist forgetting, feeds distillation."
+    },
+    {
+      "metric": "ece",
+      "value": 0.1750,
+      "benchmark": "dair_emotion",
+      "checkpoint": "oev-base-td5 (zero-shot)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint ck/oev-base-td5.pt --data-dir data/emotion"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.3945,
+      "benchmark": "wanli",
+      "checkpoint": "oev-base-td5 (zero-shot)",
+      "params": "184M",
+      "eval": "python -m oev.convert_wanli; python -m oev.benchmark_ext --checkpoint ck/oev-base-td5.pt --data-dir data/wanli",
+      "note": "zero-shot NLI; random floor 0.333; labels from dataset schema (entailment/neutral/contradiction)"
+    },
+    {
+      "metric": "ece",
+      "value": 0.1075,
+      "benchmark": "wanli",
+      "checkpoint": "oev-base-td5 (zero-shot)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint ck/oev-base-td5.pt --data-dir data/wanli"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.3800,
+      "benchmark": "wanli",
+      "checkpoint": "multi-task (mt, unpublished checkpoint, zero-shot)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint ck/oev-base-mt.pt --data-dir data/wanli",
+      "note": "below td5; 43 answers wrong at p>=0.9 (worst OOD overconfidence measured)"
+    },
+    {
+      "metric": "ece",
+      "value": 0.2138,
+      "benchmark": "wanli",
+      "checkpoint": "multi-task (mt, zero-shot)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint ck/oev-base-mt.pt --data-dir data/wanli"
+    },
+    {
+      "metric": "confidence_error_rate",
+      "value": 0.0115,
+      "benchmark": "wanli",
+      "checkpoint": "multi-task (mt, zero-shot)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint ck/oev-base-mt.pt --data-dir data/wanli",
+      "note": "43 confidently-wrong answers at p>=0.9"
+    },
+    {
+      "metric": "coherence",
+      "value": 4,
+      "unit": "of 5 scenarios",
+      "benchmark": "TESTS.md coherence scenarios, multi-task (mt) at T=1.0",
+      "checkpoint": "oev-base-mt",
+      "params": "184M",
+      "eval": "oev.infer.OEV(ck/oev-base-mt.pt, temperature=1.0) on the 5 TESTS.md scenarios, decided 2026-09-24",
+      "note": "remaining failure: destructive_erasure tripped (action=human_review but risk=Low); distilled model target 5/5"
     },
     {
       "metric": "accuracy",
@@ -102,7 +228,7 @@
     },
     {
       "metric": "ece",
-      "value": 0.1860,
+      "value": 0.186,
       "benchmark": "banking77",
       "checkpoint": "oev-base-banking77 (raw)",
       "params": "184M",
@@ -118,7 +244,7 @@
     },
     {
       "metric": "accuracy",
-      "value": 0.9300,
+      "value": 0.93,
       "benchmark": "dair_emotion",
       "checkpoint": "oev-tiny_em (deberta-v3-base)",
       "params": "184M",
@@ -148,6 +274,15 @@
       "checkpoint": "oev-base-td5",
       "params": "184M",
       "eval": "python -m oev.benchmark_ext --checkpoint checkpoints_td5/oev-tiny.pt --data-dir data/typed --latency"
+    },
+    {
+      "metric": "cpu latency p50",
+      "value": 447,
+      "unit": "ms",
+      "benchmark": "single-question inference, 3 states, 30 calls, warmup excluded",
+      "checkpoint": "b77soup (184M)",
+      "hardware": "laptop CPU, 8 threads",
+      "eval": "agent.decide() timing loop, oev.infer.OEV on CPU"
     }
   ]
 }

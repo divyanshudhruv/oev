@@ -9,7 +9,7 @@
 
 OEV is a small (`184M params`) neural decision engine. Instead of generating text, it scores answer options directly. The state, the question, and every option are packed into one sequence. One forward pass returns a calibrated probability distribution.
 
-The single `184M` model scores `0.7705` on typed-decisions, slightly above laya's published `0.766` from a `421M` checkpoint. An ensemble of four `184M` checkpoints reaches `0.7760`, the `highest` reported result, and the Banking77 ensemble reaches `0.8529` with `ECE 0.0595`. Jev leads only on Banking77.
+The single `184M` model scores `0.7705` on typed-decisions, slightly above laya's published `0.766` from a `421M` checkpoint. An ensemble of four `184M` checkpoints reaches `0.7760`, the `highest` reported result, and a single Banking77 soup checkpoint reaches `0.8584` (best ECE `0.0595` from the 3-checkpoint ensemble). Jev leads only on Banking77 (0.870).
 
 [![Hugging Face Model](https://img.shields.io/badge/%F0%9F%A4%97%20Model-divyanshudhruv%2Foev--typed-blue)](https://huggingface.co/divyanshudhruv/oev-typed)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
@@ -41,15 +41,15 @@ The single `184M` model scores `0.7705` on typed-decisions, slightly above laya'
 | --------------------- | ------------------------------------------------------------------------------------------------------- |
 | best accuracy         | **0.7705** single model, **0.7760** ensemble - typed-decisions (laya 0.766 from 421M)  |
 | best soft accuracy    | **0.7020** sharpened (laya 0.471, Jev 0.580)                                                            |
-| high-cardinality      | **0.8529** Banking77, `ECE 0.0595` (laya 0.425)                                                          |
+| high-cardinality      | **0.8584** Banking77, one soup checkpoint (`ECE 0.0595` best ensemble; laya 0.425) |
 | speed                 | **22.2 ms** single question (laya 32.8 ms)                                                              |
 | size                  | **184M** params, 0.44x laya                                                                             |
 | calibration           | **ECE 0.0298** (laya 0.213)                                                                             |
 | weights & checkpoints | Apache 2.0 - [huggingface.co/divyanshudhruv/oev-typed](https://huggingface.co/divyanshudhruv/oev-typed) |
 
-- `22.2 ms` per question on a `T4` (GPU); CPU latency not yet characterized
+- `22.2 ms` per question on a `T4` (GPU); `447 ms` p50 on CPU (8 threads, 184M soup checkpoint)
 - `ECE 0.0298` on typed-decisions after temperature fitting - measured confidence tracks actual accuracy, so it can gate automation
-- `0.8529` on 77-label `Banking77` with `ECE 0.0595`: each option is embedded as its own anchor with full tokens, so accuracy scales with label count (Jev still leads there)
+- `0.8584` on 77-label `Banking77` from a single soup checkpoint (the 3-checkpoint ensemble still holds best ECE `0.0595`): each option is embedded as its own anchor with full tokens, so accuracy scales with label count (gap to Jev 1.16 pts)
 - `184M` params, `Apache 2.0` weights
 - Kev (0.8B / 4B) publishes no in-domain numbers on these datasets, so it is not in the tables; see [BENCHMARKS.md](BENCHMARKS.md) for the like-for-like comparison plan
 
@@ -75,7 +75,7 @@ Fine-tuned on each benchmark's train split, following the same protocol as Laya'
 
 | benchmark             |        OEV |  laya |   Jev | note                        |
 | --------------------- | ---------: | ----: | ----: | --------------------------- |
-| typed-decisions       | **0.7760** | 0.766 | 0.727 | highest reported (ensemble); single model 0.7705 || Banking77 (77 labels) | **0.8529** | 0.425 | 0.870 | 2x laya; Jev still leads |
+| typed-decisions       | **0.7760** | 0.766 | 0.727 | highest reported (ensemble); single model 0.7705 || Banking77 (77 labels) | **0.8584** | 0.425 | 0.870 | 2x laya; gap to Jev 1.16 pts |
 | AG News               | **0.9489** | 0.950 | 0.910 | label-noise ceiling (~0.95) |
 | DAIR Emotion          | **0.9300** | 0.595 | 0.480 | laya's number is zero-shot  |
 
@@ -175,15 +175,15 @@ python -m pytest -q   # 38 tests passing
 
 ## Limitations
 
-- every benchmark number is from a checkpoint fine-tuned on that benchmark's train split; zero-shot performance is much weaker
+- every benchmark number is from a checkpoint fine-tuned on that benchmark's train split; zero-shot performance is much weaker - measured: emotion `0.4265` (vs `0.9300` fine-tuned) and WANLI `0.3945` (vs random `0.333`), the two-suite gap distillation targets
 - the headline ensemble result is an average of four checkpoints; the best single model is `0.7705`
-- CPU latency is uncharacterized - all timings are T4 GPU
+- CPU inference is roughly `20x` slower than the T4 (`447 ms` p50, 8 threads) - all headline timings are GPU
 - the b77 headline is a 3-checkpoint ensemble; the best single b77 model is `0.8403`
 - English only
 
 ## Roadmap
 
-- [ ] distill the ensemble into one 184M model (single-model general skills currently erode after per-benchmark fine-tuning)
+- [ ] distill the ensemble into one 184M model (zero-shot erosion now measured on two suites; distillation is the fix)
 - [ ] INT8 / ONNX export for CPU deployment
 - [ ] multi-question shared-state encoding (one pass, many questions)
 - [x] b77 calibration: ensemble averaging reached `ECE 0.0595` (target was `< 0.10`)

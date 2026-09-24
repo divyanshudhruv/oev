@@ -2,7 +2,8 @@
 
 Zero-shot evaluation only: a checkpoint that never saw WANLI (td5, b77
 specialists) is scored on natural-language-inference labels it must
-transfer to. WANLI classes: engagement, statement, question, other.
+transfer to. WANLI classes (from the dataset schema): entailment,
+neutral, contradiction.
 
     python -m oev.convert_wanli          # writes data/wanli/test.jsonl
     python -m oev.benchmark_ext --checkpoint checkpoints_td5/oev-tiny.pt --data-dir data/wanli
@@ -10,9 +11,9 @@ transfer to. WANLI classes: engagement, statement, question, other.
 import json
 import os
 
-LABELS = ["engagement", "other", "question", "statement"]
+LABELS = ["entailment", "neutral", "contradiction"]
 
-INSTRUCTIONS = "Which category best describes this utterance?"
+INSTRUCTIONS = "Does the hypothesis follow from the premise?"
 
 
 def download_wanli():
@@ -33,15 +34,16 @@ def main(out_dir="data/wanli", limit=2000):
             hypothesis = (row["hypothesis"] or "").strip()
             state = json.dumps({"premise": premise, "hypothesis": hypothesis})
             case = {
+                "id": f"wanli-{n:06d}",
+                "domain": "wanli",
                 "state": state,
-                "questions": {
-                    "relation": {
-                        "type": "choice",
-                        "instructions": INSTRUCTIONS,
-                        "options": LABELS,
-                    }
-                },
-                "answers": {"relation": gold},
+                "questions": [{
+                    "name": "relation",
+                    "type": "choice",
+                    "instructions": INSTRUCTIONS,
+                    "options": LABELS,
+                    "answer": gold,
+                }],
             }
             f.write(json.dumps(case) + "\n")
             n += 1

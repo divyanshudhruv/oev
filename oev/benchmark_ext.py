@@ -157,6 +157,7 @@ def evaluate_metrics(checkpoints, data_dir, device="cuda", gamma=1.0, latency=Fa
                 agg[2] += probs[label].item()
 
     conf_err, conf_err_n = confident_error_rate(confs, corrs)
+    conf_err_wrong = sum(1 - o for c, o in zip(confs, corrs) if c >= 0.9)
     result = {
         "accuracy": correct / n,
         "soft_acc": soft_acc_sum / n,
@@ -174,7 +175,7 @@ def evaluate_metrics(checkpoints, data_dir, device="cuda", gamma=1.0, latency=Fa
     if result["score_mae"] is not None:
         print(f"score MAE: {result['score_mae']:.4f}")
     print(f"ece      : {result['ece']:.4f}")
-    print(f"conf err : {result['confident_errors']:.4f}  (wrong with p>=0.9; {conf_err_n} such answers)")
+    print(f"conf err : {result['confident_errors']:.4f}  ({conf_err_wrong} of {conf_err_n} answers at p>=0.9 are wrong)")
     print(f"coverage : {result['coverage_at_5pct']:.4f}  (automatable at <=5% error)")
     print(f"aurc     : {result['aurc']:.4f}")
     print(f"n        : {result['n']}")

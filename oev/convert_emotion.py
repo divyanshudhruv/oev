@@ -30,15 +30,16 @@ def main(out_dir="data/emotion"):
     with open(os.path.join(out_dir, "test.jsonl"), "w", encoding="utf-8") as f:
         for row in ds:
             case = {
+                "id": f"emotion-{n:06d}",
+                "domain": "emotion",
                 "state": row["text"],
-                "questions": {
-                    "emotion": {
-                        "type": "choice",
-                        "instructions": INSTRUCTIONS,
-                        "options": LABELS,
-                    }
-                },
-                "answers": {"emotion": LABELS[row["label"]]},
+                "questions": [{
+                    "name": "emotion",
+                    "type": "choice",
+                    "instructions": INSTRUCTIONS,
+                    "options": LABELS,
+                    "answer": LABELS[row["label"]],
+                }],
             }
             f.write(json.dumps(case) + "\n")
             n += 1
