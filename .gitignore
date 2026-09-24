@@ -5,17 +5,16 @@ __pycache__/
 *.egg-info/
 dist/
 build/
-docs/
 data/
 checkpoints*/
 benchmarks/
 *.zip
 *.pt
-laya.md
-SUMMARY.md
-HF_MODEL_CARD.md
 .freebuff/
 .DS_Store
-make_charts.py
-make_bigfigure.py
-dist/
+
+# private session notes
+summary_kaggle.md
+kaggle_multitask_cells.md
+SUMMARY.md
+laya.md

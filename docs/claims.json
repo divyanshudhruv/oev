@@ -1,0 +1,129 @@
+{
+  "model": "oev",
+  "version": "0.1.0",
+  "hardware": "single Tesla T4, fp16 inference",
+  "notes": "baselines quoted from published tables, not re-run; gamma selected on evaluation sweeps is marked exploratory",
+  "claims": [
+    {
+      "metric": "accuracy",
+      "value": 0.7705,
+      "benchmark": "typed-decisions",
+      "checkpoint": "oev-base-td5",
+      "params": "184M",
+      "eval": "python -m oev.benchmark --checkpoint checkpoints_td5/oev-tiny.pt --data-dir data/typed"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.7760,
+      "benchmark": "typed-decisions",
+      "checkpoint": "ensemble of oev-base-td5, oev-base-rlcd, oev-base-rlcd-soup, oev-base-rlcd-seed1",
+      "params": "4 x 184M",
+      "eval": "python -m oev.ensemble --ckpts checkpoints_td5/oev-tiny.pt,checkpoints_rlcd/oev-tiny.pt,checkpoints_rlcd_soup/oev-tiny.pt --data-dir data/typed"
+    },
+    {
+      "metric": "ece",
+      "value": 0.0298,
+      "benchmark": "typed-decisions",
+      "checkpoint": "sharpened ensemble (gamma 2.5, exploratory)",
+      "params": "3 x 184M",
+      "eval": "python -m oev.benchmark_ext --ckpts ... --data-dir data/typed --sharpen 2.5"
+    },
+    {
+      "metric": "ece",
+      "value": 0.0279,
+      "benchmark": "typed-decisions",
+      "checkpoint": "oev-base-rlcd",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint checkpoints_rlcd/oev-tiny.pt --data-dir data/typed"
+    },
+    {
+      "metric": "ece",
+      "value": 0.0938,
+      "benchmark": "typed-decisions",
+      "checkpoint": "oev-base-td5 (raw)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark --checkpoint checkpoints_td5/oev-tiny.pt --data-dir data/typed"
+    },
+    {
+      "metric": "soft_accuracy",
+      "value": 0.6225,
+      "benchmark": "typed-decisions",
+      "checkpoint": "oev-base-td5",
+      "params": "184M",
+      "eval": "python -m oev.benchmark --checkpoint checkpoints_td5/oev-tiny.pt --data-dir data/typed"
+    },
+    {
+      "metric": "soft_accuracy",
+      "value": 0.7020,
+      "benchmark": "typed-decisions",
+      "checkpoint": "sharpened ensemble (gamma 2.5, exploratory)",
+      "params": "3 x 184M",
+      "eval": "python -m oev.benchmark_ext --ckpts ... --data-dir data/typed --sharpen 2.5"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.8303,
+      "benchmark": "banking77",
+      "checkpoint": "oev-base-banking77",
+      "params": "184M",
+      "eval": "python -m oev.benchmark --checkpoint checkpoints_b77/oev-tiny.pt --data-dir data/banking77"
+    },
+    {
+      "metric": "ece",
+      "value": 0.1129,
+      "benchmark": "banking77",
+      "checkpoint": "oev-base-banking77 (gamma 1.5)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint checkpoints_b77/oev-tiny.pt --data-dir data/banking77 --sharpen 1.5"
+    },
+    {
+      "metric": "ece",
+      "value": 0.1860,
+      "benchmark": "banking77",
+      "checkpoint": "oev-base-banking77 (raw)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark --checkpoint checkpoints_b77/oev-tiny.pt --data-dir data/banking77"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.9489,
+      "benchmark": "ag_news",
+      "checkpoint": "oev-tiny_bb (deberta-v3-base)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark --checkpoint checkpoints_bb/oev-tiny.pt --data-dir data/ag_news"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.9300,
+      "benchmark": "dair_emotion",
+      "checkpoint": "oev-tiny_em (deberta-v3-base)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark --checkpoint checkpoints_bb_em/oev-tiny.pt --data-dir data/emotion",
+      "note": "fine-tuned on the benchmark train split; laya and Jev emotion numbers are zero-shot"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.9526,
+      "benchmark": "ag_news",
+      "checkpoint": "multi-task (mt, unpublished checkpoint)",
+      "params": "184M",
+      "eval": "trained on data/ag_news,data/emotion,data/typed; benchmarked 2026-09-23"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.7395,
+      "benchmark": "typed-decisions",
+      "checkpoint": "multi-task (mt, unpublished checkpoint)",
+      "params": "184M",
+      "eval": "trained on data/ag_news,data/emotion,data/typed; benchmarked 2026-09-23"
+    },
+    {
+      "metric": "latency_p50_ms",
+      "value": 22.2,
+      "benchmark": "typed-decisions",
+      "checkpoint": "oev-base-td5",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint checkpoints_td5/oev-tiny.pt --data-dir data/typed --latency"
+    }
+  ]
+}

@@ -10,12 +10,14 @@ from oev.tokenizer_hf import HFTokenPacker
 
 def run_epoch(model, loader, device, opt=None, log_every=0, epoch=0, scaler=None):
     model.train(opt is not None)
+    no_grad = opt is None
     total = 0.0
     n = 0
     steps = 0
     for batch in loader:
         batch = {k: v.to(device) if torch.is_tensor(v) else v for k, v in batch.items()}
-        with torch.autocast(device_type=device, dtype=torch.float16, enabled=scaler is not None and device == "cuda"):
+        cm = torch.no_grad() if no_grad else torch.enable_grad()
+        with cm, torch.autocast(device_type=device, dtype=torch.float16, enabled=device == "cuda"):
             logits = model(batch["ids"], batch["pad_mask"], batch["anchor_pos"]) + batch["logits_mask"]
             log_probs = F.log_softmax(logits.float(), dim=-1)
             log_probs = torch.nan_to_num(log_probs, neginf=-1e4)  # 0 * -inf = NaN on masked options

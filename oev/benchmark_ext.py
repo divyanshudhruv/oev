@@ -59,7 +59,43 @@ def ece_metric(confs, corrs, n_bins=10):
     return e
 
 
-def evaluate_metrics(checkpoints, data_dir, device="cuda", gamma=1.0, latency=False):
+def confident_error_rate(confs, corrs, threshold=0.9):
+    """Fraction of all answers that are wrong despite p >= threshold."""
+    errs = [(c, o) for c, o in zip(confs, corrs) if c >= threshold]
+    if not errs:
+        return 0.0, 0
+    return sum(1 - o for _, o in errs) / len(confs), len(errs)
+
+
+def coverage_at_error_budget(confs, corrs, budget=0.05):
+    """Largest fraction of questions automatable (answer taken when p >= t)
+    while keeping the error rate on automated answers <= budget."""
+    best = 0.0
+    for t in sorted(set(confs), reverse=True):
+        kept = [(c, o) for c, o in zip(confs, corrs) if c >= t]
+        if not kept:
+            continue
+        err = sum(1 - o for _, o in kept) / len(kept)
+        cov = len(kept) / len(confs)
+        if err <= budget:
+            best = max(best, cov)
+    return best
+
+
+def aurc(confs, corrs):
+    """Area under the risk-coverage curve: sort by confidence desc,
+    risk at coverage c is the error rate of the top-c fraction. Lower is better."""
+    pairs = sorted(zip(confs, corrs), key=lambda x: -x[0])
+    n = len(pairs)
+    cum_err = 0.0
+    total = 0.0
+    for i, (_, o) in enumerate(pairs):
+        cum_err += 1 - o
+        total += cum_err / (i + 1)
+    return total / n
+
+
+def evaluate_metrics(checkpoints, data_dir, device="cuda", gamma=1.0, latency=False, permute=0):
     if device == "cuda" and not torch.cuda.is_available():
         device = "cpu"
     models = [load_model(c, device) for c in checkpoints]
@@ -120,12 +156,16 @@ def evaluate_metrics(checkpoints, data_dir, device="cuda", gamma=1.0, latency=Fa
                 agg[1] += 1
                 agg[2] += probs[label].item()
 
+    conf_err, conf_err_n = confident_error_rate(confs, corrs)
     result = {
         "accuracy": correct / n,
         "soft_acc": soft_acc_sum / n,
         "brier": brier_sum / n,
         "score_mae": (score_mae_sum / score_n) if score_n else None,
         "ece": ece_metric(confs, corrs),
+        "confident_errors": conf_err,
+        "coverage_at_5pct": coverage_at_error_budget(confs, corrs, 0.05),
+        "aurc": aurc(confs, corrs),
         "n": n,
     }
     print(f"accuracy : {result['accuracy']:.4f}")
@@ -134,6 +174,9 @@ def evaluate_metrics(checkpoints, data_dir, device="cuda", gamma=1.0, latency=Fa
     if result["score_mae"] is not None:
         print(f"score MAE: {result['score_mae']:.4f}")
     print(f"ece      : {result['ece']:.4f}")
+    print(f"conf err : {result['confident_errors']:.4f}  (wrong with p>=0.9; {conf_err_n} such answers)")
+    print(f"coverage : {result['coverage_at_5pct']:.4f}  (automatable at <=5% error)")
+    print(f"aurc     : {result['aurc']:.4f}")
     print(f"n        : {result['n']}")
 
     print("\nper primitive:")
@@ -143,9 +186,53 @@ def evaluate_metrics(checkpoints, data_dir, device="cuda", gamma=1.0, latency=Fa
     for d, (c, tot, s) in sorted(by_domain.items()):
         print(f"  {d:<28} acc {c / tot:.4f}  soft acc {s / tot:.4f}  (n={tot})")
 
+    if permute > 1:
+        permute_flip_rate(models[0], packers[0], rows, device, permute)
     if latency:
         measure_latency(models[0], packers[0], rows, device)
     return result
+
+
+def permute_flip_rate(model, packer, rows, device, n_perm=6, max_cases=300):
+    """How much does answer identity depend on option order? For choice
+    questions, rotate the options n_perm times and count how often the
+    argmax changes relative to the identity order. Lower is better."""
+    import itertools
+
+    cases = []
+    for r in rows:
+        for q in r["questions"]:
+            if q["type"] == "choice" and len(q["options"]) <= 24:
+                cases.append((r["state"], q))
+            if len(cases) >= max_cases:
+                break
+        if len(cases) >= max_cases:
+            break
+    if not cases:
+        print("permute: no choice questions found")
+        return
+
+    def predict(s, q):
+        ids, an, _ = packer.pack(s, q, model.cfg["max_len"])
+        with torch.no_grad():
+            logits = model(torch.tensor([ids], device=device),
+                           torch.zeros(1, len(ids), dtype=torch.bool, device=device),
+                           torch.tensor([an], device=device))
+        return logits[0].argmax().item()
+
+    flips = 0
+    total = 0
+    for s, q in cases:
+        base_pick = q["options"][predict(s, q)]
+        for k in range(1, n_perm):
+            rot = q["options"][k:] + q["options"][:k]
+            rq = dict(q, options=rot)
+            pick = rot[predict(s, rq)]
+            total += 1
+            if pick != base_pick:
+                flips += 1
+    rate = flips / total if total else 0.0
+    print(f"\npermute: {flips}/{total} answer changes under {n_perm} option rotations (flip rate {rate:.4f})")
 
 
 def measure_latency(model, packer, rows, device, n_single=50, n_batch=200, batch_size=32):
@@ -207,7 +294,8 @@ if __name__ == "__main__":
     p.add_argument("--data-dir", default="data/typed")
     p.add_argument("--sharpen", type=float, default=1.0, help="confidence exponent gamma; >1 sharpens distributions")
     p.add_argument("--latency", action="store_true", help="also measure single p50 and batched throughput")
+    p.add_argument("--permute", type=int, default=0, help="also run the option-order sensitivity check with N rotations (e.g. 6)")
     args = p.parse_args()
     ckpts = ([c.strip() for c in args.ckpts.split(",") if c.strip()]
              if args.ckpts else [args.checkpoint])
-    evaluate_metrics(ckpts, args.data_dir, gamma=args.sharpen, latency=args.latency)
+    evaluate_metrics(ckpts, args.data_dir, gamma=args.sharpen, latency=args.latency, permute=args.permute)
