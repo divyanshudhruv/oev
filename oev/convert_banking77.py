@@ -21,20 +21,31 @@ import json
 from pathlib import Path
 
 
-def download_banking77():
-    from datasets import load_dataset
+def _read_csv(url, names):
+    """Download one PolyAI banking csv (columns: text,category) into row dicts."""
+    import csv
+    import io
+    import urllib.request
 
-    try:
-        ds = load_dataset("PolyAI/banking77")
-    except RuntimeError:
-        # new datasets versions dropped script support; use the auto-converted parquet branch
-        ds = load_dataset("PolyAI/banking77", revision="refs/convert/parquet")
-    return ds["train"], ds["test"]
+    raw = urllib.request.urlopen(url, timeout=60).read().decode("utf-8")
+    rows = list(csv.DictReader(io.StringIO(raw)))
+    for r in rows:
+        r["label"] = names.index(r["category"])
+    return rows
+
+
+def download_banking77(names):
+    # the HF repo ships a legacy loading script that modern `datasets`
+    # refuses to run, and the auto-converted parquet branch was removed;
+    # the canonical source is PolyAI's own github csvs
+    base = "https://raw.githubusercontent.com/PolyAI-LDN/task-specific-datasets/master/banking_data"
+    return _read_csv(f"{base}/train.csv", names), _read_csv(f"{base}/test.csv", names)
 
 
 def intent_names():
-    """Official BANKING77 intent names in the dataset's label-id order,
-    fetched from the dataset's schema so it can never drift from the ids."""
+    """Official BANKING77 intent names in the HF dataset's label-id order,
+    fetched from the dataset's schema. Checkpoints are trained against this
+    exact id order, so it must never be replaced by another source."""
     import json
     import urllib.request
 
@@ -75,9 +86,9 @@ def convert(rows, names):
 
 
 if __name__ == "__main__":
-    train, test = download_banking77()
     names = intent_names()
     assert len(names) == 77, f"expected 77 intents, got {len(names)}"
+    train, test = download_banking77(names)
 
     train_rows = list(convert(train, names))
     # carve a validation split off the train pool
