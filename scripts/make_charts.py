@@ -222,7 +222,16 @@ for tag, accent in (("dark", DARK_ACC),):
 print("dark variants written")
 
 
-# ---------------- Chart 5: three-up panel (params | primitive | workflow) ----------------
+# ---------------- Chart 5: three-up panel (params | primitive | workflow) ----------------# reset to the light theme: the dark-variant loop above overwrote rcParams globally
+plt.rcParams.update({
+    "figure.facecolor": "white",
+    "axes.facecolor": "white",
+    "text.color": "black",
+    "axes.edgecolor": "black",
+    "axes.labelcolor": "black",
+    "xtick.color": "black",
+    "ytick.color": "black",
+})
 fig, axes = plt.subplots(1, 3, figsize=(16, 4.8))
 
 # panel 1: accuracy vs params
@@ -284,7 +293,7 @@ for name, params, acc, _ in pts:
     ax.annotate(name.replace(" (this repo)", ""), (params, acc),
                 textcoords="offset points", xytext=(5, 6), fontsize=8, color=DARK_TEXT)
 ax.set_xlabel("parameters (M)"); ax.set_ylabel("typed-decisions accuracy")
-ax.set_title("accuracy vs size"); ax.set_xlim(0, 800)
+ax.set_title("accuracy vs size"); ax.set_xlim(0, 4200)
 
 ax = axes[1]
 b1 = ax.bar([i - w2/2 for i in x2], laya_p, w2, label="laya", color=RED)
