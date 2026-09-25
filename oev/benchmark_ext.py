@@ -12,6 +12,8 @@ Ensembles:
 
 import argparse
 import json
+import os
+from datetime import datetime, timezone
 
 import torch
 
@@ -94,10 +96,45 @@ def aurc(confs, corrs):
     return total / n
 
 
-def evaluate_metrics(checkpoints, data_dir, device="cuda", gamma=1.0, latency=False, permute=0):
-    if device == "cuda" and not torch.cuda.is_available():
-        print("WARNING: CUDA requested but unavailable; falling back to CPU (latency numbers will not be comparable)")
-        device = "cpu"
+def resolve_device(device="cuda", allow_cpu=False):
+    """Pin the eval device. A missing GPU fails loudly unless allow_cpu is set,
+    so CPU numbers can never pass for GPU numbers in a published report."""
+    if device.startswith("cuda") and not torch.cuda.is_available():
+        if allow_cpu:
+            print("WARNING: CUDA unavailable; running on CPU (--allow-cpu). "
+                  "Latency numbers are not comparable to GPU runs.")
+            return "cpu"
+        raise SystemExit(
+            "CUDA requested but unavailable. Re-run with --allow-cpu "
+            "if CPU numbers are what you want.")
+    return device
+
+
+def write_manifest(out_dir, checkpoint, data_dir, device, result):
+    """Persist a per-run receipt: exact inputs, resolved device, metrics and
+    raw timing samples. Published numbers should be reproducible from these."""
+    os.makedirs(out_dir, exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    name = os.path.splitext(os.path.basename(str(checkpoint)))[0] or "ensemble"
+    path = os.path.join(out_dir, f"{stamp}-{name}.json")
+    manifest = {
+        "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "checkpoint": checkpoint,
+        "data_dir": data_dir,
+        "device": device,
+        "torch": torch.__version__,
+        "cuda_available": torch.cuda.is_available(),
+        "metrics": result,
+    }
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(manifest, fh, indent=2)
+    print(f"manifest: {path}")
+    return path
+
+
+def evaluate_metrics(checkpoints, data_dir, device="cuda", gamma=1.0, latency=False,
+                     permute=0, allow_cpu=False, manifest_dir=None):
+    device = resolve_device(device, allow_cpu)
     models = [load_model(c, device) for c in checkpoints]
     packers = [HFTokenPacker(m.cfg["backbone"]) for m in models]
 
@@ -159,6 +196,7 @@ def evaluate_metrics(checkpoints, data_dir, device="cuda", gamma=1.0, latency=Fa
     conf_err, conf_err_n = confident_error_rate(confs, corrs)
     conf_err_wrong = sum(1 - o for c, o in zip(confs, corrs) if c >= 0.9)
     result = {
+        "device": device,
         "accuracy": correct / n,
         "soft_acc": soft_acc_sum / n,
         "brier": brier_sum / n,
@@ -169,6 +207,7 @@ def evaluate_metrics(checkpoints, data_dir, device="cuda", gamma=1.0, latency=Fa
         "aurc": aurc(confs, corrs),
         "n": n,
     }
+    print(f"device   : {device}")
     print(f"accuracy : {result['accuracy']:.4f}")
     print(f"soft acc : {result['soft_acc']:.4f}")
     print(f"brier    : {result['brier']:.4f}")
@@ -190,7 +229,10 @@ def evaluate_metrics(checkpoints, data_dir, device="cuda", gamma=1.0, latency=Fa
     if permute > 1:
         permute_flip_rate(models[0], packers[0], rows, device, permute)
     if latency:
-        measure_latency(models[0], packers[0], rows, device)
+        result["latency"] = measure_latency(models[0], packers[0], rows, device)
+    if manifest_dir:
+        ckpt_label = checkpoints[0] if len(checkpoints) == 1 else ",".join(checkpoints)
+        write_manifest(manifest_dir, ckpt_label, data_dir, device, result)
     return result
 
 
@@ -285,6 +327,12 @@ def measure_latency(model, packer, rows, device, n_single=50, n_batch=200, batch
     total_ms = (time.perf_counter() - t0) * 1000
     print(f"latency batched: {total_ms / done:.1f} ms/question  (n={done}, batch={batch_size})")
     print(f"throughput: {done / (total_ms / 1000):.0f} questions/sec")
+    return {
+        "single_p50_ms": round(times[len(times) // 2], 2),
+        "single_ms": [round(t, 2) for t in times],
+        "batched_ms_per_q": round(total_ms / done, 2),
+        "throughput_qps": round(done / (total_ms / 1000), 1),
+    }
 
 
 if __name__ == "__main__":
@@ -295,7 +343,12 @@ if __name__ == "__main__":
     p.add_argument("--sharpen", type=float, default=1.0, help="confidence exponent gamma; >1 sharpens distributions")
     p.add_argument("--latency", action="store_true", help="also measure single p50 and batched throughput")
     p.add_argument("--permute", type=int, default=0, help="also run the option-order sensitivity check with N rotations (e.g. 6)")
+    p.add_argument("--device", default="cuda", help="cuda or cpu; a missing GPU fails unless --allow-cpu is set")
+    p.add_argument("--allow-cpu", action="store_true", help="fall back to CPU when CUDA is requested but unavailable")
+    p.add_argument("--manifest-dir", default="runs", help="write a per-run receipt JSON here (empty string disables)")
     args = p.parse_args()
     ckpts = ([c.strip() for c in args.ckpts.split(",") if c.strip()]
              if args.ckpts else [args.checkpoint])
-    evaluate_metrics(ckpts, args.data_dir, gamma=args.sharpen, latency=args.latency, permute=args.permute)
+    evaluate_metrics(ckpts, args.data_dir, device=args.device, gamma=args.sharpen,
+                     latency=args.latency, permute=args.permute, allow_cpu=args.allow_cpu,
+                     manifest_dir=args.manifest_dir or None)

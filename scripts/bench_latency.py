@@ -1,4 +1,5 @@
 import argparse
+import hashlib
 import json
 import os
 import subprocess
@@ -7,6 +8,7 @@ import time
 
 import onnxruntime as ort
 import torch
+from onnxruntime.capi.onnxruntime_pybind11_state import Fail
 
 from oev.evaluate import load_model
 from oev.tokenizer_hf import HFTokenPacker
@@ -77,7 +79,7 @@ def bench(forward, packer, model_cfg, rows, n_single, n_batch, batch_size):
         forward(ids, pmask, apos)
         done += B
     total_ms = (time.perf_counter() - t0) * 1000
-    return p50, total_ms / done, done / max(total_ms / 1000, 1e-9)
+    return p50, total_ms / done, done / max(total_ms / 1000, 1e-9), times
 
 
 def mb(path):
@@ -122,41 +124,83 @@ def main():
         if r.returncode != 0:
             print("export failed; benchmarking torch only")
 
-    results = []
+    results = []  # (name, p50_ms, batched_ms_per_q, qps, size_mb, single_samples_ms)
     with torch.no_grad():
-        p50, bq, qps = bench(model.forward, packer, model.cfg, rows,
-                             args.n_single, args.n_batch, args.batch_size)
-        results.append(("fp32 torch", p50, bq, qps, os.path.getsize(args.checkpoint) / 1e6))
+        p50, bq, qps, samples = bench(model.forward, packer, model.cfg, rows,
+                                      args.n_single, args.n_batch, args.batch_size)
+        results.append(("fp32 torch", p50, bq, qps,
+                        os.path.getsize(args.checkpoint) / 1e6, samples))
         print(f"fp32 torch   : p50 {p50:6.1f} ms | batched {bq:6.1f} ms/q | {qps:5.0f} q/s")
 
         if args.compile:
             try:
                 compiled = torch.compile(model)
-                p50, bq, qps, _ = bench(compiled.forward, packer, model.cfg, rows,
-                                        args.n_single, args.n_batch, args.batch_size), None, None
+                p50, bq, qps, samples = bench(compiled.forward, packer, model.cfg, rows,
+                                              args.n_single, args.n_batch, args.batch_size)
+                results.append(("fp32 torch.compile", p50, bq, qps,
+                                os.path.getsize(args.checkpoint) / 1e6, samples))
+                print(f"fp32 compile : p50 {p50:6.1f} ms | batched {bq:6.1f} ms/q | {qps:5.0f} q/s")
             except (RuntimeError, IndentationError, ValueError) as e:
                 print(f"torch.compile skipped: {e}")
 
     sess32 = sess8 = None
     if os.path.exists(fp32_path):
-        sess32 = ort.InferenceSession(fp32_path, providers=["CPUExecutionProvider"])
-        p50, bq, qps = bench(
-            lambda i, m, a: sess32.run(None, {"ids": i.numpy(), "pad_mask": m.numpy(),
-                                              "anchor_pos": a.numpy()}),
-            packer, model.cfg, rows, args.n_single, args.n_batch, args.batch_size)
-        results.append(("onnx fp32", p50, bq, qps, mb(fp32_path)))
-        print(f"onnx fp32    : p50 {p50:6.1f} ms | batched {bq:6.1f} ms/q | {qps:5.0f} q/s")
+        try:
+            sess32 = ort.InferenceSession(fp32_path, providers=["CPUExecutionProvider"])
+        except (RuntimeError, Fail) as e:
+            print(f"onnx fp32 skipped (session load failed): {e}")
+        if sess32 is not None:
+            p50, bq, qps, samples = bench(
+                lambda i, m, a: sess32.run(None, {"ids": i.numpy(), "pad_mask": m.numpy(),
+                                                  "anchor_pos": a.numpy()}),
+                packer, model.cfg, rows, args.n_single, args.n_batch, args.batch_size)
+            results.append(("onnx fp32", p50, bq, qps, mb(fp32_path), samples))
+            print(f"onnx fp32    : p50 {p50:6.1f} ms | batched {bq:6.1f} ms/q | {qps:5.0f} q/s")
     if os.path.exists(int8_path):
-        sess8 = ort.InferenceSession(int8_path, providers=["CPUExecutionProvider"])
-        p50, bq, qps = bench(
-            lambda i, m, a: sess8.run(None, {"ids": i.numpy(), "pad_mask": m.numpy(),
-                                             "anchor_pos": a.numpy()}),
-            packer, model.cfg, rows, args.n_single, args.n_batch, args.batch_size)
-        results.append(("onnx int8", p50, bq, qps, mb(int8_path)))
-        print(f"onnx int8    : p50 {p50:6.1f} ms | batched {bq:6.1f} ms/q | {qps:5.0f} q/s")
+        try:
+            sess8 = ort.InferenceSession(int8_path, providers=["CPUExecutionProvider"])
+        except (RuntimeError, Fail) as e:
+            print(f"onnx int8 skipped (session load failed): {e}")
+        if sess8 is not None:
+            p50, bq, qps, samples = bench(
+                lambda i, m, a: sess8.run(None, {"ids": i.numpy(), "pad_mask": m.numpy(),
+                                                 "anchor_pos": a.numpy()}),
+                packer, model.cfg, rows, args.n_single, args.n_batch, args.batch_size)
+            results.append(("onnx int8", p50, bq, qps, mb(int8_path), samples))
+            print(f"onnx int8    : p50 {p50:6.1f} ms | batched {bq:6.1f} ms/q | {qps:5.0f} q/s")
+
+    # archive a receipt so published numbers carry their raw samples
+    ts = time.strftime("%Y%m%d-%H%M%S")
+    runs_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "runs")
+    os.makedirs(runs_dir, exist_ok=True)
+    ck_hash = hashlib.sha256()
+    with open(args.checkpoint, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            ck_hash.update(chunk)
+    manifest = {
+        "kind": "latency-bench",
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "checkpoint": os.path.abspath(args.checkpoint),
+        "checkpoint_sha256": ck_hash.hexdigest(),
+        "device": "cpu",
+        "torch": torch.__version__,
+        "onnxruntime": ort.__version__,
+        "args": {"data_dir": args.data_dir, "n_single": args.n_single,
+                 "n_batch": args.n_batch, "batch_size": args.batch_size},
+        "backends": {
+            name: {"p50_ms": round(p50, 2), "batched_ms_per_q": round(bq, 2),
+                   "qps": round(qps, 1), "size_mb": round(size, 1),
+                   "samples_ms": [round(s, 2) for s in samples]}
+            for name, p50, bq, qps, size, samples in results
+        },
+    }
+    manifest_path = os.path.join(runs_dir, f"{ts}-latency-{ck}.json")
+    with open(manifest_path, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2)
+    print(f"manifest -> {manifest_path}")
 
     print(f"\n{'backend':<14}{'p50(ms)':>10}{'batch ms/q':>12}{'q/s':>8}{'MB':>9}")
-    for name, p50, bq, qps, size in results:
+    for name, p50, bq, qps, size, samples in results:
         print(f"{name:<14}{p50:>10.1f}{bq:>12.1f}{qps:>8.0f}{size:>9.1f}")
 
 
