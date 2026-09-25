@@ -22,6 +22,13 @@ dev = ["pytest>=8"]
 data = ["datasets>=2.14"]
 backbone = ["transformers>=4.40", "sentencepiece", "protobuf"]
 serve = ["fastapi>=0.110", "uvicorn>=0.29"]
+app = [
+    "gradio>=6.0,<7",
+    "huggingface_hub>=0.23",
+    "transformers>=4.40",
+    "sentencepiece",
+    "protobuf",
+]
 
 [project.scripts]
 oev-serve = "oev.serve:main"

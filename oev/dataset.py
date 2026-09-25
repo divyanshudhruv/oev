@@ -5,6 +5,7 @@ from oev import tokenizer as tk
 
 
 def pack(state, question, max_len=512):
+    max_len = max(1, int(max_len))
     options = question["options"]
     q_ids = tk.encode(question["name"] + ": " + question.get("instructions", question["type"]))
     opt_ids = [[tk.ANCHOR_ID] + tk.encode(" " + o) for o in options]
@@ -17,6 +18,7 @@ def pack(state, question, max_len=512):
         anchor_pos.append(len(ids))
         ids = ids + o
     ids = ids[:max_len]
+    anchor_pos = [min(anchor, len(ids) - 1) for anchor in anchor_pos]
     label = options.index(question["answer"])
     return ids, anchor_pos, label
 

@@ -1,6 +1,1 @@
-git+https://github.com/divyanshudhruv/oev.git
-gradio
-torch
-transformers
-huggingface_hub
-sentencepiece
+-e .[app]

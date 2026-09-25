@@ -8,12 +8,13 @@ from oev.tokenizer_hf import HFTokenPacker
 
 
 def ensemble_accuracy(ckpts, data_dir, device="cuda"):
-    models = [load_model(c, device) for c in ckpts]
-    packers = [HFTokenPacker(m.cfg["backbone"]) for m in models]
     if device == "cuda" and not torch.cuda.is_available():
         device = "cpu"
+    models = [load_model(c, device) for c in ckpts]
+    packers = [HFTokenPacker(m.cfg["backbone"]) for m in models]
+    with open(f"{data_dir}/test.jsonl", encoding="utf-8") as handle:
+        rows = [json.loads(line) for line in handle]
 
-    rows = [json.loads(l) for l in open(f"{data_dir}/test.jsonl", encoding="utf-8")]
     correct = total = 0
     with torch.no_grad():
         for r in rows:

@@ -1,3 +1,5 @@
+import math
+
 import torch
 import torch.nn.functional as F
 from oev.dataset import pack
@@ -29,7 +31,10 @@ class OEV:
         pq["answer"] = pq["options"][0]
         return pq
 
-    def _probs(self, state, pq):
+    def _probs(self, state, pq, temperature=None):
+        temperature = self.temperature if temperature is None else float(temperature)
+        if not math.isfinite(temperature) or temperature <= 0:
+            raise ValueError("temperature must be a finite positive number")
         if self.packer is not None:
             ids, anchors, _ = self.packer.pack(state, pq, self.max_len)
         else:
@@ -39,15 +44,13 @@ class OEV:
         apos = torch.tensor([anchors], dtype=torch.long)
         with torch.no_grad():
             logits = self.model(t.to(self.device), pad.to(self.device), apos.to(self.device))
-        # temperature < 1 sharpens, > 1 flattens; 1.0 is the raw logits.
-        # argmax is unchanged for any temperature.
-        return F.softmax(logits / self.temperature, dim=-1)[0].tolist()
+        return F.softmax(logits / temperature, dim=-1)[0].tolist()
 
-    def decide(self, state, questions):
+    def decide(self, state, questions, temperature=None):
         out = {}
         for name, q in questions.items():
             pq = self._question(name, q)
-            probs = self._probs(state, pq)
+            probs = self._probs(state, pq, temperature=temperature)
             best = max(range(len(probs)), key=probs.__getitem__)
             if q["type"] == "noul":
                 out[name] = float(probs[1])

@@ -3,7 +3,7 @@ name: sync-space
 on:
   push:
     branches: [main]
-    paths: ["app.py", "requirements.txt"]
+    paths: ["app.py", "requirements.txt", "pyproject.toml", "README.md", "LICENSE", "oev/**"]
 
 jobs:
   sync:
@@ -17,4 +17,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -q "huggingface_hub[cli]"
           hf upload divyanshudhruv/oev-demo app.py app.py --repo-type space
+          hf upload divyanshudhruv/oev-demo oev oev --repo-type space
+          hf upload divyanshudhruv/oev-demo pyproject.toml pyproject.toml --repo-type space
+          hf upload divyanshudhruv/oev-demo README.md README.md --repo-type space
+          hf upload divyanshudhruv/oev-demo LICENSE LICENSE --repo-type space
           hf upload divyanshudhruv/oev-demo requirements.txt requirements.txt --repo-type space

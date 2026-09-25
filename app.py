@@ -1,21 +1,18 @@
-# OEV HF Space demo — v3.1: stock Gradio + a thin, restrained CSS layer.
+# OEV HF Space demo: Gradio UI with restrained styling.
 
-# gr.themes.Soft() dark, gr.Tabs layout. State input has a segmented control
-
-# (JSON / Text). Output: Markdown bars + raw JSON. API: POST /call/decide.
-
+# State accepts text or JSON. Outputs are probability bars and raw JSON.
+# API: POST /call/decide.
 
 
+
+import html
 import json
-
+import math
 import os
-
+import threading
 import time
 
-
-
 import gradio as gr
-
 import torch
 
 
@@ -40,8 +37,6 @@ from oev.infer import OEV
 
 def _resolve_checkpoint(spec: str) -> str:
 
-    """Accept a local path or an 'user/repo/file.pt' Hub id."""
-
     if "/" not in spec or os.path.exists(spec):
 
         return spec
@@ -59,20 +54,18 @@ def _resolve_checkpoint(spec: str) -> str:
 CHECKPOINT = os.environ.get("OEV_CHECKPOINT", "divyanshudhruv/oev-typed/student-r2b-oev-tiny.pt")
 
 agent: OEV | None = None
-
-
-
+_agent_lock = threading.Lock()
 
 
 def load():
-
     global agent
-
     if agent is None:
-
-        agent = OEV(_resolve_checkpoint(CHECKPOINT), device="cuda" if torch.cuda.is_available() else "cpu")
-
+        with _agent_lock:
+            if agent is None:
+                device = "cuda" if torch.cuda.is_available() else "cpu"
+                agent = OEV(_resolve_checkpoint(CHECKPOINT), device=device)
     return agent
+
 
 
 
@@ -80,7 +73,7 @@ def load():
 
 # ----------------------------------------------------------------------
 
-# presets — verbatim trained schemas from typed-decisions
+# presets - verbatim trained schemas from typed-decisions
 
 # ----------------------------------------------------------------------
 
@@ -297,7 +290,6 @@ PLAYGROUND_QS = {
 AGENT_TEXT = None  # text presets folded into the single state box (JSON accepted inline)
 
 
-
 # ----------------------------------------------------------------------
 
 # inference plumbing
@@ -338,91 +330,128 @@ def _count_tokens(agent, state, questions):
 
 
 
+def _safe_probability(value):
+    try:
+        probability = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    if not math.isfinite(probability):
+        return 0.0
+    return min(1.0, max(0.0, probability))
+
+
+def _probability_row(label, probability, winner=False):
+    label_text = html.escape(str(label), quote=True)
+    probability = _safe_probability(probability)
+    percentage = probability * 100
+    aria_text = html.escape(f"{label}: {percentage:.1f}%", quote=True)
+    winner_class = " win" if winner else ""
+    return (
+        f'<div class="row{winner_class}" role="img" aria-label="{aria_text}">'
+        f'<span class="name">{label_text}</span>'
+        f'<span class="track"><span class="fill" '
+        f'style="width:{percentage:.1f}%"></span></span>'
+        f'<span class="val">{percentage:5.1f}%</span></div>\n'
+    )
+
+
+def _render_result(result, questions):
+    if not isinstance(result, dict):
+        raise ValueError("model result must be an object")
+    payload = {}
+    markdown = []
+    for name, question in questions.items():
+        if name not in result:
+            raise ValueError(f"missing result for question {name}")
+        value = result[name]
+        question_type = question.get("type", "choice")
+        question_name = html.escape(str(name), quote=True)
+        markdown.append(f'<span class="qname">{question_name}</span>\n')
+        if question_type == "noul":
+            if isinstance(value, dict):
+                probability = value.get("p_yes", value.get("value"))
+            else:
+                probability = value
+            probability = _safe_probability(probability)
+            payload[name] = {
+                "type": "noul",
+                "answer": "yes" if probability >= 0.5 else "no",
+                "p_yes": round(probability, 4),
+            }
+            markdown.append(_probability_row("yes", probability, probability >= 0.5))
+            markdown.append(_probability_row("no", 1.0 - probability, probability < 0.5))
+            continue
+        if not isinstance(value, dict) or not isinstance(value.get("probabilities"), dict):
+            raise ValueError(f"invalid result for question {name}")
+        probabilities = {
+            str(label): _safe_probability(probability)
+            for label, probability in value["probabilities"].items()
+        }
+        if not probabilities:
+            raise ValueError(f"empty probabilities for question {name}")
+        answer = value.get("choice", value.get("value"))
+        if answer is None:
+            answer = max(probabilities, key=lambda label: probabilities[label])
+        confidence = value.get("confidence")
+        if confidence is None:
+            confidence = max(probabilities.values())
+        payload[name] = {
+            "type": question_type,
+            "answer": answer,
+            "confidence": _safe_probability(confidence),
+            "probabilities": probabilities,
+        }
+        rows = sorted(probabilities.items(), key=lambda item: (-item[1], str(item[0])))
+        for index, (label, probability) in enumerate(rows):
+            markdown.append(_probability_row(label, probability, index == 0))
+    return payload, "\n".join(markdown)
+
+
 def _run(state, questions, temperature=1.0):
-
-    """Shared inference. Returns (payload_dict, markdown_bars, status_line)."""
-
     a = load()
-
-    old_t = a.temperature
-
-    a.temperature = float(temperature)
-
     t0 = time.perf_counter()
-
-    result = a.decide(state, questions)
-
+    result = a.decide(state, questions, temperature=float(temperature))
     ms = (time.perf_counter() - t0) * 1000
-
-    a.temperature = old_t
-
-
-
-    payload, md = {}, []
-
-    for name, q in questions.items():
-
-        v = result.get(name)
-
-        qtype = q.get("type", "choice")
-
-        if isinstance(v, dict) and "probabilities" in v:
-
-            payload[name] = {"type": qtype,
-
-                             "answer": v.get("choice", v.get("value")),
-
-                             "confidence": v.get("confidence"),
-
-                             "probabilities": v["probabilities"]}
-
-            md.append(f"### {name}\n")
-
-            rows = sorted(v["probabilities"].items(), key=lambda kv: -kv[1])
-
-            for opt, p in rows:
-
-                blocks = max(1, round(p * 20))
-
-                md.append(f"`{'█' * blocks:<20}` {p * 100:5.1f}%  — {opt}\n")
-
-        else:
-
-            p = float(v)
-
-            payload[name] = {"type": "noul",
-
-                             "answer": "yes" if p >= 0.5 else "no",
-
-                             "p_yes": round(p, 4)}
-
-            md.append(f"### {name}\n")
-
-            blocks = max(1, round(p * 20))
-
-            md.append(f"`{'█' * blocks:<20}` {p * 100:5.1f}%  — yes\n")
-
-            md.append(f"`{'░' * (20 - blocks):<20}` {100 - p * 100:5.1f}%  — no\n")
-
+    payload, markdown = _render_result(result, questions)
     n_tok = _count_tokens(a, state, questions)
+    token_text = str(n_tok) if n_tok is not None else "?"
+    status = (
+        f"{len(questions)} question(s) · {token_text} input tokens · "
+        f"{ms:.0f} ms · one forward pass per question · nothing generated"
+    )
+    return payload, markdown, status
 
-    status = (f"{len(questions)} question(s) · {n_tok if n_tok else '?'} input tokens · "
-
-              f"{ms:.0f} ms · one forward pass · nothing generated")
-
-    return payload, "\n".join(md), status
 
 
 
+
+def _error_markdown(error):
+    message = html.escape(str(error), quote=True)
+    return f"**error** - {message}"
+
+
+def _valid_score_level(value):
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, (int, float)):
+        try:
+            return math.isfinite(value)
+        except (OverflowError, TypeError):
+            return False
+    return isinstance(value, str) and bool(value.strip())
 
 
 def _validate(state, qs_json):
+
+    if not isinstance(state, str) or not state.strip():
+
+        return None, "state must be non-empty text or JSON"
 
     try:
 
         questions = json.loads(qs_json)
 
-    except json.JSONDecodeError as e:
+    except (TypeError, json.JSONDecodeError) as e:
 
         return None, f"questions JSON: {e}"
 
@@ -430,18 +459,52 @@ def _validate(state, qs_json):
 
         return None, "add at least one question"
 
+    for name, question in questions.items():
+
+        if not isinstance(name, str) or not name.strip():
+
+            return None, "question names must be non-empty strings"
+
+        if not isinstance(question, dict):
+
+            return None, f"question {name} must be an object"
+
+        question_type = question.get("type")
+
+        if question_type not in {"choice", "noul", "score"}:
+
+            return None, f"question {name} has unsupported type"
+
+        if question_type in {"choice", "score"}:
+
+            key = "options" if question_type == "choice" else "levels"
+            values = question.get(key)
+
+            if not isinstance(values, list) or not values or not all(
+                _valid_score_level(value) if question_type == "score"
+                else isinstance(value, str) and value.strip()
+                for value in values
+            ):
+
+                return None, f"question {name} needs a non-empty {key} list"
+
+            normalized_values = [str(value).strip() for value in values]
+
+            if len(set(normalized_values)) != len(normalized_values):
+
+                return None, f"question {name} must have unique {key}"
+
+        if "instructions" in question and not isinstance(question["instructions"], str):
+
+            return None, f"question {name} instructions must be text"
+
     return questions, None
 
 
 
 
 
-# ---- coherence check (policy layer per COHERENCE_TAB.md) ----
-# Declarative rules: if <field> answers <value>, then <other field> should agree.
-# Findings render under the probability bars; contradictions are flagged.
-
 COHERENCE_RULES = [
-    # (if_field, if_value, then_field, expectation)  expectation: "yes"/"no" for noul p>=0.5, or exact option text
     ("action", "human_review", "needs_review", "yes"),
     ("action", "stop", "needs_review", "yes"),
     ("action", "continue", "needs_review", "no"),
@@ -449,41 +512,44 @@ COHERENCE_RULES = [
 
 
 def _coherence(payload):
-    """Return [(description, ok_bool)] findings for one decide() payload."""
     findings = []
-    for if_field, if_val, then_field, expect in COHERENCE_RULES:
-        a = payload.get(if_field, {}).get("answer")
-        if a != if_val or then_field not in payload:
+    for if_field, if_value, then_field, expectation in COHERENCE_RULES:
+        source = payload.get(if_field)
+        if not isinstance(source, dict) or source.get("answer") != if_value:
             continue
-        b = payload[then_field]
-        if b.get("type") == "noul":
-            ok = (b.get("p_yes", 0) >= 0.5) if expect == "yes" else (b.get("p_yes", 1) < 0.5)
-            desc = f"{if_field} = {if_val} · {then_field} p(yes) = {b.get('p_yes', 0):.2f}"
+        target = payload.get(then_field)
+        if not isinstance(target, dict):
+            continue
+        if target.get("type") == "noul":
+            p_yes = _safe_probability(target.get("p_yes"))
+            ok = (p_yes >= 0.5) if expectation == "yes" else p_yes < 0.5
+            description = f"{if_field} = {if_value} · {then_field} p(yes) = {p_yes:.2f}"
         else:
-            ok = b.get("answer") == expect
-            desc = f"{if_field} = {if_val} · {then_field} = {b.get('answer')}"
-        findings.append((desc, ok))
+            answer = target.get("answer")
+            ok = answer == expectation
+            description = f"{if_field} = {if_value} · {then_field} = {answer}"
+        findings.append((description, ok))
     return findings
 
 
 def _coherence_md(findings):
     if not findings:
         return ""
-    lines = ["### coherence\n"]
-    for desc, ok in findings:
-        lines.append(f"{'✅' if ok else '⚠️'} {desc} — {'consistent' if ok else '**CONTRADICTION**'}\n")
+    lines = ['<span class="qname">coherence</span>\n']
+    for description, ok in findings:
+        safe_description = html.escape(description, quote=True)
+        status = "consistent" if ok else "**CONTRADICTION**"
+        lines.append(f"{'pass' if ok else 'warning'}: {safe_description} - {status}\n")
     return "\n".join(lines)
 
 
 def _decide(state, qs_json, t):
 
-    """Main handler: returns (payload_json_str, markdown, status, error_markdown)."""
-
     questions, err = _validate(state, qs_json)
 
     if err:
 
-        return "", "", "", f"**error** — {err}"
+        return "", "", "", _error_markdown(err)
 
     try:
 
@@ -491,7 +557,7 @@ def _decide(state, qs_json, t):
 
     except Exception as e:
 
-        return "", "", "", f"**error** — {type(e).__name__}: {e}"
+        return "", "", "", _error_markdown(f"{type(e).__name__}: {e}")
 
     coh = _coherence_md(_coherence(payload))
 
@@ -502,24 +568,19 @@ def _decide(state, qs_json, t):
     return json.dumps(payload, indent=2), md, st, ""
 
 
-
-
-
 def _order_check(state, qs_json, t):
-
-    """Rotate the first choice question's options; report argmax stability."""
 
     questions, err = _validate(state, qs_json)
 
-    if err:
+    if err or questions is None:
 
-        return "", "", f"**error** — {err}"
+        return "", "", _error_markdown(err or "questions are missing")
 
     first = next((n for n, q in questions.items() if q.get("type") == "choice"), None)
 
     if first is None:
 
-        return "", "", "**error** — order check needs at least one choice question"
+        return "", "", _error_markdown("order check needs at least one choice question")
 
     q = questions[first]
 
@@ -539,21 +600,24 @@ def _order_check(state, qs_json, t):
 
         except Exception as e:
 
-            return "", "", f"**error** — {type(e).__name__}: {e}"
+            return "", "", _error_markdown(f"{type(e).__name__}: {e}")
 
         pick = payload[first]["answer"]
 
         picks.append(pick)
 
-        rows.append(f"rotation {r}: `{pick}`")
+        rows.append(f"rotation {r}: `{html.escape(str(pick), quote=True)}`")
 
     stable = len(set(picks)) == 1
 
-    verdict = "✅ **stable under rotation**" if stable else "⚠️ **flips across rotations**"
+    verdict = "**stable under rotation**" if stable else "**flips across rotations**"
 
-    md = "### order check - " + first + chr(10).join([""] + rows) + chr(10) + chr(10) + verdict
+    safe_first = html.escape(str(first), quote=True)
 
-    return "", md, f"{len(rows)} rotations of '{first}'"
+    md = '<span class="qname">order check</span>' + safe_first + chr(10).join([""] + rows) + chr(10) + chr(10) + verdict
+
+    return "", md, f"{len(rows)} rotations of '{html.escape(str(first), quote=True)}'"
+
 
 
 
@@ -569,7 +633,7 @@ def _order_check(state, qs_json, t):
 
 theme = gr.themes.Soft(
 
-    primary_hue="neutral",
+    primary_hue="orange",
 
     neutral_hue="slate",
 
@@ -579,19 +643,109 @@ theme = gr.themes.Soft(
 
 ).set(
 
-    body_background_fill_dark="#0e0e11",
+    body_background_fill="#171412",
 
-    block_background_fill_dark="#16161b",
+    body_background_fill_dark="#171412",
+
+    body_text_color="#f5eee8",
+
+    body_text_color_dark="#f5eee8",
+
+    body_text_color_subdued="#b9aa9f",
+
+    body_text_color_subdued_dark="#b9aa9f",
+
+    block_background_fill="#211d1a",
+
+    block_background_fill_dark="#211d1a",
+
+    block_border_color="#3a2f28",
+
+    block_border_color_dark="#3a2f28",
+
+    border_color_primary="#3a2f28",
+
+    border_color_primary_dark="#3a2f28",
+
+    color_accent="#e8b48c",
+
+    color_accent_soft="#5a4032",
+
+    color_accent_soft_dark="#5a4032",
+
+    border_color_accent="#e8b48c",
+
+    border_color_accent_dark="#e8b48c",
+
+    input_background_fill="#1b1816",
+
+    input_background_fill_dark="#1b1816",
+
+    input_border_color="#4a3b32",
+
+    input_border_color_dark="#4a3b32",
+
+    input_border_color_focus="#e8b48c",
+
+    input_border_color_focus_dark="#e8b48c",
+
+    button_primary_background_fill="#e8b48c",
+
+    button_primary_background_fill_dark="#e8b48c",
+
+    button_primary_background_fill_hover="#dca47a",
+
+    button_primary_background_fill_hover_dark="#dca47a",
+
+    button_primary_border_color="#e8b48c",
+
+    button_primary_border_color_dark="#e8b48c",
+
+    button_primary_border_color_hover="#dca47a",
+
+    button_primary_border_color_hover_dark="#dca47a",
+
+    button_primary_text_color="#2b1d16",
+
+    button_primary_text_color_dark="#2b1d16",
+
+    button_primary_text_color_hover="#2b1d16",
+
+    button_primary_text_color_hover_dark="#2b1d16",
+
+    button_secondary_background_fill="#2a2420",
+
+    button_secondary_background_fill_dark="#2a2420",
+
+    button_secondary_background_fill_hover="#352c26",
+
+    button_secondary_background_fill_hover_dark="#352c26",
+
+    button_secondary_border_color="#4a3b32",
+
+    button_secondary_border_color_dark="#4a3b32",
+
+    button_secondary_border_color_hover="#5a4639",
+
+    button_secondary_border_color_hover_dark="#5a4639",
+
+    button_secondary_text_color="#f5eee8",
+
+    button_secondary_text_color_dark="#f5eee8",
+
+    button_secondary_text_color_hover="#ffffff",
+
+    button_secondary_text_color_hover_dark="#ffffff",
 
     block_border_width="1px",
 
-    block_radius="6px",
+    block_radius="0px",
 
-    button_large_radius="6px",
+    button_large_radius="0px",
 
-    button_small_radius="6px",
+    button_small_radius="0px",
 
-    input_radius="6px",
+    input_radius="0px",
 
 )
 
@@ -599,25 +753,49 @@ theme = gr.themes.Soft(
 
 CSS = """
 
-/* --- page frame: centered column, quiet gradient backdrop --- */
+/* --- page frame: centered column --- */
 
-.gradio-container { max-width: 920px !important; margin: 0 auto; }
+.gradio-container { width: 1020px !important; max-width: calc(100vw - 32px) !important; min-width: 0 !important; box-sizing: border-box !important; margin: 0 auto; }
 
 footer { visibility: hidden; }
+
+:root, .gradio-container { --primary-pastel: #e8b48c; --color-accent: var(--primary-pastel); --border-color-accent: var(--primary-pastel); }
+
+.gradio-container > main,
+.gradio-container .main,
+.tab-container,
+.tab-container > div,
+.tab-container .tab-panel,
+.tab-container .row { width: 100% !important; min-width: 0 !important; box-sizing: border-box !important; }
+.tab-container .column { min-width: 0 !important; box-sizing: border-box !important; }
+
+.gradio-container { font-size: 14px; line-height: 1.5; }
+.gradio-container p, .gradio-container textarea, .gradio-container input { font-size: 14px; line-height: 1.5; }
+.gradio-container h1 { font-size: 24px; line-height: 1.25; font-weight: 600; }
+.gradio-container h2 { font-size: 18px; line-height: 1.25; font-weight: 600; }
+.gradio-container h3 { font-size: 16px; line-height: 1.25; font-weight: 600; }
+.gradio-container label, .gradio-container .form-label, .gradio-container .block-label { font-size: 12px; line-height: 1.4; font-weight: 500; }
+.gradio-container button, .tab-nav button { font-size: 13px; line-height: 1.25; }
+
+
+
+/* --- everything square: nuclear override over any gradio rounding --- */
+
+.gradio-container * { border-radius: 0 !important; }
 
 
 
 /* --- header: compact, with a hairline rule under it --- */
 
-#header { padding: 6px 0 14px; border-bottom: 1px solid var(--border-color-primary);
+#header { padding: 12px 0 16px; border-bottom: 1px solid var(--border-color-primary);
 
-          margin-bottom: 6px; }
+          margin-bottom: 16px; }
 
-#header h1 { margin: 0 0 6px; letter-spacing: -0.01em; }
+#header h1 { margin: 0 0 8px; letter-spacing: -0.01em; }
 
-#header .prose p { color: var(--body-text-color-subdued); margin: 2px 0; }
+#header .prose p { color: var(--body-text-color-subdued); margin: 0 0 4px; }
 
-#header .metrics { font-family: var(--font-mono); font-size: 0.82em;
+#header .metrics { font-family: var(--font-mono); font-size: 12px;
 
                    color: var(--body-text-color-subdued);
 
@@ -627,63 +805,102 @@ footer { visibility: hidden; }
 
 
 
-/* --- preset buttons: equal width, one row --- */
+/* --- preset buttons: equal width, one row, one height --- */
 
-#presets { gap: 8px; }
+#presets { gap: 8px; margin-bottom: 16px; }
 
-#presets button { min-width: 0; width: 100%; }
+#presets button { flex: 1 1 0; min-width: 0; width: auto; height: 32px !important;
+
+                  min-height: 32px !important; padding: 0 12px !important; }
 
 
 
-/* --- probability bars: mono, aligned, readable --- */
+/* --- accordion header matches the preset button height --- */
 
-.bars code {
+
+#qs-help { margin: 12px 0; }
+
+#qs-help button { min-height: 32px !important; padding: 4px 12px !important; }
+
+
+
+/* --- decide: full width, on its own row --- */
+
+#decide-btn { width: 100%; min-height: 40px; margin-top: 16px; }
+
+.tab-container .row { gap: 16px; }
+
+
+
+/* --- code editors and viewers render mono, like code should --- */
+
+.cm-editor, .cm-content, .cm-line, textarea.code,
+#state-box textarea, #qs-box textarea {
 
   font-family: var(--font-mono) !important;
 
-  font-size: 0.86em !important;
-
-  letter-spacing: 0.04em;
-
-  background: transparent !important;
-
-  padding: 0 !important;
+  font-size: 12px !important;
 
 }
 
-.bars h3 { font-size: 0.92em !important; text-transform: uppercase;
+/* --- real CSS progress bars rendered from the payload markdown --- */
 
-           letter-spacing: 0.1em; color: var(--body-text-color-subdued) !important;
+.bars .qname { display: block; font-size: 12px; text-transform: uppercase;
 
-           margin: 18px 0 6px !important; }
+               letter-spacing: 0.1em; color: var(--body-text-color-subdued);
 
-.bars .win { color: var(--body-text-color); font-weight: 700; }
+               margin: 16px 0 8px; }
+
+.bars .row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+
+.bars .row .name { flex: 0 0 38%; overflow: hidden; text-overflow: ellipsis;
+
+                   white-space: nowrap; font-size: 12px; }
+
+.bars .row .track { flex: 1 1 auto; height: 8px;
+
+                    background: var(--block-background-fill);
+
+                    border: 1px solid var(--border-color-primary); position: relative; }
+
+.bars .row .fill { position: absolute; inset: 0 auto 0 0; height: 100%;
+
+                   background: var(--color-accent); opacity: 0.75; }
+
+.bars .row.win .fill { background: var(--color-accent); opacity: 1; }
+
+.bars .row .val { flex: 0 0 52px; text-align: right;
+
+                  font-family: var(--font-mono); font-size: 12px;
+
+                  color: var(--body-text-color-subdued); }
+
+.bars .row.win .val { color: var(--body-text-color); font-weight: 600; }
 
 
 
 /* --- status line: quiet mono --- */
 
-#statusline { font-family: var(--font-mono); font-size: 0.78em;
+#statusline { font-family: var(--font-mono); font-size: 12px;
 
               color: var(--body-text-color-subdued); text-align: right;
 
-              min-height: 1.4em; }
+              min-height: 1.4em; margin-top: 8px; }
 
 
 
 /* --- error: red left rule --- */
 
-#errorbox { border-left: 3px solid var(--color-danger) !important;
+#errorbox { margin: 12px 0; padding: 12px;
 
-            padding-left: 12px; }
+            border-left: 3px solid var(--color-danger) !important; }
 
 
 
 /* --- inputs get focus rings from the theme; deepen them slightly --- */
 
-#state-json textarea:focus, #state-text textarea:focus,
-
-#qs-box textarea:focus, #qs-box input:focus {
+#state-box textarea:focus, #qs-box textarea:focus, #qs-box input:focus,
+.cm-editor.cm-focused, .cm-content:focus {
 
   outline: 2px solid var(--border-color-accent) !important;
 
@@ -695,7 +912,23 @@ footer { visibility: hidden; }
 
 /* --- tab nav: slightly denser, mono labels --- */
 
-.tab-nav button { font-size: 0.86em !important; letter-spacing: 0.04em; }
+.tab-nav { display: flex; width: 100%; gap: 8px; margin-bottom: 16px; }
+.tab-nav button { flex: 1 1 0; min-width: 0; min-height: 32px; padding: 6px 12px; font-size: 13px; letter-spacing: 0.04em; }
+.tab-nav button:hover,
+.tab-nav button:focus-visible,
+.tab-nav button[aria-selected="true"] {
+  color: var(--color-accent) !important;
+  -webkit-text-fill-color: var(--color-accent) !important;
+  background: var(--color-accent-soft) !important;
+  border-color: var(--color-accent) !important;
+  box-shadow: inset 0 -2px 0 var(--color-accent) !important;
+}
+.tab-nav button:hover *,
+.tab-nav button:focus-visible *,
+.tab-nav button[aria-selected="true"] * {
+  color: var(--color-accent) !important;
+  -webkit-text-fill-color: var(--color-accent) !important;
+}
 
 
 
@@ -705,7 +938,7 @@ footer { visibility: hidden; }
 
   #presets { flex-wrap: wrap; }
 
-  #presets button { min-width: 45%; }
+  #presets button { flex: 1 1 45%; width: auto; }
 
 }
 
@@ -721,7 +954,7 @@ TITLE_MD = """
 
 <p><b>Typed questions in. Calibrated probabilities out. One forward pass. Nothing is generated.</b></p>
 
-<p class="metrics"><b>184M</b> params · <b>22.2 ms</b> per decision on a T4 · <b>0</b> tokens generated</p>
+<p class="metrics"><b>184M</b> params · calibrated distributions · <b>0</b> tokens generated</p>
 
 </div>
 
@@ -729,7 +962,7 @@ TITLE_MD = """
 
 
 
-QS_HELP = """**Question schema** — one JSON object per question name:
+QS_HELP = """**Question schema** - one JSON object per question name:
 
 
 
@@ -757,41 +990,36 @@ QS_HELP = """**Question schema** — one JSON object per question name:
 
 
 
-API_DOCS = """## Use OEV from code
+API_DOCS = r"""## Use OEV from code
 
 
 
-The Space exposes a REST endpoint — no browser needed:
+The Space exposes one public API event, `decide`. Calls use two steps: submit
+inputs, then fetch the streamed result by event ID.
 
 
 
 ```bash
 
-curl -X POST https://divyanshudhruv-oev-demo.hf.space/call/decide \\
+SPACE_URL="https://divyanshudhruv-oev-demo.hf.space"
 
-  -H "Content-Type: application/json" \\
+EVENT_ID=$(curl -sS -X POST "$SPACE_URL/call/decide" \
 
-  -d '{
+  -H "Content-Type: application/json" \
 
-    "data": [
+  -d '{"data": ["state text", "{\"action\": {\"type\": \"choice\", \"options\": [\"continue\", \"stop\"]}}", 1.0]}' |
 
-      "{\\"task\\": \\"summarize the weekly sales dashboard\\"}",
+  python -c "import json,sys; print(json.load(sys.stdin)['event_id'])")
 
-      "{\\"action\\": {\\"type\\": \\"choice\\", \\"options\\": [\\"continue\\", \\"stop\\"]}}",
-
-      1.0
-
-    ]
-
-  }'
+curl -N "$SPACE_URL/call/decide/$EVENT_ID"
 
 ```
 
 
 
-Response: a JSON object, one entry per question — `answer`, `confidence`, and the
-
-full `probabilities` distribution (or `p_yes` for yes/no questions).
+The response is an output list. Its first item is a JSON object with one
+entry per question. Choice and score questions include `answer`, `confidence`,
+and the full `probabilities` distribution. Yes/no questions include `p_yes`
 
 
 
@@ -831,7 +1059,7 @@ from oev.infer import OEV
 
 agent = OEV("divyanshudhruv/oev-typed/student-r2b-oev-tiny.pt")
 
-result = agent.decide(state, questions)   # one forward pass, full distributions
+result = agent.decide(state, questions)
 
 ```
 
@@ -877,13 +1105,13 @@ with gr.Blocks(title="OEV") as demo:
 
                 # -------- column 1: input --------
 
-                with gr.Column(scale=5):
+                with gr.Column(scale=1):
 
-                    state_box = gr.Textbox(label="State — plain text or JSON",
+                    state_box = gr.Textbox(label="State - plain text or JSON", elem_id="state-box",
 
                                            lines=8, value=AGENT_STATE,
 
-                                           placeholder="Any plain text or a JSON object — "
+                                           placeholder="Any plain text or a JSON object - "
 
                                                        "the model reads it as-is.")
 
@@ -893,39 +1121,39 @@ with gr.Blocks(title="OEV") as demo:
 
                                      elem_id="qs-box")
 
-                    with gr.Accordion("Question schema help", open=False):
+                    with gr.Accordion("Question schema help", open=False, elem_id="qs-help"):
 
                         gr.Markdown(QS_HELP)
 
-                    with gr.Row():
+                    temp = gr.Slider(0.1, 3.0, value=1.0, step=0.05, label="temperature",
 
-                        temp = gr.Slider(0.5, 3.0, value=1.0, step=0.05, label="temperature",
+                                     info="<1 sharpens · >1 flattens · argmax unchanged")
 
-                                         info="<1 sharpens · >1 flattens · argmax unchanged")
+                    decide_btn = gr.Button("Decide", variant="primary", size="lg",
 
-                        decide_btn = gr.Button("Decide", variant="primary", size="lg", scale=0)
+                                           elem_id="decide-btn")
 
 
 
                 # -------- column 2: output --------
 
-                with gr.Column(scale=4):
+                with gr.Column(scale=1):
 
                     error_md = gr.Markdown("", visible=False, elem_id="errorbox")
 
-                    bars_md = gr.Markdown("Press **Decide** — one section per question, "
+                    json_out = gr.Code(label="Raw JSON", language="json",
 
-                                          "probability bars in plain Markdown.",
+                                       value="// press Decide - output appears here",
+
+                                       lines=13, interactive=False)
+
+                    bars_md = gr.Markdown("Press **Decide** - raw JSON first, "
+
+                                          "probability bars below.",
 
                                           elem_classes=["bars"])
 
-                    json_out = gr.Code(label="Raw JSON", language="json", lines=13,
-
-                                       interactive=False)
-
                     status_md = gr.Markdown("", elem_id="statusline")
-
-
 
         # ================= verify =================
 
@@ -935,15 +1163,15 @@ with gr.Blocks(title="OEV") as demo:
 
                 "Live checks on the packed-sequence design.\n\n"
 
-                "**Isolation** — a secret in one question's instructions must not raise the "
+                "**Isolation** - a secret in one question's instructions must not raise the "
 
                 "probe's probability of naming it above chance.\n\n"
 
-                "**Forgery** — anchor tokens, delimiter lookalikes and JSON injection in "
+                "**Forgery** - anchor tokens, delimiter lookalikes and JSON injection in "
 
                 "option text must not change how many anchors the head scores.\n\n"
 
-                "**Order** — argmax stability under option rotation.")
+                "**Order** - argmax stability under option rotation.")
 
             verify_btn = gr.Button("Run checks", variant="primary")
 
@@ -959,7 +1187,7 @@ with gr.Blocks(title="OEV") as demo:
 
                         "argmax answer moves. Uses the state and questions from the Playground "
 
-                        "tab — edit them there first.")
+                        "tab - edit them there first.")
 
             order_btn = gr.Button("Run order check", variant="primary")
 
@@ -983,9 +1211,11 @@ with gr.Blocks(title="OEV") as demo:
 
         _gpu(_decide), [state_box, qs_box, temp],
 
-        [json_out, bars_md, status_md, error_md], api_name="decide",
+        [json_out, bars_md, status_md, error_md], api_name="decide", api_visibility="public",
 
-    ).then(lambda e: gr.update(visible=bool(e)), [error_md], [error_md])
+    ).then(
+        lambda e: gr.update(visible=bool(e)), [error_md], [error_md], api_visibility="private"
+    )
 
 
 
@@ -995,7 +1225,7 @@ with gr.Blocks(title="OEV") as demo:
 
 
 
-    ex_agent.click(_fill, [gr.State(AGENT_STATE), gr.State(AGENT_QS)], [state_box, qs_box])
+    ex_agent.click(_fill, [gr.State(AGENT_STATE), gr.State(AGENT_QS)], [state_box, qs_box], api_visibility="private")
 
     ex_support.click(_fill, [gr.State(_customer_state("enterprise", 2,
 
@@ -1003,11 +1233,11 @@ with gr.Blocks(title="OEV") as demo:
 
                      "to close my account. Could you please start the cancellation process?")),
 
-                     gr.State(CUSTOMER_QS)], [state_box, qs_box])
+                     gr.State(CUSTOMER_QS)], [state_box, qs_box], api_visibility="private")
 
     ex_invoice.click(_fill, [gr.State(_invoice_state("Acme Fabrication", 300020.0, 300020.0,
 
-                     1000, 1000, 0)), gr.State(INVOICE_QS)], [state_box, qs_box])
+                     1000, 1000, 0)), gr.State(INVOICE_QS)], [state_box, qs_box], api_visibility="private")
 
     ex_security.click(_fill, [gr.State(_security_state(
 
@@ -1019,11 +1249,11 @@ with gr.Blocks(title="OEV") as demo:
 
         "without MFA using credentials that were last rotated six months ago.",
 
-        "low", "service_account")), gr.State(SECURITY_QS)], [state_box, qs_box])
+        "low", "service_account")), gr.State(SECURITY_QS)], [state_box, qs_box], api_visibility="private")
 
     ex_play.click(_fill, [gr.State(PLAYGROUND_STATE), gr.State(PLAYGROUND_QS)],
 
-                  [state_box, qs_box])
+                  [state_box, qs_box], api_visibility="private")
 
 
 
@@ -1059,7 +1289,7 @@ with gr.Blocks(title="OEV") as demo:
 
 
 
-    verify_btn.click(_verify, None, verify_out)
+    verify_btn.click(_verify, None, verify_out, api_visibility="private")
 
 
 
@@ -1067,7 +1297,7 @@ with gr.Blocks(title="OEV") as demo:
 
         _gpu(_order_check), [state_box, qs_box, temp],
 
-        [json_out, order_out, status_md],
+        [json_out, order_out, status_md], api_visibility="private"
 
     )
 
@@ -1082,7 +1312,3 @@ PORT = int(os.environ.get("OEV_PORT") or os.environ.get("PORT") or 7860) or 7860
 if __name__ == "__main__":
 
     demo.launch(server_name="0.0.0.0", server_port=PORT, theme=theme, css=CSS)
-
-else:
-
-    demo.launch(theme=theme, css=CSS)

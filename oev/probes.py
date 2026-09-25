@@ -44,6 +44,13 @@ def _predict(model, packer, state, question, device):
     # isolate each call in its own try-range: probe questions with long
     # option lists can exceed a tiny max_len; caller decides what to do
     ids, anchors, _ = packer.pack(state, question, _max_len(model))
+    anchor_id = getattr(packer, "anchor_id", None)
+    expected_anchors = len(question.get("options", []))
+    if anchor_id is not None and (
+        len(set(anchors)) != expected_anchors
+        or any(position >= len(ids) or ids[position] != anchor_id for position in anchors)
+    ):
+        raise ValueError("anchor position beyond sequence - option list too long for max_len")
     if max(anchors) >= len(ids):
         raise ValueError("anchor position beyond sequence - option list too long for max_len")
     with torch.no_grad():
