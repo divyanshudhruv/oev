@@ -1,6 +1,8 @@
 import json
+
 import torch
-from oev.dataset import pack, collate, OEVDataset
+
+from oev.dataset import OEVDataset, collate, pack
 
 
 def q():
@@ -16,7 +18,7 @@ def test_pack_anchor_count_and_label():
 
 def test_pack_truncates_state_not_options():
     long_state = "x" * 5000
-    ids, anchors, label = pack(long_state, q(), 512)
+    ids, anchors, _label = pack(long_state, q(), 512)
     assert len(ids) <= 512 and len(anchors) == 3
 
 

@@ -1,4 +1,5 @@
 import json
+from typing import ClassVar
 
 import torch
 
@@ -6,7 +7,7 @@ from oev import ensemble
 
 
 class _Model:
-    cfg = {"backbone": "fake", "max_len": 8}
+    cfg: ClassVar[dict] = {"backbone": "fake", "max_len": 8}
 
     def __call__(self, ids, pad_mask, anchor_pos):
         return torch.tensor([[0.0, 1.0]])

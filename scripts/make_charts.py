@@ -69,6 +69,7 @@ ZS_OEV = [0.6505, 0.3945, 0.3380, None]
 ZS_LAYA = [0.595, None, None, None]
 ZS_KEV = [None, None, None, 0.845]   # published range 0.837-0.852; plotted midpoint
 ZS_WHO = [("OEV", ZS_OEV, P_BLUE), ("laya", ZS_LAYA, P_RED), ("Kev", ZS_KEV, P_GREEN)]
+ZS_COLORS = {who: color for who, _, color in ZS_WHO}
 
 # latency (published or measured); ranges use midpoint
 LAT_LABELS = [
@@ -157,7 +158,7 @@ for i in range(len(ZS_ROWS)):
                     xycoords=("axes fraction", "data"), ha="right", va="center",
                     fontsize=9, color="#8b949e", style="italic")
     for v, who in pts:
-        ax.scatter(v, i, s=170, color=dict((w, c) for w, _, c in ZS_WHO)[who],
+        ax.scatter(v, i, s=170, color=ZS_COLORS[who],
                    zorder=3, edgecolors="#57606a", linewidths=0.7)
         _zs_annotate(ax, i, v, who, None)
 ax.axvline(0.333, color="#8b949e", ls=":", lw=1.2)
@@ -186,7 +187,7 @@ for i in range(len(ZS_ROWS)):
         axt.hlines(i, min(v for v, _ in pts), max(v for v, _ in pts),
                    color="#c8ccd0", lw=2, zorder=1)
     for v, who in pts:
-        axt.scatter(v, i, s=140, color=dict((w, c) for w, _, c in ZS_WHO)[who],
+        axt.scatter(v, i, s=140, color=ZS_COLORS[who],
                     zorder=3, edgecolors="#57606a", linewidths=0.7)
         axt.annotate(f"{v:.3f}", (v, i), textcoords="offset points", xytext=(0, 11),
                      ha="center", fontsize=9)
@@ -269,7 +270,7 @@ def _decision_primitives(path, text, edge, sub, face):
             ax.barh(y, value, left=left, height=0.48, color=color,
                     edgecolor=edge, linewidth=0.5)
             ax.text(left + value / 2, y, f"{label} {value:.0%}", ha="center",
-                    va="center", color=text, fontsize=8.5)
+                    va="center", color="#4a5568", fontsize=8.5)
             left += value
     ax.set_yticks([2, 1, 0])
     ax.set_yticklabels(["choice", "noul", "score"], color=text, fontsize=11)
@@ -406,7 +407,7 @@ for i in range(len(ZS_ROWS)):
                     xycoords=("axes fraction", "data"), ha="right", va="center",
                     fontsize=9, color=DARK_SUB, style="italic")
     for v, who in pts:
-        ax.scatter(v, i, s=170, color=dict((w, c) for w, _, c in ZS_WHO)[who],
+        ax.scatter(v, i, s=170, color=ZS_COLORS[who],
                    zorder=3, edgecolors=DARK_TEXT, linewidths=0.7)
         _zs_annotate(ax, i, v, who, DARK_TEXT)
 ax.axvline(0.333, color=DARK_SUB, ls=":", lw=1.2)
@@ -432,7 +433,7 @@ for i in range(len(ZS_ROWS)):
         axt.hlines(i, min(v for v, _ in pts), max(v for v, _ in pts),
                    color=DARK_LINE, lw=2, zorder=1)
     for v, who in pts:
-        axt.scatter(v, i, s=140, color=dict((w, c) for w, _, c in ZS_WHO)[who],
+        axt.scatter(v, i, s=140, color=ZS_COLORS[who],
                     zorder=3, edgecolors=DARK_TEXT, linewidths=0.7)
         axt.annotate(f"{v:.3f}", (v, i), textcoords="offset points", xytext=(0, 11),
                      ha="center", fontsize=9, color=DARK_TEXT)
