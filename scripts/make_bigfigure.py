@@ -131,12 +131,15 @@ pts = [
     ("OEV single (184M)", 184, 0.7705, BLUE),
     ("OEV ensemble (736M)", 736, 0.7760, BLUE),
     ("OEV b77 soup (184M)", 184, 0.8584, BLUE),
-    ("Kev-0.8B (OOD)", 800, 0.837, GREEN),
-    ("Kev-4B (OOD)", 4000, 0.852, GREEN),
+    ("Kev-0.8B (new sources)", 800, 0.697, GREEN),
+    ("Kev-4B (new sources)", 4000, 0.838, GREEN),
+    ("Kev-9B (new sources)", 9000, 0.852, GREEN),
+    ("Kev-27B (new sources)", 27000, 0.896, GREEN),
 ]
 POFF = {"laya (421M)": (6, -12), "OEV single (184M)": (6, -12),
         "OEV ensemble (736M)": (6, 6), "OEV b77 soup (184M)": (-20, 8),
-        "Kev-0.8B (OOD)": (0, 8), "Kev-4B (OOD)": (-40, 8)}
+        "Kev-0.8B (new sources)": (0, 8), "Kev-4B (new sources)": (-40, 8),
+        "Kev-9B (new sources)": (-10, 8), "Kev-27B (new sources)": (-60, 8)}
 for name, params, acc, c in pts:
     ax.scatter(params, acc, s=120, color=c, zorder=3, edgecolors=EDGE, linewidths=0.5)
     ax.annotate(name, (params, acc), textcoords="offset points", xytext=POFF[name], fontsize=7)

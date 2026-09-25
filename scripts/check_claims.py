@@ -19,7 +19,7 @@ COMPETITOR = {
     "0.727", "0.766", "0.595", "0.425", "0.480",   # laya + Jev benchmark rows
     "0.950", "0.910", "0.471", "0.580", "0.213", "0.144",   # laya/Jev secondary metrics
     "0.870",   # Jev banking77
-    "0.837", "0.852", "0.845",   # Kev OOD suite (published midpoint + range)
+    "0.648", "0.697", "0.817", "0.838", "0.822", "0.852", "0.848", "0.896",   # Kev new-sources table (dev/test)
     "0.650", "0.6500",   # laya zero-shot variant as rounded in prose
 }
 # protocol constants: random floors, baselines, label-noise ceilings

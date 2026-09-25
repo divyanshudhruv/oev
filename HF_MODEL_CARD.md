@@ -103,7 +103,7 @@ The whole pipeline trains in about a day on one T4. `train_colab.ipynb` runs it 
 
 - Fine-tuned on each benchmark's own train split; comparison numbers are from the respective published tables.
 - OEV trains to match the teacher's full distributions (training Brier vs teacher: `0.058`).
-- English models. OEV latency is p50 of 50 warmed runs including sync on T4; the raw timing manifest is not tracked here.
+- English models. OEV latency is p50 of 50 warmed runs including sync on T4; per-run receipts with raw timing samples are archived in the repository's `runs/` directory.
 
 ## License
 
@@ -125,4 +125,4 @@ Fine-tuned checkpoints: `b77-oev-tiny.pt` plus two warm-started re-tunes (`b77a-
 | OEV single (first release) | 184M | 0.8303 | 0.1860 |
 | laya | 421M | 0.425 | - |
 
-The soup (weight-space average of the three members) beats the probability ensemble with a single 735MB artifact and reaches coverage `0.7604` at a `<=5%` error budget (`AURC 0.0389`), so 76% of decisions can be automated under the stated budget. On a laptop CPU it runs at `447 ms` p50 (8 threads); no competing decision model publishes any CPU latency.
+The soup (weight-space average of the three members) beats the probability ensemble with a single 735MB artifact and reaches coverage `0.7604` at a `<=5%` error budget (`AURC 0.0389`), so 76% of decisions can be automated under the stated budget. On CPU the ONNX INT8 build runs at `54.2 ms` p50 on 8 threads (`228 MB` artifact); the release measurement with torch fp32 was `447 ms`. No competing decision model publishes any CPU latency.

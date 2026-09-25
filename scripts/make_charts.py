@@ -65,10 +65,10 @@ JEV = [0.727, 0.910, 0.480, 0.870]
 # OEV dots: emotion = r2b distilled student 0.6505 (beats laya's zero-shot
 # head-to-head); WANLI = td5 0.3945; ANLI = round-1 student 0.3380.
 # BENCHMARKS.md holds the per-checkpoint tables.
-ZS_ROWS = ["emotion (zero-shot)", "WANLI OOD (zero-shot)", "ANLI R1 (zero-shot)", "Kev OOD suite (own tasks)"]
+ZS_ROWS = ["emotion (zero-shot)", "WANLI OOD (zero-shot)", "ANLI R1 (zero-shot)", "Kev new sources (own tasks)"]
 ZS_OEV = [0.6505, 0.3945, 0.3380, None]
 ZS_LAYA = [0.595, None, None, None]
-ZS_KEV = [None, None, None, 0.845]   # published range 0.837-0.852; plotted midpoint
+ZS_KEV = [None, None, None, 0.838]   # Kev-4B, test split of its new-sources protocol
 ZS_WHO = [("OEV", ZS_OEV, P_BLUE), ("laya", ZS_LAYA, P_RED), ("Kev", ZS_KEV, P_GREEN)]
 ZS_COLORS = {who: color for who, _, color in ZS_WHO}
 
@@ -79,7 +79,7 @@ LAT_LABELS = [
     "Kev-4B\n(L40S)",
     "Jev\n(range midpoint)",
 ]
-LAT_VALS = [22.2, 36.2, 36.0, 256.0]   # laya 32.8-39.5 and Jev 236-276 are ranges
+LAT_VALS = [22.2, 36.2, 41.5, 256.0]   # laya 32.8-39.5 and Jev 236-276 are ranges; Kev-4B 41.5 L40S
 
 # accuracy vs size (published points only; Jev size not published)
 PTS = [
@@ -90,8 +90,10 @@ PTS = [
     ("OEV soup (b77)", 184, 0.8584, P_BLUE),
     ("OEV ensemble", 4 * 184, 0.7760, P_BLUE),
     ("OEV single", 184, 0.7705, P_BLUE),
-    ("Kev-0.8B (OOD suite)", 800, 0.837, P_GREEN),
-    ("Kev-4B (OOD suite)", 4000, 0.852, P_GREEN),
+    ("Kev-0.8B (new sources)", 800, 0.697, P_GREEN),
+    ("Kev-4B (new sources)", 4000, 0.838, P_GREEN),
+    ("Kev-9B (new sources)", 9000, 0.852, P_GREEN),
+    ("Kev-27B (new sources)", 27000, 0.896, P_GREEN),
 ]
 # per-workflow accuracy (typed-decisions)
 WF_LABELS = ["invoice\nprocessing", "customer\nservice", "agent-trace\nobservability", "security\nincidents"]

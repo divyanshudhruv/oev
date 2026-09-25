@@ -52,13 +52,13 @@ The single `184M` model scores `0.7705` on typed-decisions, slightly above laya'
 | size                  | **184M** params, 0.44x laya                                                                             |
 | weights & checkpoints | Apache 2.0 - [huggingface.co/divyanshudhruv/oev-typed](https://huggingface.co/divyanshudhruv/oev-typed) |
 
-- `22.2 ms` per question on a `T4` (GPU); `447 ms` p50 on CPU (8 threads, 184M soup checkpoint)
+- `22.2 ms` per question on a `T4` (GPU); on CPU the ONNX INT8 build runs at `54.2 ms` p50 on 8 threads (`228 MB` artifact, 3.2x smaller)
 - `0.8584` on 77-label `Banking77` from a single soup checkpoint (the 3-checkpoint ensemble still holds best ECE `0.0595`): each option is embedded as its own anchor with full tokens, so accuracy scales with label count (gap to Jev 1.16 pts)
 - `184M` params, `Apache 2.0` weights
 - Kev (0.8B / 4B) publishes no in-domain numbers on these datasets, so it is not in the tables; see [BENCHMARKS.md](BENCHMARKS.md) for the like-for-like comparison plan
 
 > [!WARNING]
-> Chart latency comparisons use different hardware and include published ranges; the current `runs/` manifest and raw timing samples are also unavailable here. The sharpening panel in the comparison figure shows historical gamma `2.5` values from an evaluation sweep; they are exploratory and not release claims. Reproduce claims from recorded run logs before treating them as release evidence.
+> Chart latency comparisons use different hardware and include published ranges. Benchmark runs write per-run receipts (command, device, metrics, raw timings) to `runs/`; historical runs predate this protocol. The sharpening panel in the comparison figure shows historical gamma `2.5` values from an evaluation sweep; they are exploratory and not release claims. Reproduce claims from the archived receipts before treating them as release evidence.
 
 ## Architecture
 
@@ -234,7 +234,7 @@ python -m pytest -q
 - The Banking77 single-file best is the soup at `0.8584`; `0.8403` is a historical re-tune, not the shipped artifact
 - Adversarial NLI (ANLI) stays near chance for now; WANLI reaches `0.5645` and an ANLI specialist is next on the roadmap
 - The shipped generalist trails the typed specialist (`0.6480` vs `0.7705`); closing that spread is round 4
-- CPU inference runs `447 ms` p50 (8 threads); headline timings are GPU
+- CPU: torch fp32 measured `447 ms` p50 at release; on the current workstation the same fp32 model runs `252.5 ms` and the ONNX INT8 build `54.2 ms` (8 threads, `scripts/bench_latency.py`). Headline timings are GPU
 - English only
 
 ## Roadmap
