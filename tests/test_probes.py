@@ -1,7 +1,8 @@
-import pytest
-import torch
+from typing import ClassVar
 
-from oev.model import OEVConfig, OEVModel, PRESETS
+import pytest
+
+from oev.model import PRESETS, OEVConfig, OEVModel
 from oev.probes import _max_len, forgery, order
 
 
@@ -37,7 +38,7 @@ def test_max_len_handles_both_config_shapes(tiny_model):
 
 def test_max_len_dict_config():
     class DictModel:
-        cfg = {"max_len": 768}
+        cfg: ClassVar[dict] = {"max_len": 768}
 
     assert _max_len(DictModel()) == 768
 

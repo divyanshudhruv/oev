@@ -1,4 +1,3 @@
-import torch
 
 from oev.benchmark_ext import (
     aurc,

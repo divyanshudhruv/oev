@@ -1,5 +1,6 @@
 import torch
-from oev.model import OEVModel, OEVConfig, PRESETS
+
+from oev.model import PRESETS, OEVConfig, OEVModel
 
 
 def small():

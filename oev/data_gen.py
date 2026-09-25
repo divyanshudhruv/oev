@@ -191,8 +191,7 @@ def write_splits(splits, data_dir="data"):
     d.mkdir(parents=True, exist_ok=True)
     for name, rows in zip(["train", "valid", "test"], splits):
         with open(d / f"{name}.jsonl", "w", encoding="utf-8") as f:
-            for r in rows:
-                f.write(json.dumps(r) + "\n")
+            f.writelines(json.dumps(r) + "\n" for r in rows)
 
 
 if __name__ == "__main__":

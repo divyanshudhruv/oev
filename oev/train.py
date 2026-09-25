@@ -1,10 +1,12 @@
 import argparse
 from pathlib import Path
+
 import torch
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, ConcatDataset
+from torch.utils.data import ConcatDataset, DataLoader
+
 from oev.dataset import OEVDataset, collate
-from oev.model import OEVModel, OEVConfig, PRESETS, HFBackboneOEV
+from oev.model import PRESETS, HFBackboneOEV, OEVConfig, OEVModel
 from oev.tokenizer_hf import HFTokenPacker
 
 
@@ -13,8 +15,7 @@ def run_epoch(model, loader, device, opt=None, log_every=0, epoch=0, scaler=None
     no_grad = opt is None
     total = 0.0
     n = 0
-    steps = 0
-    for batch in loader:
+    for steps, batch in enumerate(loader, start=1):
         batch = {k: v.to(device) if torch.is_tensor(v) else v for k, v in batch.items()}
         cm = torch.no_grad() if no_grad else torch.enable_grad()
         with cm, torch.autocast(device_type=device, dtype=torch.float16, enabled=device == "cuda"):
@@ -39,7 +40,6 @@ def run_epoch(model, loader, device, opt=None, log_every=0, epoch=0, scaler=None
                 opt.step()
         total += loss.item()
         n += batch["labels"].numel()
-        steps += 1
         if log_every and steps % log_every == 0:
             print(f"epoch {epoch} step {steps} running_loss {total / n:.4f}", flush=True)
     return total / n

@@ -173,7 +173,7 @@ def main():
 
     os.makedirs(args.out, exist_ok=True)
     device = args.device
-    log = open(os.path.join(args.out, "distill.log"), "a")
+    log = open(os.path.join(args.out, "distill.log"), "a")  # noqa: SIM115 - kept open for the whole run
 
     if args.student_init:
         student = load_model(args.student_init, device)

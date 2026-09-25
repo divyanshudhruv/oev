@@ -1,7 +1,7 @@
 import pytest
+
 pytest.importorskip("datasets")
 from oev.convert import convert_rows
-
 
 AG_LABELS = ["world", "sports", "business", "sci/tech"]
 

@@ -5,8 +5,8 @@ import subprocess
 import sys
 import time
 
-import torch
 import onnxruntime as ort
+import torch
 
 from oev.evaluate import load_model
 from oev.tokenizer_hf import HFTokenPacker
@@ -117,6 +117,7 @@ def main():
              "--checkpoint", args.checkpoint, "--data-dir", args.data_dir,
              "--out-dir", args.out_dir],
             cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))) or None,
+            check=True,
         )
         if r.returncode != 0:
             print("export failed; benchmarking torch only")
@@ -133,7 +134,7 @@ def main():
                 compiled = torch.compile(model)
                 p50, bq, qps, _ = bench(compiled.forward, packer, model.cfg, rows,
                                         args.n_single, args.n_batch, args.batch_size), None, None
-            except Exception as e:
+            except (RuntimeError, IndentationError, ValueError) as e:
                 print(f"torch.compile skipped: {e}")
 
     sess32 = sess8 = None

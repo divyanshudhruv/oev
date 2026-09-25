@@ -1,6 +1,5 @@
-import json
 import pytest
-import torch
+
 from oev.data_gen import generate, write_splits
 from oev.train import train
 

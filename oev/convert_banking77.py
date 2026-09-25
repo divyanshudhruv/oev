@@ -51,7 +51,7 @@ def intent_names():
 
     url = "https://huggingface.co/datasets/PolyAI/banking77/resolve/main/dataset_infos.json"
     data = json.load(urllib.request.urlopen(url, timeout=30))
-    names = list(data.values())[0]["features"]["label"]["names"]
+    names = next(iter(data.values()))["features"]["label"]["names"]
     assert len(names) == 77, f"expected 77 official intents, got {len(names)}"
     return names
 
@@ -60,8 +60,7 @@ def write_jsonl(rows, path):
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     with open(p, "w", encoding="utf-8") as f:
-        for r in rows:
-            f.write(json.dumps(r) + "\n")
+        f.writelines(json.dumps(r) + "\n" for r in rows)
 
 
 def convert(rows, names):

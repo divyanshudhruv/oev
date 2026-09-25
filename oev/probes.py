@@ -23,11 +23,11 @@ Usage:
 """
 
 import argparse
+
 import torch
 
 from oev.evaluate import load_model
 from oev.tokenizer_hf import HFTokenPacker
-
 
 SECRETS = ["ZEBRA-7741", "INDIGO-313", "COPPER-8264"]
 DECOYS = ["DELTA-1111", "OSCAR-2222"]

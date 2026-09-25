@@ -1,4 +1,4 @@
-from oev.tokenizer import VOCAB_SIZE, PAD_ID, CLS_ID, SEP_ID, ANCHOR_ID, encode, decode
+from oev.tokenizer import ANCHOR_ID, CLS_ID, PAD_ID, SEP_ID, VOCAB_SIZE, decode, encode
 
 
 def test_vocab_size():

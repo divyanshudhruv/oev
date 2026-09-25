@@ -1,15 +1,13 @@
 import json
+
 import pytest
 
 transformers = pytest.importorskip("transformers")
-import tokenizers
 from tokenizers import Tokenizer, models, pre_tokenizers
-from transformers import PreTrainedTokenizerFast, AutoConfig, AutoModel
-import torch
-from oev.tokenizer_hf import HFTokenPacker
-from oev.model import HFBackboneOEV
-from oev.train import train
+from transformers import AutoConfig, AutoModel, PreTrainedTokenizerFast
+
 from oev.infer import OEV
+from oev.train import train
 
 
 @pytest.fixture(scope="module")
@@ -32,8 +30,7 @@ def backbone_env(tmp_path_factory):
     ]
     for split, rows_in in (("train", rows[:8]), ("valid", rows[8:10]), ("test", rows[10:])):
         with open(data / f"{split}.jsonl", "w", encoding="utf-8") as f:
-            for r in rows_in:
-                f.write(json.dumps(r) + "\n")
+            f.writelines(json.dumps(r) + "\n" for r in rows_in)
     return str(bb_dir), str(data), str(root / "ckpt")
 
 
@@ -47,7 +44,7 @@ def test_backbone_roundtrip(backbone_env, monkeypatch):
         return real_tok
 
     def fake_autoModel(name, **kwargs):
-        return AutoModel.from_pretrained(bb_dir, **{}) if False else real_model
+        return AutoModel.from_pretrained(bb_dir) if False else real_model
 
     import transformers
     monkeypatch.setattr(transformers.AutoTokenizer, "from_pretrained", fake_autoTokenizer)

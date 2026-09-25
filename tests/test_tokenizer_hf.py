@@ -1,9 +1,9 @@
 import pytest
 
 transformers = pytest.importorskip("transformers")
-import tokenizers
 from tokenizers import Tokenizer, models, pre_tokenizers
 from transformers import PreTrainedTokenizerFast
+
 from oev.tokenizer_hf import HFTokenPacker
 
 

@@ -1,5 +1,6 @@
 import torch
-from oev.calibrate import fit_temperature_from_logits, apply_temperature
+
+from oev.calibrate import apply_temperature, fit_temperature_from_logits
 
 
 def overconfident_logits():

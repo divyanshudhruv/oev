@@ -2,9 +2,9 @@ import math
 
 import torch
 import torch.nn.functional as F
+
 from oev.dataset import pack
 from oev.evaluate import load_model
-from oev import tokenizer as tk
 from oev.tokenizer_hf import HFTokenPacker
 
 

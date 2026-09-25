@@ -4,8 +4,8 @@ import os
 import time
 
 import numpy as np
-import torch
 import onnxruntime as ort
+import torch
 from onnxruntime.quantization import QuantType, quantize_dynamic
 
 from oev.evaluate import load_model

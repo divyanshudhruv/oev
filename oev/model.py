@@ -1,7 +1,9 @@
 from dataclasses import dataclass
+
 import torch
-import torch.nn as nn
-from oev.tokenizer import VOCAB_SIZE, PAD_ID
+from torch import nn
+
+from oev.tokenizer import PAD_ID, VOCAB_SIZE
 
 
 @dataclass

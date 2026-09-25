@@ -150,8 +150,7 @@ def main(out_dir="data/commands"):
     for split, n in sizes.items():
         path = os.path.join(out_dir, f"{split}.jsonl")
         with open(path, "w", encoding="utf-8") as f:
-            for c in generate(n, seeds[split], split[:2]):
-                f.write(json.dumps(c) + "\n")
+            f.writelines(json.dumps(c) + "\n" for c in generate(n, seeds[split], split[:2]))
         print(f"wrote {n} cases to {path} (intents: {', '.join(INTENTS)})")
 
 

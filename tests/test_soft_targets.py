@@ -1,6 +1,7 @@
 import torch
-from oev.dataset import OEVDataset, collate
+
 from oev.data_gen import generate, write_splits
+from oev.dataset import OEVDataset, collate
 
 
 def make_typed_file(tmp_path):
@@ -20,8 +21,7 @@ def make_typed_file(tmp_path):
     p = tmp_path / "typed"
     p.mkdir()
     with open(p / "train.jsonl", "w", encoding="utf-8") as f:
-        for r in rows:
-            f.write(json.dumps(r) + "\n")
+        f.writelines(json.dumps(r) + "\n" for r in rows)
     return p
 
 
@@ -42,8 +42,7 @@ def test_collate_hard_target_fallback(tmp_path):
     p.mkdir()
     rows = [{"id": "h-0", "domain": "x", "state": "s", "questions": [{"name": "d", "type": "choice", "options": ["a", "b"], "answer": "b"}]}]
     with open(p / "train.jsonl", "w", encoding="utf-8") as f:
-        for r in rows:
-            f.write(json.dumps(r) + "\n")
+        f.writelines(json.dumps(r) + "\n" for r in rows)
     ds = OEVDataset(str(p / "train.jsonl"), 64)
     b = collate([ds[0]])
     assert b["has_target"].tolist() == [False]
@@ -53,7 +52,6 @@ def test_collate_hard_target_fallback(tmp_path):
 def test_mixed_batch_shapes():
     splits = generate(30, seed=5)
     import tempfile
-    from pathlib import Path
 
     with tempfile.TemporaryDirectory() as d:
         write_splits(splits, d)

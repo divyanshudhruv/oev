@@ -14,7 +14,6 @@ import argparse
 import json
 
 import torch
-import torch.nn.functional as F
 
 from oev.evaluate import load_model
 from oev.tokenizer_hf import HFTokenPacker
@@ -102,7 +101,8 @@ def evaluate_metrics(checkpoints, data_dir, device="cuda", gamma=1.0, latency=Fa
     models = [load_model(c, device) for c in checkpoints]
     packers = [HFTokenPacker(m.cfg["backbone"]) for m in models]
 
-    rows = [json.loads(l) for l in open(f"{data_dir}/test.jsonl", encoding="utf-8")]
+    with open(f"{data_dir}/test.jsonl", encoding="utf-8") as fh:
+        rows = [json.loads(l) for l in fh]
 
     n = correct = 0
     soft_acc_sum = 0.0
@@ -119,10 +119,9 @@ def evaluate_metrics(checkpoints, data_dir, device="cuda", gamma=1.0, latency=Fa
             for q in r["questions"]:
                 probs_sum = None
                 label = None
-                target = None
                 qtype = None
                 for m, p in zip(models, packers):
-                    probs, label, qtype, target = _predict_probs(m, p, r["state"], q, device, gamma=gamma)
+                    probs, label, qtype, _target = _predict_probs(m, p, r["state"], q, device, gamma=gamma)
                     probs_sum = probs if probs_sum is None else probs_sum + probs
                 probs = probs_sum / len(models)
 
@@ -199,7 +198,6 @@ def permute_flip_rate(model, packer, rows, device, n_perm=6, max_cases=300):
     """How much does answer identity depend on option order? For choice
     questions, rotate the options n_perm times and count how often the
     argmax changes relative to the identity order. Lower is better."""
-    import itertools
 
     cases = []
     for r in rows:

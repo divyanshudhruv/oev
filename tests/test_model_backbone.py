@@ -3,6 +3,7 @@ import pytest
 transformers = pytest.importorskip("transformers")
 import torch
 from transformers import AutoConfig, AutoModel
+
 from oev.model import HFBackboneOEV
 
 
@@ -15,7 +16,6 @@ def tiny_backbone(tmp_path_factory):
 
 
 def test_forward_shape_and_padding_invariance(tiny_backbone):
-    from oev.model import HFBackboneOEV
 
     m = HFBackboneOEV(tiny_backbone)
     m.eval()
