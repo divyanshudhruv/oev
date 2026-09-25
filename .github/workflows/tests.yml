@@ -56,21 +56,33 @@ jobs:
       - name: Claims integrity (version parity + claims map + eval commands)
         run: python scripts/check_claims.py
 
-      - name: Chart freshness (tracked PNGs match the generator)
+      - name: Chart freshness (tracked PNGs match the generator, pixel-identical)
         run: |
-          pip install matplotlib numpy
+          pip install matplotlib==3.11.2 numpy pillow
           python - <<'PY'
-          import hashlib, subprocess, sys
-          def digest(p):
-              return hashlib.sha256(open(p, "rb").read()).hexdigest()
-          before = {p: digest(p) for p in subprocess.run(
-              ["git", "ls-files", "assets/"], capture_output=True, text=True
-          ).stdout.split()}
-          subprocess.run([sys.executable, "scripts/make_charts.py"], check=True,
-                         capture_output=True)
-          drift = [p for p, h in before.items()
-                   if p.replace("assets/", "assets/") and digest(p) != h
-                   and "params_vs_acc" not in p]
-          assert not drift, f"stale chart assets (run scripts/make_charts.py): {drift}"
-          print(f"chart freshness OK ({len(before)} tracked assets)")
+          import os, shutil, subprocess, sys, tempfile
+          import numpy as np
+          from PIL import Image
+          with tempfile.TemporaryDirectory() as td:
+              shutil.copy("scripts/make_charts.py", os.path.join(td, "make_charts.py"))
+              r = subprocess.run([sys.executable, "make_charts.py"], cwd=td,
+                                 capture_output=True, text=True)
+              assert r.returncode == 0, r.stderr
+              fresh = sorted(f for f in os.listdir(os.path.join(td, "assets"))
+                             if f.endswith(".png"))
+              assert fresh, "generator produced no charts"
+              problems = []
+              for f in fresh:
+                  repo_p = os.path.join("assets", f)
+                  if not os.path.exists(repo_p):
+                      problems.append(f"{f}: generated but not tracked in assets/")
+                      continue
+                  a = np.asarray(Image.open(os.path.join(td, "assets", f)).convert("RGBA"))
+                  b = np.asarray(Image.open(repo_p).convert("RGBA"))
+                  if a.shape != b.shape or not np.array_equal(a, b):
+                      problems.append(f)
+              assert not problems, (
+                  "stale chart assets (run scripts/make_charts.py locally, "
+                  f"then commit the regenerated PNGs): {problems}")
+              print(f"chart freshness OK ({len(fresh)} charts, pixel-identical)")
           PY
