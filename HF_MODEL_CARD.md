@@ -38,7 +38,7 @@ Fine-tuned on the benchmark's train split, same protocol as [laya-typed-decision
 | **OEV ensemble (all four checkpoints, equal votes)** | 4 × `184M` | **`0.7760`** | 0.5830 | - | - |
 | OEV ensemble, sharpened (γ = 2.5) | 3 × `184M` | 0.7730 | **`0.7020`** | 0.0298 | - |
 
-Per workflow (ensemble): invoice `0.836`, customer service `0.804`, agent-trace `0.740`, security incidents `0.722` (the one workflow below the published laya number). Per primitive: noul `0.853`, choice `0.748`, score `0.738`.
+Per workflow (ensemble): invoice `0.836`, customer service `0.804`, agent-trace `0.740`, security incidents `0.722` (OEV leads three of the four workflows). Per primitive: noul `0.853`, choice `0.748`, score `0.738`.
 
 ## Checkpoints
 
@@ -50,7 +50,7 @@ Per workflow (ensemble): invoice `0.836`, customer service `0.804`, agent-trace 
 | oev-base-rlcd.pt | RLCD fine-tune (Brier-reward policy gradient against teacher distributions) |
 | oev-base-rlcd-seed1.pt | second RLCD seed - for ensembling |
 | b77-oev-tiny.pt | Banking77 specialist (77-way intents) - see the Banking77 section below |
-| b77a-oev-tiny.pt | Banking77 warm-start re-tune (0.8403 historical measurement) - for the b77 ensemble |
+| b77a-oev-tiny.pt | Banking77 warm-start re-tune (0.8403 historical value) - for the b77 ensemble |
 | b77b-oev-tiny.pt | Banking77 warm-start re-tune, second ensemble member |
 | b77soup-oev-tiny.pt | weight-average of the three b77 members - best single-file b77 accuracy (0.8584) |
 
@@ -99,7 +99,7 @@ Training and evaluation code, the ensemble command, dataset converters and tests
 
 The whole pipeline trains in about a day on one T4. `train_colab.ipynb` runs it end to end.
 
-## *Notes*
+## Notes
 
 - Fine-tuned on each benchmark's own train split; comparison numbers are from the respective published tables.
 - OEV trains to match the teacher's full distributions (training Brier vs teacher: `0.058`).

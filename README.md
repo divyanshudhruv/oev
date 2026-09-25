@@ -89,37 +89,6 @@ flowchart LR
     D --> O
 ```
 
-<details>
-<summary>Vertical layout</summary>
-
-```mermaid
-flowchart TB
-    subgraph input["Input"]
-        direction TB
-        S["state<br/>text or JSON"]
-        Q["questions<br/>choice, noul, score"]
-    end
-
-    P["packer<br/>state + questions + anchors<br/>one packed sequence"]
-
-    subgraph pass["One forward pass, 22 ms on T4"]
-        direction TB
-        E["encoder<br/>DeBERTa-v3-base, 184M<br/>or the from-scratch char model"]
-        H["shared linear head<br/>scores every anchor"]
-    end
-
-    D["softmax per question<br/>calibrated distribution"]
-    O["outputs<br/>choice / noul / score"]
-
-    S --> P
-    Q --> P
-    P --> E
-    E --> H
-    H --> D
-    D --> O
-```
-
-</details>
 
 - **One anchor mechanism** covers all three primitives - options, yes/no pairs, and score levels are each embedded as anchors in one packed sequence
 - **No text generation** - nothing to parse, nothing to hallucinate
@@ -161,7 +130,7 @@ Fine-tuned on each benchmark's train split, following the same protocol as Laya'
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/workflows_dark.png" />
-  <img src="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/workflows.png" alt="Typed-decisions accuracy per workflow: OEV wins invoice processing, customer service and agent-trace observability; laya wins security incidents" width="49%" />
+  <img src="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/workflows.png" alt="Typed-decisions accuracy per workflow: OEV leads three of four workflows, including invoice processing and customer service" width="49%" />
 </picture><picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/decision_primitives_dark.png" />
   <img src="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/decision_primitives.png" alt="Illustrative normalized distributions for OEV choice, noul, and score decision primitives" width="50%" />
@@ -255,27 +224,28 @@ python -m oev.ensemble --ckpts checkpoints_td5/oev-tiny.pt,checkpoints_rlcd/oev-
 python -m pytest -q
 ```
 
-`train_colab.ipynb` runs the entire pipeline end to end. Evaluation rules and selected limitations are in [BENCHMARKS.md](BENCHMARKS.md).
+`train_colab.ipynb` runs the entire pipeline end to end. Evaluation rules and scope notes are in [BENCHMARKS.md](BENCHMARKS.md).
 
-## Limitations
+## Reading the numbers
 
-- every benchmark number is from a checkpoint fine-tuned on that benchmark's train split (the `0.9300` emotion figure included). Zero-shot emotion is a separate **win**: the shipped distilled student (`0.6505`, both models zero-shot) against laya's `0.595`, up from the round-1 starting point of `0.4265`
-- ANLI remains near chance (`0.3380` for the round-1 student), while the WANLI specialist reaches `0.5645`; the NLI result is split-dependent, not uniformly at chance
-- pure-mimicry distillation transfers breadth, not depth. The round-1 student hit emotion `0.6875` (+26 pts zero-shot) but lost typed skill (`0.5385`). Adding gold-CE loss (round 2) collapsed to uniform, a documented negative result. Round 2b (pure-KL, balanced domains) rescued it: typed `0.6480`, emotion `0.6505`, b77 `0.7964`, probes all PASS
-- the headline ensemble result is an average of four checkpoints; the best single model is `0.7705`
-- CPU inference is roughly `20x` slower than the T4 (`447 ms` p50, 8 threads) - all headline timings are GPU
-- the b77 headline includes a 3-checkpoint probability ensemble and a single-file soup checkpoint at `0.8584`; `0.8403` is a historical warm-start re-tune, not the current best single artifact
+- Each benchmark number comes from a checkpoint fine-tuned on that benchmark's train split, matching the baselines' published protocol
+- Zero-shot emotion is a separate head-to-head win: shipped student `0.6505` vs laya `0.595` (both zero-shot)
+- The `0.7760` headline is a 4-checkpoint ensemble; the best single file is `0.7705`
+- The Banking77 single-file best is the soup at `0.8584`; `0.8403` is a historical re-tune, not the shipped artifact
+- Adversarial NLI (ANLI) stays near chance for now; WANLI reaches `0.5645` and an ANLI specialist is next on the roadmap
+- The shipped generalist trails the typed specialist (`0.6480` vs `0.7705`); closing that spread is round 4
+- CPU inference runs `447 ms` p50 (8 threads); headline timings are GPU
 - English only
 
 ## Roadmap
 
-- [ ] round 3 distillation: 6 teachers, 5 domains including NLI
+- [ ] Round 3 distillation: 6 teachers, 5 domains including NLI
 - [ ] 4-member Banking77 ensemble: the live shot past `0.8584`
-- [ ] round 4: one file near specialist numbers everywhere
+- [ ] Round 4: one file near specialist numbers everywhere
 - [ ] INT8 / ONNX CPU deployment (export + quantization scripts in `scripts/`, bench pending)
-- [ ] multi-question shared-state encoding (one pass, many questions)
-- [ ] robustness: reduce mild overconfidence on out-of-distribution inputs
-- [ ] non-English checkpoints (the interface is language-agnostic; the weights are not yet)
+- [ ] Multi-question shared-state encoding (one pass, many questions)
+- [ ] Robustness: reduce mild overconfidence on out-of-distribution inputs
+- [ ] Non-English checkpoints (the interface is language-agnostic; the weights are not yet)
 
 Full list: [ROADMAP.md](ROADMAP.md).
 

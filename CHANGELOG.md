@@ -33,8 +33,8 @@ arc, and the benchmark record behind it.
   (WANLI 0.5645, +23 over floor), OOD protocol invitation, round-4 plan
 
 ### Known issues
-- Coherence regression: r2b student scores 3/5 on the five TESTS.md scenarios
-  (mt baseline 4/5). Distillation diluted decision conservatism, round-4 target
+- Coherence regression: r2b student scores 3/5 on the five decision-coherence scenarios
+  (typed specialist baseline 4/5). Distillation diluted decision conservatism, round-4 target
 - ANLI R1 remains at chance even with NLI training (adversarial split)
 - Banking77 gap to Jev stands (0.8584 vs 0.870). Rotation-TTA measured
   ineffective (+0.0013)

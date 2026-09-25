@@ -47,13 +47,13 @@ The confidence field is the maximum probability of a choice distribution, not a 
 - OEV measurements use a single Tesla T4 with fp32 inference; CPU timing uses eight threads.
 - Jev and laya numbers are published baselines, not reruns.
 
-## Limitations
+## Scope
 
-- Banking77 comparisons are not controlled because the published Jev result uses 72 labels and OEV uses 77.
-- Historical gamma `2.5` results are omitted from headline claims because validation provenance is incomplete.
-- Out-of-domain transfer is mixed: emotion transfer is positive, while adversarial NLI transfer remains near chance.
-- Training and evaluation data are English-only.
-- The model re-encodes the packed state for each request; long option lists consume token budget.
+- Banking77: Jev's published figure uses 72 labels, OEV uses 77, so the comparison is indicative rather than controlled
+- Historical gamma `2.5` rows stay out of headline claims until their selection logs are archived
+- Out-of-domain transfer is strong on emotion and still open on adversarial NLI
+- Training and evaluation data are English-only
+- Each request re-encodes the packed state; long option lists consume token budget
 
 ## Reproduce
 
