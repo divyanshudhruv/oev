@@ -1,9 +1,26 @@
 services:
   oev:
     build: .
+    image: oev-serve:latest
+    user: "1000:1000"
     ports:
       - "8000:8000"
+    environment:
+      # point at a Hugging Face checkpoint instead of a mounted file, e.g.
+      # OEV_CHECKPOINT: divyanshudhruv/oev-typed/student-r2b-oev-tiny.pt
+      OEV_CHECKPOINT: /app/checkpoints/oev-tiny.pt
     volumes:
       # put your checkpoint at ./checkpoints/oev-tiny.pt
       - ./checkpoints:/app/checkpoints:ro
+      # persists the HF backbone cache between restarts
+      - oev-hf-cache:/app/hf-cache
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 180s
+      retries: 3
+
+volumes:
+  oev-hf-cache:

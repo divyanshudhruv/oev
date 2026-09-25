@@ -1,0 +1,25 @@
+# never bake these into the image
+.git
+.github
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+data/
+checkpoints*/
+*.pt
+*.zip
+dist/
+build/
+docs/
+assets/
+tests/
+examples/
+scripts/
+space/
+*.md
+!README.md
+Dockerfile
+docker-compose.yml
+.dockerignore

@@ -25,6 +25,7 @@ Usage:
 """
 
 import argparse
+import os
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
@@ -57,7 +58,11 @@ def decide(req: DecideRequest):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "checkpoint": agent.model.cfg if agent else None}
+    if agent is None:
+        # 503 (not 200) so Docker HEALTHCHECK and orchestrators can tell
+        # "still loading" apart from "failed to load" during startup
+        raise HTTPException(status_code=503, detail="model not loaded yet")
+    return {"status": "ok", "checkpoint": agent.model.cfg}
 
 
 # ---- Jev-compatible endpoint (TypeSafe System One schema) ----
@@ -99,19 +104,28 @@ def systemone(req: SystemOneRequest):
     }
 
 
+def _resolve_checkpoint(spec: str) -> str:
+    """Accept a local path or a Hugging Face id (repo/filename)."""
+    if "/" not in spec or os.path.exists(spec):
+        return spec
+    from huggingface_hub import hf_hub_download
+
+    repo, _, filename = spec.rpartition("/")
+    return hf_hub_download(repo_id=repo, filename=filename)
+
+
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--checkpoint", required=True)
+    p.add_argument("--checkpoint", default=os.environ.get("OEV_CHECKPOINT", ""),
+                   help="path to a .pt checkpoint or a Hugging Face id (repo/filename); OEV_CHECKPOINT env works too")
+    if not p.get_default("checkpoint"):
+        p.error("--checkpoint or OEV_CHECKPOINT is required")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8000)
     p.add_argument("--device", default="cpu")
     args = p.parse_args()
     global agent
-    agent = OEV(args.checkpoint, device=args.device)
+    agent = OEV(_resolve_checkpoint(args.checkpoint), device=args.device)
     import uvicorn
 
     uvicorn.run(app, host=args.host, port=args.port)
-
-
-if __name__ == "__main__":
-    main()
