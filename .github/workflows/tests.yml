@@ -53,35 +53,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Version parity (pyproject == oev.__version__)
-        run: |
-          python - <<'PY'
-          import tomllib, importlib.metadata, subprocess, sys, os
-          py = tomllib.load(open("pyproject.toml", "rb"))["project"]["version"]
-          src = open("oev/__init__.py", encoding="utf-8").read()
-          init = __import__("re").search(r'__version__\s*=\s*"([^"]+)"', src).group(1)
-          assert py == init, f"version mismatch: pyproject {py} != oev/__init__.py {init}"
-          print("version parity OK:", py)
-          PY
-
-      - name: Claims map completeness (every public doc number is a registered claim)
-        run: |
-          python - <<'PY'
-          import io, json, re
-          claims = json.load(open("docs/claims.json", encoding="utf-8"))["claims"]
-          known = {str(c["value"]) for c in claims}
-          # canonical short forms: 0.776 == 0.7760, 0.93 == 0.9300 etc.
-          known |= {v.rstrip("0").rstrip(".") if "." in v else v for v in known}
-          text = ""
-          for f in ["README.md", "BENCHMARKS.md"]:
-              text += io.open(f, encoding="utf-8").read()
-          accs = set(re.findall(r"0\.\d{3,4}", text))
-          # exclude numbers that are protocol constants, baselines or floors
-          exempt = {"0.1667", "0.333", "0.3333", "0.40", "0.4000"}
-          missing = {a for a in accs - known - exempt if a.rstrip("0") not in known}
-          assert not missing, f"numbers in docs but not in claims.json: {sorted(missing)}"
-          print(f"claims cross-check OK ({len(accs)} accuracy-like numbers)")
-          PY
+      - name: Claims integrity (version parity + claims map + eval commands)
+        run: python scripts/check_claims.py
 
       - name: Chart freshness (tracked PNGs match the generator)
         run: |

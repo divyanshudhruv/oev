@@ -1,1 +1,10 @@
--e .[app]
+# HF Space build: plain requirements, no editable install needed -
+# the oev/ package directory sits next to app.py on the Space.
+# torch / gradio / spaces versions are pinned by the HF base image around this file.
+numpy>=1.26
+transformers>=4.40
+sentencepiece
+protobuf
+huggingface_hub>=0.23
+gradio[oauth,mcp]==6.1.0
+spaces==0.51.3
