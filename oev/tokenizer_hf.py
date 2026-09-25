@@ -25,5 +25,8 @@ class HFTokenPacker:
             anchor_pos.append(len(ids))
             ids += o
         ids = ids[:max_len]
+        # anchors were recorded pre-clip; when fixed overhead exceeds max_len the
+        # tail gets clipped and stale anchors can point past the sequence -> clamp
+        anchor_pos = [min(a, len(ids) - 1) for a in anchor_pos]
         label = options.index(str(question["answer"]))
         return ids, anchor_pos, label

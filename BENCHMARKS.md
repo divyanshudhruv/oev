@@ -107,6 +107,8 @@ The honest summary: OEV wins every published in-domain row it shares with laya a
 | **OEV soup (single file)**  |  `184M`    | **`0.8584`** |     `0.0965` |   `0.8484` |   `0.7604`   | `0.0389` |
 | OEV ensemble (3 x 184M)     | 3 x `184M` |      `0.8529`    | **`0.0595`** |   `0.8224` |            - |     - |
 | OEV single, warm-start re-tune |  `184M` |     `0.8403` |     `0.1905` |          - |            - |     - |
+| OEV re-tune from r2b student |  `184M` |     `0.8370` |     `0.1349` |   `0.8356` |   `0.6851`   | `0.0425` |
+| OEV re-tune + rotation-TTA (K=4) |  `184M` |     `0.8383` |            - |          - |            - |     - |
 | OEV single (first release)     |     `184M` |      `0.8303` |     `0.1860` |          - |            - |     - |
 | OEV single, re-measured (`benchmark_ext`) |  `184M` |     `0.8302` |     `0.0781` |          - |    `0.6386` | `0.0499` |
 | laya (published)            |      `421M` |      `0.425` |            - |          - |            - |     - |
@@ -170,26 +172,38 @@ schema (`entailment / neutral / contradiction`).
 | model | acc | ECE | conf-err (p>=0.9) | read |
 |-------|-----|-----|-------------------|------|
 | random (3 classes) | 0.333 | - | - | floor |
+| **OEV MNLI specialist (184M)** | **`0.5645`** | `0.3328` | `0.2765` (553) | **first real NLI transfer: +23 over floor** |
 | OEV td5 (184M) | 0.3945 | 0.1075 | 0.0000 | +0.06 over floor |
 | OEV mt (184M, generalist) | 0.3800 | 0.2138 | 0.0115 (43) | below td5 and overconfident |
 | Kev 0.8B / 4B (own suite) | 0.684 / 0.852 | - | - | not directly comparable |
 
 td5 clears random by only `+0.06`; mt is *worse* (`0.3800`) and confident about
 it - 43 answers wrong at p>=0.9, the worst overconfidence measured in the
-session. Breadth did not transfer, confidence did (badly). Both readings feed
-the same conclusion and the same fix: distillation.
+session. The fix that landed is the MNLI specialist (fine-tuned on 12k MNLI
+train cases, 2026-09-25): `0.5645` on WANLI, +23 over the floor and +17 over
+td5 - though heavily overconfident out-of-domain (553 wrong-confident answers),
+so its probabilities need gamma calibration before automated use. Round 3
+distillation is pending to propagate this signal into the generalist.
 
 ### NLI is at chance: the ANLI measurement
 
 ANLI round 1 (test_r1, 1000 cases) closes the WANLI question: the student's
-`0.3510` there was never a regression, it is the NLI floor. No checkpoint in the
-project has seen NLI training data.
+`0.3510` there was never a regression, it is the NLI floor. The MNLI
+specialist is the only checkpoint that has seen NLI training data - and ANLI
+still holds the floor against it.
 
 | model | acc | ECE | read |
 |-------|-----|-----|------|
 | random (3 classes) | 0.333 | - | floor |
 | OEV round-1 student (184M) | 0.3380 | 0.1155 | exactly chance, calibrated at chance |
+| OEV MNLI specialist (184M) | 0.3360 | 0.4717 | still floor - ANLI is adversarial; MNLI transfer does not crack it |
 | OEV td5 (184M), WANLI | 0.3945 | 0.1075 | +0.06 over floor |
+
+Every number in this section is reproducible from the repository: the converters
+(`oev.convert_wanli`, the ANLI cell in the session notebooks), the harness
+(`oev.benchmark_ext`) and the checkpoint manifest are all published. Run the
+same splits on your model and open a PR - rows are added with full attribution.
+OEV's own OOD suite is deliberately public for exactly this comparison.
 
 Honest doc row: NLI zero-shot = chance across the board. Fixing it needs an NLI
 teacher in the distill mix or a small NLI fine-tune - round-3 material, not a
@@ -243,6 +257,15 @@ chosen again (mix-valid ECE 0.0948). It ships as the generalist. A
 student+soup-ensemble weight blend pushed typed to `0.7350` but broke the
 floors (b77 `0.7601`, emotion `0.5960`) - documented as a frontier point, not
 shipped: the pure-KL student keeps the best worst-case across all three domains.
+
+Planned next (2026-09-25): round 3 adds the MNLI specialist as a sixth teacher
+and `mnli` as a fifth domain (queued for the next GPU session - the first run
+was lost to a session recycle at step ~200). Round 4 then promotes every
+domain's specialist to teacher (td5, the b77 family, MNLI, the ag_news/emotion
+specialist) with the goal of one file near specialist accuracy everywhere. An
+ANLI R1 specialist (its own train split) is queued to convert the adversarial
+frontier into a measured benchmark row, and a 4-member b77 probability ensemble
+is the remaining shot at Jev's `0.870`.
 
 ### Coherent decisions: the fair TESTS.md rerun
 

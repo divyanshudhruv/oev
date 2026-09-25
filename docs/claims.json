@@ -340,6 +340,33 @@
     },
     {
       "metric": "accuracy",
+      "value": 0.5645,
+      "benchmark": "wanli_zero_shot",
+      "checkpoint": "mnli-specialist (184M)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint ck_mnli/oev-tiny.pt --data-dir data/wanli",
+      "note": "first above-floor NLI transfer in the project: +23 over random, +17 over td5. Fine-tuned on 12k MNLI train cases. Overconfident OOD (conf-err 0.2765) - gamma calibration pending. Round-3 teacher"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.336,
+      "benchmark": "anli_r1_zero_shot",
+      "checkpoint": "mnli-specialist (184M)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint ck_mnli/oev-tiny.pt --data-dir data/anli",
+      "note": "ANLI stays at chance even with NLI training - adversarial split resists MNLI transfer"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.837,
+      "benchmark": "banking77",
+      "checkpoint": "r2b-student warm-start re-tune (184M)",
+      "params": "184M",
+      "eval": "python -m oev.train --init distill2b/student.pt --data-dir data/banking77 --epochs 2 --lr 1e-5",
+      "note": "+4.1 over its init; below b77soup 0.8584. Rotation-TTA (K=4, gamma 1.2) adds only +0.0013 (0.8383) - TTA not effective here. Jev 0.870 gap stands"
+    },
+    {
+      "metric": "accuracy",
       "value": 0.338,
       "benchmark": "anli_r1_zero_shot",
       "checkpoint": "distill-round1-student (184M)",
