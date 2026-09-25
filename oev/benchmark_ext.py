@@ -97,6 +97,7 @@ def aurc(confs, corrs):
 
 def evaluate_metrics(checkpoints, data_dir, device="cuda", gamma=1.0, latency=False, permute=0):
     if device == "cuda" and not torch.cuda.is_available():
+        print("WARNING: CUDA requested but unavailable; falling back to CPU (latency numbers will not be comparable)")
         device = "cpu"
     models = [load_model(c, device) for c in checkpoints]
     packers = [HFTokenPacker(m.cfg["backbone"]) for m in models]

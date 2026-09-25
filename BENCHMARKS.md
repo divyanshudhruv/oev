@@ -1,6 +1,6 @@
 # OEV Benchmarks
 
-OEV results use a single Tesla T4 (16 GB) with fp16 inference unless stated otherwise. Jev and laya values are quoted from their published tables and were not rerun.
+OEV results use a single Tesla T4 (16 GB) with fp32 inference unless stated otherwise. Jev and laya values are quoted from their published tables and were not rerun.
 
 > [!WARNING]
 > Banking77 uses 77 OEV labels, while the published Jev result uses 72 labels. The Banking77 values are not a controlled head-to-head comparison. Historical gamma `2.5` results are exploratory and are not release claims because the validation-selection log is unavailable. Checkpoint hashes and raw run manifests are not tracked in this repository.
@@ -39,11 +39,11 @@ The confidence field is the maximum probability of a choice distribution, not a 
 
 ## Evaluation rules
 
-- Model selection and gamma fitting use the validation split only.
+- Model selection and gamma fitting use the validation split only. Historical gamma `2.5` results predate this rule and remain exploratory.
 - Each published test number was measured once.
-- Banking77 uses the official `10,003 / 1,000 / 3,080` train, validation, and test splits.
+- Banking77: the official source has `10,003` train / `3,080` test with no official validation; this repo carves the last `1,000` train rows as validation, giving `9,003 / 1,000 / 3,080`.
 - Typed-decisions uses the published `2,000`-decision test set.
-- OEV measurements use a single Tesla T4 with fp16 inference; CPU timing uses eight threads.
+- OEV measurements use a single Tesla T4 with fp32 inference; CPU timing uses eight threads.
 - Jev and laya numbers are published baselines, not reruns.
 
 ## Limitations

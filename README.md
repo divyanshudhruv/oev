@@ -12,7 +12,7 @@ OEV is a small (`184M params`) neural decision engine. Instead of generating tex
 The single `184M` model scores `0.7705` on typed-decisions, slightly above laya's published `0.766` from a `421M` checkpoint. An ensemble of four `184M` checkpoints reaches `0.7760`, the `highest` reported result, and a single Banking77 soup checkpoint reaches `0.8584` (best ECE `0.0595` from the 3-checkpoint ensemble). Jev leads only on Banking77 (0.870).
 
 > [!WARNING]
-> Chart latency comparisons use different hardware and include published ranges; the current `runs/` manifest and raw timing samples are also unavailable here. Reproduce claims from recorded run logs before treating them as release evidence.
+> Chart latency comparisons use different hardware and include published ranges; the current `runs/` manifest and raw timing samples are also unavailable here. The sharpening panel in the comparison figure shows historical gamma `2.5` values from an evaluation sweep; they are exploratory and not release claims. Reproduce claims from recorded run logs before treating them as release evidence.
 
 [![Hugging Face Model](https://img.shields.io/badge/%F0%9F%A4%97%20Model-divyanshudhruv%2Foev--typed-blue)](https://huggingface.co/divyanshudhruv/oev-typed)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
@@ -201,7 +201,7 @@ python -m oev.train --backbone microsoft/deberta-v3-base --epochs 4 --batch-size
 
 python -m oev.rlcd --checkpoint checkpoints_td5/oev-tiny.pt --data-dir data/typed --epochs 2 --batch-size 8 --out checkpoints_rlcd
 
-python -m oev.ensemble --ckpts checkpoints_td5/oev-tiny.pt,checkpoints_rlcd/oev-tiny.pt,checkpoints_rlcd_soup/oev-tiny.pt --data-dir data/typed
+python -m oev.ensemble --ckpts checkpoints_td5/oev-tiny.pt,checkpoints_rlcd/oev-tiny.pt,checkpoints_rlcd_soup/oev-tiny.pt,checkpoints_rlcd_seed1/oev-tiny.pt --data-dir data/typed
 
 python -m pytest -q
 ```
@@ -228,8 +228,8 @@ python -m pytest -q
 - [ ] robustness: reduce mild overconfidence on out-of-distribution inputs
 - [ ] non-English checkpoints (the interface is language-agnostic; the weights are not yet)
 
-Full list with the open questions behind each item: [ROADMAP.md](ROADMAP.md).
+Full list: [ROADMAP.md](ROADMAP.md).
 
 ## Credits
 
-The interface and benchmark protocol follow [Laya](https://github.com/NandhaKishorM/laya), [Kev](https://github.com/jaredpalmer/kev) and the System One model category introduced by TypeSafe's [Jev](https://typesafe.com). Their published numbers are quoted here for `comparison` and remain their `measurements.
+The interface and benchmark protocol follow [Laya](https://github.com/NandhaKishorM/laya), [Kev](https://github.com/jaredpalmer/kev) and the System One model category introduced by TypeSafe's [Jev](https://typesafe.com). Their published numbers are quoted here for comparison and remain their measurements.

@@ -1,7 +1,7 @@
 {
   "model": "oev",
   "version": "0.2.0",
-  "hardware": "single Tesla T4, fp16 inference; CPU: laptop, 8 threads",
+  "hardware": "single Tesla T4, fp32 inference; CPU: laptop, 8 threads",
   "notes": "baselines quoted from published tables, not re-run; gamma 2.5 was selected on an evaluation sweep and is exploratory; gamma 1.2 provenance depends on a private session log",
   "warnings": [
     "Gamma 2.5 lacks a tracked validation-selection log; do not present the sharpened row as a validation-selected release claim.",
@@ -24,7 +24,15 @@
       "benchmark": "typed-decisions",
       "checkpoint": "ensemble of oev-base-td5, oev-base-rlcd, oev-base-rlcd-soup, oev-base-rlcd-seed1",
       "params": "4 x 184M",
-      "eval": "python -m oev.ensemble --ckpts checkpoints_td5/oev-tiny.pt,checkpoints_rlcd/oev-tiny.pt,checkpoints_rlcd_soup/oev-tiny.pt --data-dir data/typed"
+      "eval": "python -m oev.ensemble --ckpts checkpoints_td5/oev-tiny.pt,checkpoints_rlcd/oev-tiny.pt,checkpoints_rlcd_soup/oev-tiny.pt,checkpoints_rlcd_seed1/oev-tiny.pt --data-dir data/typed"
+    },
+    {
+      "metric": "soft_accuracy",
+      "value": 0.583,
+      "benchmark": "typed-decisions",
+      "checkpoint": "ensemble of oev-base-td5, oev-base-rlcd, oev-base-rlcd-soup, oev-base-rlcd-seed1",
+      "params": "4 x 184M",
+      "eval": "python -m oev.ensemble --ckpts checkpoints_td5/oev-tiny.pt,checkpoints_rlcd/oev-tiny.pt,checkpoints_rlcd_soup/oev-tiny.pt,checkpoints_rlcd_seed1/oev-tiny.pt --data-dir data/typed"
     },
     {
       "metric": "ece",
@@ -32,7 +40,7 @@
       "benchmark": "typed-decisions",
       "checkpoint": "sharpened ensemble (gamma 2.5, historical evaluation sweep, exploratory)",
       "params": "3 x 184M",
-      "eval": "python -m oev.benchmark_ext --ckpts ... --data-dir data/typed --sharpen 2.5"
+      "eval": "python -m oev.benchmark_ext --ckpts checkpoints_td5/oev-tiny.pt,checkpoints_rlcd/oev-tiny.pt,checkpoints_rlcd_soup/oev-tiny.pt --data-dir data/typed --sharpen 2.5"
     },
     {
       "metric": "ece",
@@ -64,7 +72,7 @@
       "benchmark": "typed-decisions",
       "checkpoint": "sharpened ensemble (gamma 2.5, historical evaluation sweep, exploratory)",
       "params": "3 x 184M",
-      "eval": "python -m oev.benchmark_ext --ckpts ... --data-dir data/typed --sharpen 2.5"
+      "eval": "python -m oev.benchmark_ext --ckpts checkpoints_td5/oev-tiny.pt,checkpoints_rlcd/oev-tiny.pt,checkpoints_rlcd_soup/oev-tiny.pt --data-dir data/typed --sharpen 2.5"
     },
     {
       "metric": "accuracy",
@@ -281,6 +289,15 @@
       "params": "184M",
       "eval": "python -m oev.benchmark_ext --checkpoint checkpoints_td5/oev-tiny.pt --data-dir data/typed --latency",
       "note": "Recorded T4 p50; raw timing samples and current runs manifest are not available here. Published comparison ranges use different hardware."
+    },
+    {
+      "metric": "latency_p50_ms",
+      "value": 15.9,
+      "benchmark": "typed-decisions",
+      "checkpoint": "oev-base-td5",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint checkpoints_td5/oev-tiny.pt --data-dir data/typed --latency --batch 32",
+      "note": "Recorded T4 p50, batch of 32 questions. Raw timing samples and current runs manifest are not available here."
     },
     {
       "metric": "cpu latency p50",

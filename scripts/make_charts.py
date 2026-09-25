@@ -299,7 +299,7 @@ def _latency_profile(path, text, edge, sub, face):
     bars = gpu.bar(gpu_labels, gpu_values, color=[P_BLUE, P_GREEN], width=0.56)
     gpu.bar_label(bars, labels=[f"{v:.1f} ms" for v in gpu_values], padding=4,
                   color=text, fontsize=10)
-    gpu.set_title("GPU | Tesla T4, fp16", color=text, fontweight="bold")
+    gpu.set_title("GPU | Tesla T4, fp32", color=text, fontweight="bold")
     gpu.set_ylabel("ms per question", color=text)
     gpu.set_ylim(0, 27)
     cpu_bars = cpu.bar(["CPU"], [447], color=P_SAND, width=0.46)
@@ -321,80 +321,10 @@ def _latency_profile(path, text, edge, sub, face):
     plt.close(fig)
 
 
-def _params_vs_acc(path, text, edge, sub, face):
-    fig, ax = plt.subplots(figsize=(10, 5.8))
-    fig.subplots_adjust(left=0.09, right=0.98, top=0.84, bottom=0.16)
-    short_names = {
-        "OEV base (AG News)": "OEV base\nAG News",
-        "laya (AG News)": "laya\nAG News",
-        "OEV base (emotion)": "OEV base\nemotion",
-        "OEV soup (b77)": "OEV soup\nBanking77",
-        "OEV ensemble": "OEV\nensemble",
-        "OEV single": "OEV\nsingle",
-        "laya (typed)": "laya\ntyped",
-        "Kev-0.8B (OOD suite)": "Kev 0.8B\nOOD",
-        "Kev-4B (OOD suite)": "Kev 4B\nOOD",
-    }
-    offsets = {
-        "OEV base (AG News)": (8, 12, "left", "bottom"),
-        "laya (AG News)": (-8, -14, "right", "top"),
-        "OEV base (emotion)": (8, 8, "left", "bottom"),
-        "OEV soup (b77)": (8, -14, "left", "top"),
-        "OEV ensemble": (8, 8, "left", "bottom"),
-        "OEV single": (8, -14, "left", "top"),
-        "laya (typed)": (8, 10, "left", "bottom"),
-        "Kev-0.8B (OOD suite)": (8, 8, "left", "bottom"),
-        "Kev-4B (OOD suite)": (-8, 8, "right", "bottom"),
-    }
-    for name, params, acc, color in PTS:
-        if name.startswith("OEV"):
-            marker = "o"
-        elif name.startswith("laya"):
-            marker = "s"
-        else:
-            marker = "^"
-        ax.scatter(params, acc, s=130, color=color, marker=marker, zorder=3,
-                   edgecolors=edge, linewidths=0.6)
-        offset_x, offset_y, horizontal, vertical = offsets[name]
-        ax.annotate(
-            f"{short_names[name]}\n{acc:.4f}",
-            xy=(params, acc),
-            xytext=(offset_x, offset_y),
-            textcoords="offset points",
-            ha=horizontal,
-            va=vertical,
-            fontsize=8.5,
-            color=text,
-            arrowprops={"arrowstyle": "-", "color": edge, "lw": 0.6},
-            annotation_clip=False,
-        )
-    ax.annotate("Jev: closed API, size not published", (0.98, 0.03),
-                xycoords="axes fraction", ha="right", fontsize=9, color=sub,
-                style="italic")
-    ax.set_xlabel("parameters (millions, log scale)", color=text)
-    ax.set_ylabel("accuracy", color=text)
-    ax.set_title("accuracy vs model size", color=text, fontweight="bold")
-    ax.set_xscale("log")
-    ax.set_xlim(100, 5000)
-    ax.set_ylim(0.70, 0.99)
-    ax.set_xticks([100, 200, 400, 800, 1600, 3200, 5000])
-    ax.set_xticklabels(["100M", "200M", "400M", "800M", "1.6B", "3.2B", "5B"])
-    ax.set_yticks([0.7, 0.8, 0.9])
-    ax.set_yticklabels(["0.7", "0.8", "0.9"])
-    ax.set_facecolor(face)
-    ax.grid(color=edge, alpha=0.25)
-    ax.tick_params(colors=text)
-    for spine in ax.spines.values():
-        spine.set_color(edge)
-    fig.savefig(path, dpi=150, transparent=True)
-    plt.close(fig)
-
-
 _light_text, _light_edge, _light_sub, _light_face = "#24292f", "#57606a", "#6e7480", "#f6efe7"
 _headline_scorecard("assets/headline_scorecard.png", _light_text, _light_edge, _light_sub, _light_face)
 _decision_primitives("assets/decision_primitives.png", _light_text, _light_edge, _light_sub, _light_face)
 _latency_profile("assets/latency_profile.png", _light_text, _light_edge, _light_sub, _light_face)
-_params_vs_acc("assets/params_vs_acc.png", _light_text, _light_edge, _light_sub, _light_face)
 
 # =====================================================================
 # chart 7: per-workflow accuracy (typed-decisions)
@@ -420,8 +350,7 @@ fig.savefig("assets/workflows.png", dpi=150, transparent=True)
 plt.close(fig)
 
 print("light charts written: benchmarks, zeroshot, transfer_speed, "
-      "headline_scorecard, decision_primitives, latency_profile, "
-      "params_vs_acc, workflows")
+      "headline_scorecard, decision_primitives, latency_profile, workflows")
 
 # =====================================================================
 # dark variants: same transparent figures, light text and edge swaps
@@ -541,7 +470,6 @@ _headline_scorecard("assets/headline_scorecard_dark.png", DARK_TEXT, DARK_EDGE, 
 _decision_primitives("assets/decision_primitives_dark.png", DARK_TEXT, DARK_EDGE, DARK_SUB, _dark_face)
 _latency_profile("assets/latency_profile_dark.png", DARK_TEXT, DARK_EDGE, DARK_SUB, _dark_face)
 
-_params_vs_acc("assets/params_vs_acc_dark.png", DARK_TEXT, DARK_EDGE, DARK_SUB, _dark_face)
 
 # workflows (dark)
 fig, ax = plt.subplots(figsize=(9, 4.8))

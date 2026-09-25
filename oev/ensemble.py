@@ -9,6 +9,7 @@ from oev.tokenizer_hf import HFTokenPacker
 
 def ensemble_accuracy(ckpts, data_dir, device="cuda"):
     if device == "cuda" and not torch.cuda.is_available():
+        print("WARNING: CUDA requested but unavailable; falling back to CPU (latency numbers will not be comparable)")
         device = "cpu"
     models = [load_model(c, device) for c in ckpts]
     packers = [HFTokenPacker(m.cfg["backbone"]) for m in models]

@@ -29,4 +29,6 @@ kaggle_distill_session.ipynb
 OEVIA_SPEC.md
 ChatGPT-OEV README Review-*.md
 space_log.txt
-/docs/superpowers
+# docs/: keep private, except the claims registry
+docs/*
+!docs/claims.json
