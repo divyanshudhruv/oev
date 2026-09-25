@@ -21,3 +21,83 @@ jobs:
 
       - name: Run tests
         run: python -m pytest -q
+
+      - name: Ruff
+        run: |
+          pip install ruff
+          ruff check oev scripts tests
+
+      - name: README image links resolve (HTTP 200)
+        run: |
+          python - <<'PY'
+          import io, re, urllib.request
+          text = io.open("README.md", encoding="utf-8").read()
+          urls = sorted(set(re.findall(r'https://raw\.githubusercontent\.com/[^"\s)]+', text)))
+          bad = []
+          for u in urls:
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(u, method="HEAD")) as r:
+                      if r.status != 200:
+                          bad.append(f"{u} -> {r.status}")
+              except Exception as e:
+                  bad.append(f"{u} -> {e}")
+          assert not bad, f"broken image URLs in README.md: {bad}"
+          print(f"image links OK ({len(urls)} URLs resolve)")
+          PY
+
+  claims-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Version parity (pyproject == oev.__version__)
+        run: |
+          python - <<'PY'
+          import tomllib, importlib.metadata, subprocess, sys, os
+          py = tomllib.load(open("pyproject.toml", "rb"))["project"]["version"]
+          src = open("oev/__init__.py", encoding="utf-8").read()
+          init = __import__("re").search(r'__version__\s*=\s*"([^"]+)"', src).group(1)
+          assert py == init, f"version mismatch: pyproject {py} != oev/__init__.py {init}"
+          print("version parity OK:", py)
+          PY
+
+      - name: Claims map completeness (every public doc number is a registered claim)
+        run: |
+          python - <<'PY'
+          import io, json, re
+          claims = json.load(open("docs/claims.json", encoding="utf-8"))["claims"]
+          known = {str(c["value"]) for c in claims}
+          # canonical short forms: 0.776 == 0.7760, 0.93 == 0.9300 etc.
+          known |= {v.rstrip("0").rstrip(".") if "." in v else v for v in known}
+          text = ""
+          for f in ["README.md", "BENCHMARKS.md"]:
+              text += io.open(f, encoding="utf-8").read()
+          accs = set(re.findall(r"0\.\d{3,4}", text))
+          # exclude numbers that are protocol constants, baselines or floors
+          exempt = {"0.1667", "0.333", "0.3333", "0.40", "0.4000"}
+          missing = {a for a in accs - known - exempt if a.rstrip("0") not in known}
+          assert not missing, f"numbers in docs but not in claims.json: {sorted(missing)}"
+          print(f"claims cross-check OK ({len(accs)} accuracy-like numbers)")
+          PY
+
+      - name: Chart freshness (tracked PNGs match the generator)
+        run: |
+          pip install matplotlib numpy
+          python - <<'PY'
+          import hashlib, subprocess, sys
+          def digest(p):
+              return hashlib.sha256(open(p, "rb").read()).hexdigest()
+          before = {p: digest(p) for p in subprocess.run(
+              ["git", "ls-files", "assets/"], capture_output=True, text=True
+          ).stdout.split()}
+          subprocess.run([sys.executable, "scripts/make_charts.py"], check=True,
+                         capture_output=True)
+          drift = [p for p, h in before.items()
+                   if p.replace("assets/", "assets/") and digest(p) != h
+                   and "params_vs_acc" not in p]
+          assert not drift, f"stale chart assets (run scripts/make_charts.py): {drift}"
+          print(f"chart freshness OK ({len(before)} tracked assets)")
+          PY

@@ -3,7 +3,8 @@ name: sync-space
 on:
   push:
     branches: [main]
-    paths: ["app.py", "requirements.txt", "pyproject.toml", "README.md", "LICENSE", "oev/**"]
+    paths: ["app.py", "requirements.txt", "pyproject.toml", "README.md", "HF_MODEL_CARD.md", "LICENSE", "oev/**", "space/**", ".github/workflows/space.yml"]
+  workflow_dispatch:
 
 jobs:
   sync:
@@ -19,6 +20,7 @@ jobs:
           hf upload divyanshudhruv/oev-demo app.py app.py --repo-type space
           hf upload divyanshudhruv/oev-demo oev oev --repo-type space
           hf upload divyanshudhruv/oev-demo pyproject.toml pyproject.toml --repo-type space
-          hf upload divyanshudhruv/oev-demo README.md README.md --repo-type space
+          hf upload divyanshudhruv/oev-demo space/README.md README.md --repo-type space
           hf upload divyanshudhruv/oev-demo LICENSE LICENSE --repo-type space
           hf upload divyanshudhruv/oev-demo requirements.txt requirements.txt --repo-type space
+          hf upload divyanshudhruv/oev-typed HF_MODEL_CARD.md README.md --repo-type model
