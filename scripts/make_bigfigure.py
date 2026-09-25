@@ -32,7 +32,7 @@ ax = fig.add_subplot(gs[0, 0])
 bench = ["typed-decisions", "AG News", "DAIR Emotion", "Banking77"]
 jev = [0.727, 0.910, 0.480, 0.870]
 laya = [0.766, 0.950, 0.595, 0.425]
-oev = [0.7760, 0.9489, 0.9300, 0.8529]
+oev = [0.7760, 0.9489, 0.9300, 0.8584]  # b77 = soup (single 735MB file)
 x = np.arange(len(bench)); w = 0.26
 ax.bar(x - w, jev, w, label="Jev (published)", color=GRAY)
 ax.bar(x, laya, w, label="laya (published)", color=RED)
@@ -103,7 +103,7 @@ pts = [
     ("laya (421M)", 421, 0.766, RED),
     ("OEV single (184M)", 184, 0.7705, BLUE),
     ("OEV ensemble (736M)", 736, 0.7760, BLUE),
-    ("OEV b77 ens (552M)", 552, 0.8529, BLUE),
+    ("OEV b77 soup (184M)", 184, 0.8584, BLUE),
     ("Kev-0.8B (OOD)", 800, 0.837, GREEN),
     ("Kev-4B (OOD)", 4000, 0.852, GREEN),
 ]
