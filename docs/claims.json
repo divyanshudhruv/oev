@@ -1,8 +1,14 @@
 {
   "model": "oev",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "hardware": "single Tesla T4, fp16 inference; CPU: laptop, 8 threads",
-  "notes": "baselines quoted from published tables, not re-run; gamma selected on evaluation sweeps is marked exploratory",
+  "notes": "baselines quoted from published tables, not re-run; gamma 2.5 was selected on an evaluation sweep and is exploratory; gamma 1.2 provenance depends on a private session log",
+  "warnings": [
+    "Gamma 2.5 lacks a tracked validation-selection log; do not present the sharpened row as a validation-selected release claim.",
+    "Gamma 1.2 selection depends on a private session log; archive it before treating the setting as release evidence.",
+    "Checkpoint hashes, raw metrics, raw timing samples, and the current runs manifest are not available here.",
+    "The published Jev Banking77 figure uses 72 labels, while OEV uses 77; the comparison is not controlled."
+  ],
   "claims": [
     {
       "metric": "accuracy",
@@ -24,7 +30,7 @@
       "metric": "ece",
       "value": 0.0298,
       "benchmark": "typed-decisions",
-      "checkpoint": "sharpened ensemble (gamma 2.5, exploratory)",
+      "checkpoint": "sharpened ensemble (gamma 2.5, historical evaluation sweep, exploratory)",
       "params": "3 x 184M",
       "eval": "python -m oev.benchmark_ext --ckpts ... --data-dir data/typed --sharpen 2.5"
     },
@@ -56,7 +62,7 @@
       "metric": "soft_accuracy",
       "value": 0.702,
       "benchmark": "typed-decisions",
-      "checkpoint": "sharpened ensemble (gamma 2.5, exploratory)",
+      "checkpoint": "sharpened ensemble (gamma 2.5, historical evaluation sweep, exploratory)",
       "params": "3 x 184M",
       "eval": "python -m oev.benchmark_ext --ckpts ... --data-dir data/typed --sharpen 2.5"
     },
@@ -206,7 +212,7 @@
       "metric": "accuracy",
       "value": 0.8403,
       "benchmark": "banking77",
-      "checkpoint": "oev-base-banking77-a (warm-started re-tune)",
+      "checkpoint": "oev-base-banking77-a (historical warm-started re-tune)",
       "params": "184M",
       "eval": "python -m oev.benchmark --checkpoint checkpoints_b77_a/oev-tiny.pt --data-dir data/banking77"
     },
@@ -273,7 +279,8 @@
       "benchmark": "typed-decisions",
       "checkpoint": "oev-base-td5",
       "params": "184M",
-      "eval": "python -m oev.benchmark_ext --checkpoint checkpoints_td5/oev-tiny.pt --data-dir data/typed --latency"
+      "eval": "python -m oev.benchmark_ext --checkpoint checkpoints_td5/oev-tiny.pt --data-dir data/typed --latency",
+      "note": "Recorded T4 p50; raw timing samples and current runs manifest are not available here. Published comparison ranges use different hardware."
     },
     {
       "metric": "cpu latency p50",
@@ -390,7 +397,7 @@
       "checkpoint": "distill-round1-student (184M)",
       "params": "184M",
       "eval": "gamma sweep, evaluate_metrics on data/mix valid split, chosen gamma 1.2",
-      "note": "mimicry signature: student under-confident (ECE 0.6170 at gamma 0.5, 0.1443 at 1.0, 0.0765 at 2.0); accuracy invariant at 0.8450 across all gammas"
+      "note": "mimicry signature: student under-confident (ECE 0.6170 at gamma 0.5, 0.1443 at 1.0, 0.0765 at 2.0); accuracy invariant at 0.8450 across all gammas. Validation sweep was recorded in a private session log; archive it before treating gamma 1.2 as a release-selection claim."
     }
   ]
 }

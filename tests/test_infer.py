@@ -16,3 +16,16 @@ def test_decide_outputs(trained_checkpoint):
     assert 0.0 <= out["urgent"] <= 1.0
     assert out["severity"]["value"] in (1, 2, 3, 4, 5)
     assert out["department"]["choice"] in ("billing", "technical", "other")
+
+
+def test_decide_temperature_argument_does_not_mutate_agent(trained_checkpoint):
+    agent = OEV(trained_checkpoint)
+    original_temperature = agent.temperature
+
+    agent.decide(
+        "We need a refund.",
+        {"urgent": {"type": "noul"}},
+        temperature=2.0,
+    )
+
+    assert agent.temperature == original_temperature

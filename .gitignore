@@ -13,7 +13,6 @@ benchmarks/
 .freebuff/
 .DS_Store
 .playwright-mcp/
-docs/
 
 # private session notes
 summary_kaggle.md
@@ -30,3 +29,4 @@ kaggle_distill_session.ipynb
 OEVIA_SPEC.md
 ChatGPT-OEV README Review-*.md
 space_log.txt
+/docs/superpowers

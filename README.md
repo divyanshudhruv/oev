@@ -12,7 +12,7 @@ OEV is a small (`184M params`) neural decision engine. Instead of generating tex
 The single `184M` model scores `0.7705` on typed-decisions, slightly above laya's published `0.766` from a `421M` checkpoint. An ensemble of four `184M` checkpoints reaches `0.7760`, the `highest` reported result, and a single Banking77 soup checkpoint reaches `0.8584` (best ECE `0.0595` from the 3-checkpoint ensemble). Jev leads only on Banking77 (0.870).
 
 > [!WARNING]
-> Gamma `2.5` in the historical sharpening table was selected from an evaluation sweep. The validation-only selection log is not present in this repository, so treat that row as exploratory. Chart latency comparisons use different hardware and include published ranges; the current `runs/` manifest and raw timing samples are also unavailable here. Reproduce claims from recorded run logs before treating them as release evidence.
+> Chart latency comparisons use different hardware and include published ranges; the current `runs/` manifest and raw timing samples are also unavailable here. Reproduce claims from recorded run logs before treating them as release evidence.
 
 [![Hugging Face Model](https://img.shields.io/badge/%F0%9F%A4%97%20Model-divyanshudhruv%2Foev--typed-blue)](https://huggingface.co/divyanshudhruv/oev-typed)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
@@ -50,25 +50,16 @@ The single `184M` model scores `0.7705` on typed-decisions, slightly above laya'
 | claim                 | result                                                                                                  |
 | --------------------- | ------------------------------------------------------------------------------------------------------- |
 | best accuracy         | **0.7705** single model, **0.7760** ensemble - typed-decisions (laya 0.766 from 421M)                   |
-| best soft accuracy    | **0.7020** sharpened, historical exploratory gamma (laya 0.471, Jev 0.580)                               |
 | high-cardinality      | **0.8584** Banking77, one soup checkpoint (`ECE 0.0595` best ensemble; laya 0.425)                      |
-| speed                 | **22.2 ms** single question (laya 32.8-39.5 ms published range)                                          |
+| speed                 | **22.2 ms** single question (laya 32.8-39.5 ms published range)                                         |
 | size                  | **184M** params, 0.44x laya                                                                             |
-| calibration           | **ECE 0.0298**, historical exploratory gamma (laya 0.213)                                             |
 | weights & checkpoints | Apache 2.0 - [huggingface.co/divyanshudhruv/oev-typed](https://huggingface.co/divyanshudhruv/oev-typed) |
 
 - `22.2 ms` per question on a `T4` (GPU); `447 ms` p50 on CPU (8 threads, 184M soup checkpoint)
-- `ECE 0.0298` on typed-decisions after historical gamma fitting - measured confidence tracks actual accuracy, so it can gate automation
 - `0.8584` on 77-label `Banking77` from a single soup checkpoint (the 3-checkpoint ensemble still holds best ECE `0.0595`): each option is embedded as its own anchor with full tokens, so accuracy scales with label count (gap to Jev 1.16 pts)
 - `184M` params, `Apache 2.0` weights
 - Kev (0.8B / 4B) publishes no in-domain numbers on these datasets, so it is not in the tables; see [BENCHMARKS.md](BENCHMARKS.md) for the like-for-like comparison plan
 
-<p align="center" style="margin: 24px 0;">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/params_vs_acc_dark.png" />
-  <img src="assets/params_vs_acc.png" alt="Accuracy versus parameter count: OEV points at 184M sit at or above laya at 421M and Kev at 0.8B and 4B; Jev omits a size" width="78%" />
-</picture>
-</p>
 
 ## Architecture
 
@@ -88,7 +79,7 @@ flowchart LR
 
 ## Benchmarks: OEV vs the published field
 
-Fine-tuned on each benchmark's train split, following the same protocol as Laya's published runs. Complete tables in [BENCHMARKS.md](BENCHMARKS.md).
+Fine-tuned on each benchmark's train split, following the same protocol as Laya's published runs. Selected results and evaluation notes are in [BENCHMARKS.md](BENCHMARKS.md).
 
 > [!WARNING]
 > Banking77 uses 77 OEV labels, while the published Jev figure is from a 72-label configuration. The `0.8584` and `0.870` values are not a controlled head-to-head comparison.
@@ -102,36 +93,30 @@ Fine-tuned on each benchmark's train split, following the same protocol as Laya'
 
 <p align="center" style="margin: 24px 0;">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/b77climb_dark.png" />
-  <img src="assets/b77climb.png" alt="Banking77 progression across every measured OEV variant, from 0.8303 first release to the 0.8584 soup, with Jev's 0.870 as a dashed reference line" width="92%" />
+  <source media="(prefers-color-scheme: dark)" srcset="assets/headline_scorecard_dark.png" />
+  <img src="assets/headline_scorecard.png" alt="OEV headline results: typed-decisions accuracy, Banking77 accuracy, and hardware-separated latency" width="100%" />
 </picture>
 </p>
 
 <p align="center" style="margin: 24px 0;">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/zeroshot_dark.png" />
-  <img src="assets/zeroshot.png" alt="Zero-shot and out-of-domain transfer as dot pairs: OEV 0.650 versus laya 0.595 on emotion, with the WANLI and ANLI floors marked" width="88%" />
+  <img src="assets/zeroshot.png" alt="Zero-shot and out-of-domain transfer as dot pairs: OEV 0.650 versus laya 0.595 on emotion, with the WANLI and ANLI floors marked" width="49%" />
 </picture>
-</p>
-
-<p align="center" style="margin: 24px 0;">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/matrix_dark.png" />
-  <img src="assets/matrix.png" alt="Heatmap of accuracy by checkpoint and benchmark: td5, mt, round-1 and round-2b students, the collapsed round-2, and the MNLI specialist" width="100%" />
+  <source media="(prefers-color-scheme: dark)" srcset="assets/latency_profile_dark.png" />
+  <img src="assets/latency_profile.png" alt="OEV latency on Tesla T4 and CPU, hardware separated; batch value is per-question throughput" width="49%" />
 </picture>
 </p>
 
 <p align="center" style="margin: 24px 0;">
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/workflows_dark.png" />
-  <img src="assets/workflows.png" alt="Typed-decisions accuracy per workflow: OEV wins invoice processing, customer service and agent-trace observability; laya wins security incidents" width="82%" />
-</picture>
-</p>
-
-<p align="center" style="margin: 24px 0;">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/gamma_dark.png" />
-  <img src="assets/gamma.png" alt="Gamma sweep on the shipped student: accuracy is flat while ECE bottoms out at gamma 1.2" width="72%" />
+  <img src="assets/workflows.png" alt="Typed-decisions accuracy per workflow: OEV wins invoice processing, customer service and agent-trace observability; laya wins security incidents" width="49%" />
+</picture><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/decision_primitives_dark.png" />
+  <img src="assets/decision_primitives.png" alt="Illustrative normalized distributions for OEV choice, noul, and score decision primitives" width="50%" />
 </picture>
 </p>
 
@@ -221,7 +206,7 @@ python -m oev.ensemble --ckpts checkpoints_td5/oev-tiny.pt,checkpoints_rlcd/oev-
 python -m pytest -q
 ```
 
-`train_colab.ipynb` runs the entire pipeline end to end. Full training docs in [BENCHMARKS.md](BENCHMARKS.md).
+`train_colab.ipynb` runs the entire pipeline end to end. Evaluation rules and selected limitations are in [BENCHMARKS.md](BENCHMARKS.md).
 
 ## Limitations
 
@@ -247,4 +232,4 @@ Full list with the open questions behind each item: [ROADMAP.md](ROADMAP.md).
 
 ## Credits
 
-The interface and benchmark protocol follow [Laya](https://github.com/NandhaKishorM/laya) and the System One model category introduced by TypeSafe's [Jev](https://typesafe.com). Their published numbers are quoted here for comparison and remain their measurements.
+The interface and benchmark protocol follow [Laya](https://github.com/NandhaKishorM/laya), [Kev](https://github.com/jaredpalmer/kev) and the System One model category introduced by TypeSafe's [Jev](https://typesafe.com). Their published numbers are quoted here for `comparison` and remain their `measurements.

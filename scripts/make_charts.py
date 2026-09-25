@@ -1,6 +1,6 @@
 """Generate README charts from measured OEV numbers into assets/.
 
-Every number below is a measured or published figure:
+Benchmark numbers below are measured or published; decision primitive values are illustrative:
 - OEV: BENCHMARKS.md (this repo, measured)
 - laya: published by NandhaKishorM/laya
 - Jev: published by TypeSafe
@@ -79,33 +79,6 @@ LAT_LABELS = [
 ]
 LAT_VALS = [22.2, 36.2, 36.0, 256.0]   # laya 32.8-39.5 and Jev 236-276 are ranges
 
-# checkpoint x benchmark matrix (accuracy; None = not measured).
-# rows: td5 (typed specialist), mt (generalist teacher), R1 student,
-# R2 student (collapsed), R2b student (shipped), MNLI specialist.
-MX_ROWS = ["td5", "mt", "R1 student", "R2 student", "R2b student", "MNLI spec"]
-MX_COLS = ["typed", "Banking77", "emotion", "AG News", "WANLI", "ANLI"]
-MX = [
-    [0.7705, None,   0.4265, 0.9489, 0.3945, 0.3360],
-    [0.7350, None,   0.5960, 0.9489, 0.3800, 0.3360],
-    [0.5385, 0.8205, 0.6875, None,   0.3450, 0.3380],
-    [0.1917, 0.0104, 0.2905, None,   0.3450, 0.3360],
-    [0.6480, 0.7964, 0.6505, 0.7983, 0.3450, 0.3260],
-    [None,   None,   None,   None,   0.5645, 0.3360],
-]
-# chance floors per column, annotated under the heatmap
-MX_FLOOR = ["floor 0.32", "floor 0.01", "floor 0.17", "floor 0.25", "floor 0.33", "floor 0.33"]
-
-# Banking77 progression (this repo, measured)
-B77_STEPS = ["first\nrelease", "re-\nmeasured", "re-tune\n(r2b init)", "re-tune\n+ TTA", "3-ckpt\nensemble", "soup\n(single file)"]
-B77_VALS = [0.8303, 0.8302, 0.8370, 0.8383, 0.8529, 0.8584]
-B77_JEV = 0.870
-
-# r2b gamma sweep on the mix validation split (accuracy flat, ECE U-shaped)
-GAMMAS = [0.5, 0.8, 1.0, 1.2, 1.5, 2.0]
-G_ECE = [0.6170, 0.3278, 0.1443, 0.0398, 0.0424, 0.0765]
-G_ACC = [0.8450] * len(GAMMAS)
-G_PICK = 1.2
-
 # accuracy vs size (published points only; Jev size not published)
 PTS = [
     ("laya (AG News)", 421, 0.950, P_RED),
@@ -118,19 +91,6 @@ PTS = [
     ("Kev-0.8B (OOD suite)", 800, 0.837, P_GREEN),
     ("Kev-4B (OOD suite)", 4000, 0.852, P_GREEN),
 ]
-# staggered annotation offsets so nearby 184M labels never collide
-OFFS = {
-    "OEV base (AG News)": (-10, 10),
-    "OEV base (emotion)": (8, 6),
-    "OEV soup (b77)": (-6, -16),
-    "OEV ensemble": (6, 8),
-    "OEV single": (6, -14),
-    "laya (AG News)": (-10, 10),
-    "laya (typed)": (8, -14),
-    "Kev-0.8B (OOD suite)": (0, 10),
-    "Kev-4B (OOD suite)": (-30, 10),
-}
-
 # per-workflow accuracy (typed-decisions)
 WF_LABELS = ["invoice\nprocessing", "customer\nservice", "agent-trace\nobservability", "security\nincidents"]
 WF_LAYA = [0.804, 0.764, 0.730, 0.766]
@@ -256,108 +216,185 @@ fig.tight_layout()
 fig.savefig("assets/transfer_speed.png", dpi=150, transparent=True)
 plt.close(fig)
 
-# =====================================================================
-# chart 3: checkpoint x benchmark matrix heatmap
-# =====================================================================
 
-fig, ax = plt.subplots(figsize=(10.5, 5.2))
-data = np.array([[np.nan if v is None else v for v in row] for row in MX], dtype=float)
-ax.imshow(data, cmap="Blues", vmin=0, vmax=1, aspect="auto")
-ax.set_xticks(range(len(MX_COLS)))
-ax.set_xticklabels(MX_COLS, fontsize=11)
-ax.set_yticks(range(len(MX_ROWS)))
-ax.set_yticklabels(MX_ROWS, fontsize=11)
-for i in range(len(MX_ROWS)):
-    for j in range(len(MX_COLS)):
-        v = MX[i][j]
-        if v is None:
-            ax.text(j, i, "n/a", ha="center", va="center", fontsize=9, color="#8b949e")
+
+
+def _headline_scorecard(path, text, edge, sub, face):
+    fig, axes = plt.subplots(1, 3, figsize=(12, 4.6),
+                             gridspec_kw={"wspace": 0.34})
+    fig.subplots_adjust(left=0.07, right=0.98, top=0.78, bottom=0.20)
+    charts = [
+        ("Typed decisions", ["single", "ensemble"], [0.7705, 0.7760],
+         "accuracy", (0, 0.82), [P_BLUE, P_GREEN]),
+        ("Banking77", ["soup"], [0.8584], "accuracy", (0, 0.95), [P_SAND]),
+        ("Latency", ["T4", "CPU"], [22.2, 447], "ms per question (log scale)",
+         (1, 700), [P_BLUE, P_RED]),
+    ]
+    for ax, (title, labels, values, ylabel, ylim, colors) in zip(axes, charts):
+        bottom = 1 if "log scale" in ylabel else 0
+        bars = ax.bar(labels, [v - bottom for v in values], bottom=bottom,
+                      color=colors, width=0.56, edgecolor=edge, linewidth=0.5)
+        ax.bar_label(bars, labels=[f"{v:.4f}" if v < 1 else f"{v:.1f} ms"
+                                   for v in values], padding=4, color=text,
+                      fontsize=9)
+        ax.set_title(title, color=text, fontweight="bold", pad=10)
+        ax.set_ylabel(ylabel, color=text)
+        ax.set_ylim(*ylim)
+        if "log scale" in ylabel:
+            ax.set_yscale("log")
+        ax.set_facecolor(face)
+        ax.grid(axis="y", color=edge, alpha=0.25)
+        ax.tick_params(colors=text)
+        for spine in ax.spines.values():
+            spine.set_color(edge)
+    fig.suptitle("OEV headline results", color=text, fontsize=16, fontweight="bold", y=0.95)
+    fig.text(0.07, 0.04, "Selected public results. See BENCHMARKS.md for protocol and caveats.",
+             color=sub, fontsize=9)
+    fig.savefig(path, dpi=150, transparent=True)
+    plt.close(fig)
+
+
+def _decision_primitives(path, text, edge, sub, face):
+    fig, ax = plt.subplots(figsize=(10, 5.2))
+    fig.subplots_adjust(left=0.19, right=0.97, top=0.82, bottom=0.19)
+    rows = [
+        ("choice", [("billing", 0.72, P_BLUE), ("support", 0.18, P_RED), ("other", 0.10, P_GREEN)]),
+        ("noul", [("true", 0.86, P_BLUE), ("false", 0.14, P_RED)]),
+        ("score", [(str(i), value, color) for i, value, color in zip(
+            range(1, 6), [0.05, 0.10, 0.25, 0.35, 0.25], ACC)]),
+    ]
+    for y, (name, segments) in zip([2, 1, 0], rows):
+        left = 0
+        for label, value, color in segments:
+            ax.barh(y, value, left=left, height=0.48, color=color,
+                    edgecolor=edge, linewidth=0.5)
+            ax.text(left + value / 2, y, f"{label} {value:.0%}", ha="center",
+                    va="center", color=text, fontsize=8.5)
+            left += value
+    ax.set_yticks([2, 1, 0])
+    ax.set_yticklabels(["choice", "noul", "score"], color=text, fontsize=11)
+    ax.set_xlim(0, 1)
+    ax.set_xticks(np.arange(0, 1.01, 0.2))
+    ax.set_xticklabels([f"{int(value * 100)}%" for value in np.arange(0, 1.01, 0.2)])
+    ax.set_xlabel("normalized output", color=text)
+    ax.set_title("One packed sequence, three decision primitives", color=text,
+                 fontweight="bold", pad=14)
+    ax.set_facecolor(face)
+    ax.grid(axis="x", color=edge, alpha=0.25)
+    ax.tick_params(colors=text)
+    for spine in ax.spines.values():
+        spine.set_color(edge)
+    fig.text(0.19, 0.04, "Illustrative distributions; choice, boolean, and ordered outputs share one mechanism.",
+             color=sub, fontsize=9)
+    fig.savefig(path, dpi=150, transparent=True)
+    plt.close(fig)
+
+
+def _latency_profile(path, text, edge, sub, face):
+    fig, (gpu, cpu) = plt.subplots(1, 2, figsize=(10, 4.8),
+                                   gridspec_kw={"width_ratios": [1.25, 0.75]})
+    fig.subplots_adjust(wspace=0.32, left=0.10, right=0.96, top=0.78, bottom=0.19)
+    gpu_labels = ["single", "batch 32"]
+    gpu_values = [22.2, 15.9]
+    bars = gpu.bar(gpu_labels, gpu_values, color=[P_BLUE, P_GREEN], width=0.56)
+    gpu.bar_label(bars, labels=[f"{v:.1f} ms" for v in gpu_values], padding=4,
+                  color=text, fontsize=10)
+    gpu.set_title("GPU | Tesla T4, fp16", color=text, fontweight="bold")
+    gpu.set_ylabel("ms per question", color=text)
+    gpu.set_ylim(0, 27)
+    cpu_bars = cpu.bar(["CPU"], [447], color=P_SAND, width=0.46)
+    cpu.bar_label(cpu_bars, labels=["447 ms"], padding=4, color=text, fontsize=10)
+    cpu.set_title("CPU | 8 threads", color=text, fontweight="bold")
+    cpu.set_ylabel("ms per question", color=text)
+    cpu.set_ylim(0, 500)
+    for ax in (gpu, cpu):
+        ax.set_facecolor(face)
+        ax.grid(axis="y", color=edge, alpha=0.25)
+        ax.tick_params(colors=text)
+        for spine in ax.spines.values():
+            spine.set_color(edge)
+    fig.suptitle("Measured latency, hardware separated", color=text, fontsize=16,
+                 fontweight="bold", y=0.95)
+    fig.text(0.10, 0.04, "Batch value is per-question throughput; CPU timing is single-question p50.",
+             color=sub, fontsize=9)
+    fig.savefig(path, dpi=150, transparent=True)
+    plt.close(fig)
+
+
+def _params_vs_acc(path, text, edge, sub, face):
+    fig, ax = plt.subplots(figsize=(10, 5.8))
+    fig.subplots_adjust(left=0.09, right=0.98, top=0.84, bottom=0.16)
+    short_names = {
+        "OEV base (AG News)": "OEV base\nAG News",
+        "laya (AG News)": "laya\nAG News",
+        "OEV base (emotion)": "OEV base\nemotion",
+        "OEV soup (b77)": "OEV soup\nBanking77",
+        "OEV ensemble": "OEV\nensemble",
+        "OEV single": "OEV\nsingle",
+        "laya (typed)": "laya\ntyped",
+        "Kev-0.8B (OOD suite)": "Kev 0.8B\nOOD",
+        "Kev-4B (OOD suite)": "Kev 4B\nOOD",
+    }
+    offsets = {
+        "OEV base (AG News)": (8, 12, "left", "bottom"),
+        "laya (AG News)": (-8, -14, "right", "top"),
+        "OEV base (emotion)": (8, 8, "left", "bottom"),
+        "OEV soup (b77)": (8, -14, "left", "top"),
+        "OEV ensemble": (8, 8, "left", "bottom"),
+        "OEV single": (8, -14, "left", "top"),
+        "laya (typed)": (8, 10, "left", "bottom"),
+        "Kev-0.8B (OOD suite)": (8, 8, "left", "bottom"),
+        "Kev-4B (OOD suite)": (-8, 8, "right", "bottom"),
+    }
+    for name, params, acc, color in PTS:
+        if name.startswith("OEV"):
+            marker = "o"
+        elif name.startswith("laya"):
+            marker = "s"
         else:
-            ax.text(j, i, f"{v:.3f}", ha="center", va="center", fontsize=9.5,
-                    color="white" if v > 0.62 else "#24292f",
-                    fontweight="bold" if i == 4 else "normal")
-ax.set_title("accuracy by checkpoint and benchmark (R2 row = the collapse; bold row = shipped r2b)",
-             fontweight="bold", pad=12, fontsize=12)
-ax.set_xlabel("chance floors per column: typed 0.32 / b77 0.01 / emotion 0.17 / AG News 0.25 / WANLI 0.33 / ANLI 0.33",
-              fontsize=9, color="#8b949e")
-fig.tight_layout()
-fig.savefig("assets/matrix.png", dpi=150, transparent=True)
-plt.close(fig)
+            marker = "^"
+        ax.scatter(params, acc, s=130, color=color, marker=marker, zorder=3,
+                   edgecolors=edge, linewidths=0.6)
+        offset_x, offset_y, horizontal, vertical = offsets[name]
+        ax.annotate(
+            f"{short_names[name]}\n{acc:.4f}",
+            xy=(params, acc),
+            xytext=(offset_x, offset_y),
+            textcoords="offset points",
+            ha=horizontal,
+            va=vertical,
+            fontsize=8.5,
+            color=text,
+            arrowprops={"arrowstyle": "-", "color": edge, "lw": 0.6},
+            annotation_clip=False,
+        )
+    ax.annotate("Jev: closed API, size not published", (0.98, 0.03),
+                xycoords="axes fraction", ha="right", fontsize=9, color=sub,
+                style="italic")
+    ax.set_xlabel("parameters (millions, log scale)", color=text)
+    ax.set_ylabel("accuracy", color=text)
+    ax.set_title("accuracy vs model size", color=text, fontweight="bold")
+    ax.set_xscale("log")
+    ax.set_xlim(100, 5000)
+    ax.set_ylim(0.70, 0.99)
+    ax.set_xticks([100, 200, 400, 800, 1600, 3200, 5000])
+    ax.set_xticklabels(["100M", "200M", "400M", "800M", "1.6B", "3.2B", "5B"])
+    ax.set_yticks([0.7, 0.8, 0.9])
+    ax.set_yticklabels(["0.7", "0.8", "0.9"])
+    ax.set_facecolor(face)
+    ax.grid(color=edge, alpha=0.25)
+    ax.tick_params(colors=text)
+    for spine in ax.spines.values():
+        spine.set_color(edge)
+    fig.savefig(path, dpi=150, transparent=True)
+    plt.close(fig)
 
-# =====================================================================
-# chart 4: Banking77 climb toward Jev (lollipop)
-# =====================================================================
 
-fig, ax = plt.subplots(figsize=(10.5, 4.8))
-xb = np.arange(len(B77_STEPS))
-ax.vlines(xb, 0.80, B77_VALS, color="#c8ccd0", lw=3)
-ax.scatter(xb, B77_VALS, s=150, color=ACC[0], zorder=3, edgecolors="#57606a",
-           linewidths=0.7)
-for i, v in enumerate(B77_VALS):
-    ax.annotate(f"{v:.4f}", (i, v), textcoords="offset points", xytext=(0, 11),
-                ha="center", fontsize=9.5,
-                fontweight="bold" if i == len(B77_VALS) - 1 else "normal")
-ax.axhline(B77_JEV, color=ACC[1], ls="--", lw=1.4)
-ax.annotate("Jev (closed API) 0.870  -  72-label config, not controlled",
-            (0.02, B77_JEV + 0.002), xycoords=("axes fraction", "data"),
-            fontsize=9.5, color="#8b4545")
-ax.axhline(0.425, color=ACC[4], ls=":", lw=1.2)
-ax.annotate("laya 0.425", (0.02, 0.429), xycoords=("axes fraction", "data"),
-            fontsize=9, color="#6e7480")
-ax.set_xticks(xb)
-ax.set_xticklabels(B77_STEPS, fontsize=9.5)
-ax.set_ylim(0.80, 0.885)
-ax.set_ylabel("accuracy")
-ax.set_title("Banking77: every measured step of the climb (77 labels)",
-             fontweight="bold", pad=12)
-fig.tight_layout()
-fig.savefig("assets/b77climb.png", dpi=150, transparent=True)
-plt.close(fig)
-
-# =====================================================================
-# chart 5: r2b gamma selection (accuracy flat, ECE U-curve, pick 1.2)
-# =====================================================================
-
-fig, ax = plt.subplots(figsize=(8.5, 4.6))
-ax.plot(GAMMAS, G_ECE, "o-", color=ACC[1], lw=2.2, label="ECE (mix validation)")
-ax.plot(GAMMAS, G_ACC, "s--", color=ACC[0], lw=2, label="accuracy (flat)")
-ax.scatter([G_PICK], [G_ECE[GAMMAS.index(G_PICK)]], s=260, facecolors="none",
-           edgecolors=ACC[3], linewidths=2.2, zorder=4)
-ax.annotate(f"selected gamma {G_PICK}\nECE {G_ECE[3]:.4f}", (G_PICK, G_ECE[3]),
-            textcoords="offset points", xytext=(14, 16), fontsize=10)
-for g, e in zip(GAMMAS, G_ECE):
-    ax.annotate(f"{e:.3f}", (g, e), textcoords="offset points", xytext=(0, -16),
-                ha="center", fontsize=8.5)
-ax.set_xlabel("sharpening exponent gamma")
-ax.set_ylabel("metric value")
-ax.set_ylim(0, 0.95)
-ax.set_title("r2b student: accuracy ignores gamma, calibration picks 1.2",
-             fontweight="bold")
-ax.legend(frameon=False, loc="upper right")
-fig.tight_layout()
-fig.savefig("assets/gamma.png", dpi=150, transparent=True)
-plt.close(fig)
-
-# =====================================================================
-# chart 6: accuracy vs params (published points only)
-# =====================================================================
-
-fig, ax = plt.subplots(figsize=(8.5, 5.2))
-for name, params, acc, c in PTS:
-    ax.scatter(params, acc, s=130, color=c, zorder=3, edgecolors="#57606a",
-               linewidths=0.6)
-    ax.annotate(name, (params, acc), textcoords="offset points", xytext=OFFS[name],
-                fontsize=9)
-ax.annotate("Jev: closed API, size not published", (0.98, 0.03),
-            xycoords="axes fraction", ha="right", fontsize=9, color="#8b949e",
-            style="italic")
-ax.set_xlabel("parameters (millions)")
-ax.set_ylabel("accuracy")
-ax.set_title("accuracy vs model size", fontweight="bold")
-ax.set_xlim(0, 4200)
-fig.tight_layout()
-fig.savefig("assets/params_vs_acc.png", dpi=150, transparent=True)
-plt.close(fig)
+_light_text, _light_edge, _light_sub, _light_face = "#24292f", "#57606a", "#6e7480", "#f6efe7"
+_headline_scorecard("assets/headline_scorecard.png", _light_text, _light_edge, _light_sub, _light_face)
+_decision_primitives("assets/decision_primitives.png", _light_text, _light_edge, _light_sub, _light_face)
+_latency_profile("assets/latency_profile.png", _light_text, _light_edge, _light_sub, _light_face)
+_params_vs_acc("assets/params_vs_acc.png", _light_text, _light_edge, _light_sub, _light_face)
 
 # =====================================================================
 # chart 7: per-workflow accuracy (typed-decisions)
@@ -382,8 +419,9 @@ fig.tight_layout()
 fig.savefig("assets/workflows.png", dpi=150, transparent=True)
 plt.close(fig)
 
-print("light charts written: benchmarks, zeroshot, transfer_speed, matrix, "
-      "b77climb, gamma, params_vs_acc, workflows")
+print("light charts written: benchmarks, zeroshot, transfer_speed, "
+      "headline_scorecard, decision_primitives, latency_profile, "
+      "params_vs_acc, workflows")
 
 # =====================================================================
 # dark variants: same transparent figures, light text and edge swaps
@@ -495,96 +533,15 @@ fig.tight_layout()
 fig.savefig("assets/transfer_speed_dark.png", dpi=150, transparent=True)
 plt.close(fig)
 
-# matrix (dark)
-fig, ax = plt.subplots(figsize=(10.5, 5.2))
-ax.imshow(data, cmap="Blues", vmin=0, vmax=1, aspect="auto")
-ax.set_xticks(range(len(MX_COLS)))
-ax.set_xticklabels(MX_COLS, fontsize=11)
-ax.set_yticks(range(len(MX_ROWS)))
-ax.set_yticklabels(MX_ROWS, fontsize=11)
-for i in range(len(MX_ROWS)):
-    for j in range(len(MX_COLS)):
-        v = MX[i][j]
-        if v is None:
-            ax.text(j, i, "n/a", ha="center", va="center", fontsize=9, color=DARK_SUB)
-        else:
-            ax.text(j, i, f"{v:.3f}", ha="center", va="center", fontsize=9.5,
-                    color="white" if v > 0.62 else DARK_TEXT,
-                    fontweight="bold" if i == 4 else "normal")
-for j, fl in enumerate(MX_FLOOR):
-    pass
-ax.set_title("accuracy by checkpoint and benchmark (R2 row = the collapse; bold row = shipped r2b)",
-             fontweight="bold", pad=12, fontsize=12)
-ax.set_xlabel("chance floors per column: typed 0.32 / b77 0.01 / emotion 0.17 / AG News 0.25 / WANLI 0.33 / ANLI 0.33",
-              fontsize=9, color="#8b949e")
-fig.tight_layout()
-fig.savefig("assets/matrix_dark.png", dpi=150, transparent=True)
-plt.close(fig)
 
-# b77 climb (dark)
-fig, ax = plt.subplots(figsize=(10.5, 4.8))
-ax.vlines(xb, 0.80, B77_VALS, color=DARK_LINE, lw=3)
-ax.scatter(xb, B77_VALS, s=150, color=ACC[0], zorder=3, edgecolors=DARK_TEXT,
-           linewidths=0.7)
-for i, v in enumerate(B77_VALS):
-    ax.annotate(f"{v:.4f}", (i, v), textcoords="offset points", xytext=(0, 11),
-                ha="center", fontsize=9.5, color=DARK_TEXT,
-                fontweight="bold" if i == len(B77_VALS) - 1 else "normal")
-ax.axhline(B77_JEV, color=ACC[1], ls="--", lw=1.4)
-ax.annotate("Jev (closed API) 0.870  -  72-label config, not controlled",
-            (0.02, B77_JEV + 0.002), xycoords=("axes fraction", "data"),
-            fontsize=9.5, color="#e0a0a0")
-ax.axhline(0.425, color=ACC[4], ls=":", lw=1.2)
-ax.annotate("laya 0.425", (0.02, 0.429), xycoords=("axes fraction", "data"),
-            fontsize=9, color=DARK_SUB)
-ax.set_xticks(xb)
-ax.set_xticklabels(B77_STEPS, fontsize=9.5)
-ax.set_ylim(0.80, 0.885)
-ax.set_ylabel("accuracy")
-ax.set_title("Banking77: every measured step of the climb (77 labels)",
-             fontweight="bold", pad=12)
-fig.tight_layout()
-fig.savefig("assets/b77climb_dark.png", dpi=150, transparent=True)
-plt.close(fig)
 
-# gamma (dark)
-fig, ax = plt.subplots(figsize=(8.5, 4.6))
-ax.plot(GAMMAS, G_ECE, "o-", color=ACC[1], lw=2.2, label="ECE (mix validation)")
-ax.plot(GAMMAS, G_ACC, "s--", color=ACC[0], lw=2, label="accuracy (flat)")
-ax.scatter([G_PICK], [G_ECE[GAMMAS.index(G_PICK)]], s=260, facecolors="none",
-           edgecolors=ACC[3], linewidths=2.2, zorder=4)
-ax.annotate(f"selected gamma {G_PICK}\nECE {G_ECE[3]:.4f}", (G_PICK, G_ECE[3]),
-            textcoords="offset points", xytext=(14, 16), fontsize=10, color=DARK_TEXT)
-for g, e in zip(GAMMAS, G_ECE):
-    ax.annotate(f"{e:.3f}", (g, e), textcoords="offset points", xytext=(0, -16),
-                ha="center", fontsize=8.5, color=DARK_TEXT)
-ax.set_xlabel("sharpening exponent gamma")
-ax.set_ylabel("metric value")
-ax.set_ylim(0, 0.95)
-ax.set_title("r2b student: accuracy ignores gamma, calibration picks 1.2",
-             fontweight="bold")
-ax.legend(frameon=False, loc="upper right", labelcolor=DARK_TEXT)
-fig.tight_layout()
-fig.savefig("assets/gamma_dark.png", dpi=150, transparent=True)
-plt.close(fig)
 
-# params vs acc (dark)
-fig, ax = plt.subplots(figsize=(8.5, 5.2))
-for name, params, acc, c in PTS:
-    ax.scatter(params, acc, s=130, color=c, zorder=3, edgecolors=DARK_TEXT,
-               linewidths=0.6)
-    ax.annotate(name, (params, acc), textcoords="offset points", xytext=OFFS[name],
-                fontsize=9, color=DARK_TEXT)
-ax.annotate("Jev: closed API, size not published", (0.98, 0.03),
-            xycoords="axes fraction", ha="right", fontsize=9, color=DARK_SUB,
-            style="italic")
-ax.set_xlabel("parameters (millions)")
-ax.set_ylabel("accuracy")
-ax.set_title("accuracy vs model size", fontweight="bold")
-ax.set_xlim(0, 4200)
-fig.tight_layout()
-fig.savefig("assets/params_vs_acc_dark.png", dpi=150, transparent=True)
-plt.close(fig)
+_dark_face = "#2b211c"
+_headline_scorecard("assets/headline_scorecard_dark.png", DARK_TEXT, DARK_EDGE, DARK_SUB, _dark_face)
+_decision_primitives("assets/decision_primitives_dark.png", DARK_TEXT, DARK_EDGE, DARK_SUB, _dark_face)
+_latency_profile("assets/latency_profile_dark.png", DARK_TEXT, DARK_EDGE, DARK_SUB, _dark_face)
+
+_params_vs_acc("assets/params_vs_acc_dark.png", DARK_TEXT, DARK_EDGE, DARK_SUB, _dark_face)
 
 # workflows (dark)
 fig, ax = plt.subplots(figsize=(9, 4.8))

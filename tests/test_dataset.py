@@ -20,6 +20,21 @@ def test_pack_truncates_state_not_options():
     assert len(ids) <= 512 and len(anchors) == 3
 
 
+def test_pack_clamps_anchors_after_short_clip():
+    long_question = {
+        "name": "department",
+        "type": "choice",
+        "instructions": "choose " * 100,
+        "options": ["a" * 100, "b" * 100, "c" * 100],
+        "answer": "b" * 100,
+    }
+
+    ids, anchors, _ = pack("state", long_question, 8)
+
+    assert len(ids) == 8
+    assert all(0 <= anchor < len(ids) for anchor in anchors)
+
+
 def test_collate_shapes_and_masks():
     b1 = {"ids": torch.tensor([1, 5, 6, 2, 3, 7]), "anchors": torch.tensor([4, 5]), "label": 0, "type": "choice", "n": 2}
     b2 = {"ids": torch.tensor([1, 8, 2, 3, 9, 3, 10, 3, 11]), "anchors": torch.tensor([3, 5, 7]), "label": 2, "type": "noul", "n": 3}

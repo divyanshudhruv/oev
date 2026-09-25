@@ -19,7 +19,3 @@ Living list. Done items move to the changelog; every landed result is in [BENCHM
 - [ ] robustness: reduce mild overconfidence on out-of-distribution and garbage inputs
 - [ ] more domain specialists (guardrails, moderation, RAG filtering)
 - [ ] non-English checkpoints: the interface is language-agnostic, the weights are English-only
-
-## Open questions
-
-- [ ] from-scratch runs can stall at the uniform plateau: two Banking77 runs pinned at ln(77) for 1500+ steps with the standard 2e-5/1e-3 parameter groups, warm-starting avoids it entirely. Is the head LR or the schedule at fault?
