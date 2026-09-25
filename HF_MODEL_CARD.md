@@ -16,7 +16,10 @@ tags:
   <img src="https://raw.githubusercontent.com/divyanshudhruv/oev/refs/heads/main/assets/logo_transp.png" alt="OEV" width="150" />
 </p>
 
-A `184M`-parameter decision engine: state + typed questions in, calibrated probability distributions out, one forward pass, `22 ms`.
+A `184M`-parameter decision engine. State + typed questions in, calibrated probability distributions out, one forward pass, `22.2 ms` p50 on T4.
+
+> [!WARNING]
+> Gamma `2.5` was selected from a historical evaluation sweep; its validation-only selection log is not present in this repository. The student `gamma 1.2` note depends on a private session log. Treat sharpened rows as exploratory until the selection logs are archived. Published latency ranges use different hardware and are not controlled comparisons.
 
 OEV reads a state, scores typed questions over it in one forward pass, and returns calibrated probability distributions. There is no text generation step, so there is nothing to parse and nothing to hallucinate.
 
@@ -24,7 +27,7 @@ It answers three kinds of questions over any text state: `choice` (pick a label)
 
 ## Results (typed-decisions benchmark, 2,000 decisions)
 
-Fine-tuned on the benchmark's train split, same protocol as [laya-typed-decisions](https://github.com/NandhaKishorM/laya). All numbers measured on a single Tesla T4.
+Fine-tuned on the benchmark's train split, same protocol as [laya-typed-decisions](https://github.com/NandhaKishorM/laya). OEV numbers were measured on a single Tesla T4; Jev and laya values are quoted from their published tables.
 
 | model | params | accuracy | soft acc | ECE | p50 latency (T4) |
 |---|---:|---:|---:|---:|---:|
@@ -41,17 +44,17 @@ Per workflow (ensemble): invoice `0.836`, customer service `0.804`, agent-trace 
 
 | file | what it is |
 |---|---|
-| **student-r2b-oev-tiny.pt** | **distilled generalist - recommended default.** One model for everything: typed 0.6480, Banking77 0.7964, emotion zero-shot 0.6505 (beats laya 0.595), probes all PASS. Use gamma 1.2 for calibrated probabilities |
+| **student-r2b-oev-tiny.pt** | **distilled generalist - recommended default.** One model for everything: typed `0.6480`, Banking77 `0.7964`, emotion zero-shot `0.6505` (beats laya `0.595`), probes all `PASS`. Use `gamma 1.2` for calibrated probabilities |
 | oev-base-td5.pt | typed-decisions specialist (0.7705) - best when you only need agent-decision scoring |
 | oev-base-rlcd-soup.pt | most calibrated single (ECE 0.0279). Prefer this one when the probabilities feed automated decisions. |
 | oev-base-rlcd.pt | RLCD fine-tune (Brier-reward policy gradient against teacher distributions) |
 | oev-base-rlcd-seed1.pt | second RLCD seed - for ensembling |
 | b77-oev-tiny.pt | Banking77 specialist (77-way intents) - see the Banking77 section below |
-| b77a-oev-tiny.pt | Banking77 warm-start re-tune, best single (0.8403) - for the b77 ensemble |
+| b77a-oev-tiny.pt | Banking77 warm-start re-tune (0.8403 historical measurement) - for the b77 ensemble |
 | b77b-oev-tiny.pt | Banking77 warm-start re-tune, second ensemble member |
 | b77soup-oev-tiny.pt | weight-average of the three b77 members - best single-file b77 accuracy (0.8584) |
 
-For the ensemble results, average the softmax probabilities of the members with equal weights: typed-decisions 0.7760 (four files), Banking77 0.8529 with ECE 0.0595 (three files: oev-base-banking77 + a + b).
+For the ensemble results, average the softmax probabilities of the members with equal weights: typed-decisions `0.7760` (four files), Banking77 `0.8529` with ECE `0.0595` (three files: `b77-oev-tiny.pt` + `b77a-oev-tiny.pt` + `b77b-oev-tiny.pt`).
 
 ## Usage
 
@@ -100,7 +103,7 @@ The whole pipeline trains in about a day on one T4. `train_colab.ipynb` runs it 
 
 - Fine-tuned on each benchmark's own train split; comparison numbers are from the respective published tables.
 - OEV trains to match the teacher's full distributions (training Brier vs teacher: `0.058`).
-- English models. Latency is p50 of 50 warmed runs including sync on T4.
+- English models. OEV latency is p50 of 50 warmed runs including sync on T4; the raw timing manifest is not tracked here.
 
 ## License
 
@@ -108,15 +111,18 @@ Apache 2.0. The interface and benchmark protocol follow [Laya](https://github.co
 
 ## Banking77
 
-Fine-tuned checkpoints: `oev-base-banking77.pt` plus two warm-started re-tunes (`oev-base-banking77-a.pt`, `oev-base-banking77-b.pt`). Each of the 77 intents is embedded as its own anchor occupying the full token budget, so no label is truncated.
+Fine-tuned checkpoints: `b77-oev-tiny.pt` plus two warm-started re-tunes (`b77a-oev-tiny.pt`, `b77b-oev-tiny.pt`). Each of the 77 intents is embedded as its own anchor occupying the full token budget, so no label is truncated.
+
+> [!WARNING]
+> The published Jev Banking77 figure uses 72 labels, while OEV uses 77. The values are not a controlled head-to-head comparison.
 
 | model | params | accuracy | ECE |
 |---|---|---:|---:|
 | Jev (published) | closed | 0.870 | - |
 | **OEV weight soup, one file (`b77soup-oev-tiny.pt`)** | **184M** | **`0.8584`** | `0.0965` |
 | OEV ensemble (3 checkpoints) | 3 x 184M | `0.8529` | **`0.0595`** |
-| OEV single re-tune | 184M | 0.8403 | 0.1905 |
+| OEV historical warm-start re-tune | 184M | 0.8403 | 0.1905 |
 | OEV single (first release) | 184M | 0.8303 | 0.1860 |
 | laya | 421M | 0.425 | - |
 
-The soup (weight-space average of the three members) beats the probability ensemble with a single 735MB artifact, and reaches coverage `0.7604` at a `<=5%` error budget (`AURC 0.0389`) — 76% of decisions auto-pilotable under the stated budget. On a laptop CPU it runs at `447 ms` p50 (8 threads); no competing decision model publishes any CPU latency.
+The soup (weight-space average of the three members) beats the probability ensemble with a single 735MB artifact and reaches coverage `0.7604` at a `<=5%` error budget (`AURC 0.0389`), so 76% of decisions can be automated under the stated budget. On a laptop CPU it runs at `447 ms` p50 (8 threads); no competing decision model publishes any CPU latency.

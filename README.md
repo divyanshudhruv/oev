@@ -11,9 +11,12 @@ OEV is a small (`184M params`) neural decision engine. Instead of generating tex
 
 The single `184M` model scores `0.7705` on typed-decisions, slightly above laya's published `0.766` from a `421M` checkpoint. An ensemble of four `184M` checkpoints reaches `0.7760`, the `highest` reported result, and a single Banking77 soup checkpoint reaches `0.8584` (best ECE `0.0595` from the 3-checkpoint ensemble). Jev leads only on Banking77 (0.870).
 
+> [!WARNING]
+> Gamma `2.5` in the historical sharpening table was selected from an evaluation sweep. The validation-only selection log is not present in this repository, so treat that row as exploratory. Chart latency comparisons use different hardware and include published ranges; the current `runs/` manifest and raw timing samples are also unavailable here. Reproduce claims from recorded run logs before treating them as release evidence.
+
 [![Hugging Face Model](https://img.shields.io/badge/%F0%9F%A4%97%20Model-divyanshudhruv%2Foev--typed-blue)](https://huggingface.co/divyanshudhruv/oev-typed)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-38%20passing-brightgreen)](https://github.com/divyanshudhruv/oev/actions/workflows/test.yml)
+[![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](https://github.com/divyanshudhruv/oev/actions/workflows/tests.yml)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.x-ee4c2c)](https://pytorch.org/get-started/locally/)
 [![HF Space](https://img.shields.io/badge/%F0%9F%A4%97%20Space-oev--demo-yellow)](https://huggingface.co/spaces/divyanshudhruv/oev-demo)
@@ -47,18 +50,25 @@ The single `184M` model scores `0.7705` on typed-decisions, slightly above laya'
 | claim                 | result                                                                                                  |
 | --------------------- | ------------------------------------------------------------------------------------------------------- |
 | best accuracy         | **0.7705** single model, **0.7760** ensemble - typed-decisions (laya 0.766 from 421M)                   |
-| best soft accuracy    | **0.7020** sharpened (laya 0.471, Jev 0.580)                                                            |
+| best soft accuracy    | **0.7020** sharpened, historical exploratory gamma (laya 0.471, Jev 0.580)                               |
 | high-cardinality      | **0.8584** Banking77, one soup checkpoint (`ECE 0.0595` best ensemble; laya 0.425)                      |
-| speed                 | **22.2 ms** single question (laya 32.8 ms)                                                              |
+| speed                 | **22.2 ms** single question (laya 32.8-39.5 ms published range)                                          |
 | size                  | **184M** params, 0.44x laya                                                                             |
-| calibration           | **ECE 0.0298** (laya 0.213)                                                                             |
+| calibration           | **ECE 0.0298**, historical exploratory gamma (laya 0.213)                                             |
 | weights & checkpoints | Apache 2.0 - [huggingface.co/divyanshudhruv/oev-typed](https://huggingface.co/divyanshudhruv/oev-typed) |
 
 - `22.2 ms` per question on a `T4` (GPU); `447 ms` p50 on CPU (8 threads, 184M soup checkpoint)
-- `ECE 0.0298` on typed-decisions after temperature fitting - measured confidence tracks actual accuracy, so it can gate automation
+- `ECE 0.0298` on typed-decisions after historical gamma fitting - measured confidence tracks actual accuracy, so it can gate automation
 - `0.8584` on 77-label `Banking77` from a single soup checkpoint (the 3-checkpoint ensemble still holds best ECE `0.0595`): each option is embedded as its own anchor with full tokens, so accuracy scales with label count (gap to Jev 1.16 pts)
 - `184M` params, `Apache 2.0` weights
 - Kev (0.8B / 4B) publishes no in-domain numbers on these datasets, so it is not in the tables; see [BENCHMARKS.md](BENCHMARKS.md) for the like-for-like comparison plan
+
+<p align="center" style="margin: 24px 0;">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/params_vs_acc_dark.png" />
+  <img src="assets/params_vs_acc.png" alt="Accuracy versus parameter count: OEV points at 184M sit at or above laya at 421M and Kev at 0.8B and 4B; Jev omits a size" width="78%" />
+</picture>
+</p>
 
 ## Architecture
 
@@ -80,16 +90,48 @@ flowchart LR
 
 Fine-tuned on each benchmark's train split, following the same protocol as Laya's published runs. Complete tables in [BENCHMARKS.md](BENCHMARKS.md).
 
+> [!WARNING]
+> Banking77 uses 77 OEV labels, while the published Jev figure is from a 72-label configuration. The `0.8584` and `0.870` values are not a controlled head-to-head comparison.
+
 | benchmark       |        OEV |  laya |   Jev | note                                                              |
-| --------------- | ---------: | ----: | ----: | ----------------------------------------------------------------- | --- | --------------------- | ---------- | ----- | ----- | ---------------------------- |
-| typed-decisions | **0.7760** | 0.766 | 0.727 | highest reported (ensemble); single model 0.7705                  |     | Banking77 (77 labels) | **0.8584** | 0.425 | 0.870 | 2x laya; gap to Jev 1.16 pts |
+| --------------- | ---------: | ----: | ----: | ----------------------------------------------------------------- |
+| typed-decisions | **0.7760** | 0.766 | 0.727 | highest reported (ensemble); single model 0.7705                  |
+| Banking77       | **0.8584** | 0.425 | 0.870 | 2x laya; gap to Jev 1.16 pts                                      |
 | AG News         | **0.9489** | 0.950 | 0.910 | label-noise ceiling (~0.95)                                       |
 | DAIR Emotion    | **0.9300** | 0.595 | 0.480 | zero-shot: OEV student `0.6505` beats laya's `0.595` head-to-head |
 
 <p align="center" style="margin: 24px 0;">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/breakdown_dark.png" />
-  <img src="assets/breakdown.png" alt="Accuracy vs size, per primitive, per workflow" width="100%" />
+  <source media="(prefers-color-scheme: dark)" srcset="assets/b77climb_dark.png" />
+  <img src="assets/b77climb.png" alt="Banking77 progression across every measured OEV variant, from 0.8303 first release to the 0.8584 soup, with Jev's 0.870 as a dashed reference line" width="92%" />
+</picture>
+</p>
+
+<p align="center" style="margin: 24px 0;">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/zeroshot_dark.png" />
+  <img src="assets/zeroshot.png" alt="Zero-shot and out-of-domain transfer as dot pairs: OEV 0.650 versus laya 0.595 on emotion, with the WANLI and ANLI floors marked" width="88%" />
+</picture>
+</p>
+
+<p align="center" style="margin: 24px 0;">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/matrix_dark.png" />
+  <img src="assets/matrix.png" alt="Heatmap of accuracy by checkpoint and benchmark: td5, mt, round-1 and round-2b students, the collapsed round-2, and the MNLI specialist" width="100%" />
+</picture>
+</p>
+
+<p align="center" style="margin: 24px 0;">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/workflows_dark.png" />
+  <img src="assets/workflows.png" alt="Typed-decisions accuracy per workflow: OEV wins invoice processing, customer service and agent-trace observability; laya wins security incidents" width="82%" />
+</picture>
+</p>
+
+<p align="center" style="margin: 24px 0;">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/gamma_dark.png" />
+  <img src="assets/gamma.png" alt="Gamma sweep on the shipped student: accuracy is flat while ECE bottoms out at gamma 1.2" width="72%" />
 </picture>
 </p>
 
@@ -106,6 +148,7 @@ Optional extras:
 - `pip install -e ".[dev]"` - pytest
 - `pip install -e ".[data]"` - dataset converters
 - `pip install -e ".[backbone]"` - DeBERTa fine-tuning
+- `pip install -e ".[app]"` - Gradio Space dependencies
 
 ```python
 from oev.infer import OEV
@@ -175,36 +218,32 @@ python -m oev.rlcd --checkpoint checkpoints_td5/oev-tiny.pt --data-dir data/type
 
 python -m oev.ensemble --ckpts checkpoints_td5/oev-tiny.pt,checkpoints_rlcd/oev-tiny.pt,checkpoints_rlcd_soup/oev-tiny.pt --data-dir data/typed
 
-python -m pytest -q   # 38 tests passing
+python -m pytest -q
 ```
 
 `train_colab.ipynb` runs the entire pipeline end to end. Full training docs in [BENCHMARKS.md](BENCHMARKS.md).
 
 ## Limitations
 
-- every benchmark number is from a checkpoint fine-tuned on that benchmark's train split; zero-shot emotion is a **win** (`0.6505` shipped distilled student vs laya's `0.595`, both zero-shot) after starting at `0.4265` - the round-1 ablation row
-- NLI is exactly at chance for every checkpoint (ANLI `0.3380`) - an honest floor, not hidden; needs an NLI teacher (round-3 material)
-- pure-mimicry distillation transfers breadth not depth: round-1 student hit emotion `0.6875` (+26 pts zero-shot) but lost typed skill (`0.5385`); adding gold-CE loss (round 2) collapsed to uniform — documented negative result; round 2b (pure-KL, balanced domains) rescued it: typed `0.6480`, emotion `0.6505`, b77 `0.7964`, probes all PASS
+- every benchmark number is from a checkpoint fine-tuned on that benchmark's train split. Zero-shot emotion is a **win**: the shipped distilled student (`0.6505`, both models zero-shot) against laya's `0.595`, up from the round-1 starting point of `0.4265`
+- ANLI remains near chance (`0.3380` for the round-1 student), while the WANLI specialist reaches `0.5645`; the NLI result is split-dependent, not uniformly at chance
+- pure-mimicry distillation transfers breadth, not depth. The round-1 student hit emotion `0.6875` (+26 pts zero-shot) but lost typed skill (`0.5385`). Adding gold-CE loss (round 2) collapsed to uniform, a documented negative result. Round 2b (pure-KL, balanced domains) rescued it: typed `0.6480`, emotion `0.6505`, b77 `0.7964`, probes all PASS
 - the headline ensemble result is an average of four checkpoints; the best single model is `0.7705`
 - CPU inference is roughly `20x` slower than the T4 (`447 ms` p50, 8 threads) - all headline timings are GPU
-- the b77 headline is a 3-checkpoint ensemble; the best single b77 model is `0.8403`
+- the b77 headline includes a 3-checkpoint probability ensemble and a single-file soup checkpoint at `0.8584`; `0.8403` is a historical warm-start re-tune, not the current best single artifact
 - English only
 
 ## Roadmap
 
-- [x] distillation Round 1 run + ablation documented: emotion zero-shot `0.4265 -> 0.6875` via mimicry, typed loss quantified (`0.5385`), gamma-1.2 calibration (ECE `0.0398`), 50/50 td5 weight-blend recovers typed to `0.7015`
-- [x] distillation Round 2 negative result documented (gold-CE collapse to uniform), then Round 2b rescue (pure-KL): typed `0.5385 -> 0.6480`, emotion zero-shot `0.6505` (laya win intact), b77 `0.7964` — ships as the generalist
-- [x] distillation Round 2 negative result documented: gold-CE + teacher-KL collapses to uniform (b77 `0.0104`, below random) — Round 2b (pure-KL, balanced domains, td5 teacher) in flight
-- [x] command-intent dataset generator shipped (`oev.convert_commands`): synthetic voice-command router data with observe/prefetch/commit completeness signal (roadmap #10 seed, powers the real-time command demo)
-- [x] architecture verification: isolation, forgery and order-rotation probes all PASS on released checkpoints (`oev.probes`)
-- [x] single-file b77: weight soup reaches `0.8584` — beats the 3-checkpoint ensemble (`0.8529`) in one 735MB artifact
-- [x] confidence gating: `coverage@≤5%` and AURC shipped in `benchmark_ext` — `76%` of b77 automatable at a `5%` error budget
-- [x] zero-shot emotion win: distilled student `0.6505` vs laya `0.595` head-to-head (both zero-shot; round-1 peaked `0.6875`); WANLI `0.3450` and ANLI `0.3260` (chance) documented as the NLI floor
-- [x] CPU latency characterized: `447 ms` p50 on a laptop CPU (8 threads); no competitor publishes any CPU figure
-- [ ] INT8 / ONNX export for CPU deployment (export + quantization scripts in `scripts/`, bench pending)
+- [ ] round 3 distillation: 6 teachers, 5 domains including NLI
+- [ ] 4-member Banking77 ensemble: the live shot past `0.8584`
+- [ ] round 4: one file near specialist numbers everywhere
+- [ ] INT8 / ONNX CPU deployment (export + quantization scripts in `scripts/`, bench pending)
 - [ ] multi-question shared-state encoding (one pass, many questions)
-- [ ] robustness: reduce mild overconfidence on out-of-distribution and garbage inputs
+- [ ] robustness: reduce mild overconfidence on out-of-distribution inputs
 - [ ] non-English checkpoints (the interface is language-agnostic; the weights are not yet)
+
+Full list with the open questions behind each item: [ROADMAP.md](ROADMAP.md).
 
 ## Credits
 

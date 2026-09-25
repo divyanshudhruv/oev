@@ -77,7 +77,7 @@ The test suite runs on CPU and does not require model checkpoints or a GPU.
 
 ## Re-running benchmarks
 
-The complete benchmark and reproduction commands are documented in [BENCHMARKS.md](BENCHMARKS.md#reproducibility).
+The complete benchmark and reproduction commands are documented in [BENCHMARKS.md](BENCHMARKS.md#run-it-yourself).
 
 When submitting new benchmark results, include:
 

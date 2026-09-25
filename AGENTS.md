@@ -13,6 +13,7 @@ Conventions for AI agents and humans working in this repository.
   every published number to its checkpoint and eval command)
 - `assets/` - README charts and logo
 - `PLAN.md` - research plan with pre-registered criteria and recorded failures
+- `ROADMAP.md` - forward work list, linked from the README roadmap section
 
 ## Rules
 
