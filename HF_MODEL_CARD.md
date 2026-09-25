@@ -41,13 +41,15 @@ Per workflow (ensemble): invoice `0.836`, customer service `0.804`, agent-trace 
 
 | file | what it is |
 |---|---|
-| oev-base-td5.pt | best single model, plain fine-tune on soft targets. Good default. |
+| **student-r2b-oev-tiny.pt** | **distilled generalist - recommended default.** One model for everything: typed 0.6480, Banking77 0.7964, emotion zero-shot 0.6505 (beats laya 0.595), probes all PASS. Use gamma 1.2 for calibrated probabilities |
+| oev-base-td5.pt | typed-decisions specialist (0.7705) - best when you only need agent-decision scoring |
 | oev-base-rlcd-soup.pt | most calibrated single (ECE 0.0279). Prefer this one when the probabilities feed automated decisions. |
 | oev-base-rlcd.pt | RLCD fine-tune (Brier-reward policy gradient against teacher distributions) |
 | oev-base-rlcd-seed1.pt | second RLCD seed - for ensembling |
-| oev-base-banking77.pt | Banking77 specialist (77-way intents) - see the Banking77 section below |
-| oev-base-banking77-a.pt | Banking77 warm-start re-tune, best single (0.8403) - for the b77 ensemble |
-| oev-base-banking77-b.pt | Banking77 warm-start re-tune, second ensemble member |
+| b77-oev-tiny.pt | Banking77 specialist (77-way intents) - see the Banking77 section below |
+| b77a-oev-tiny.pt | Banking77 warm-start re-tune, best single (0.8403) - for the b77 ensemble |
+| b77b-oev-tiny.pt | Banking77 warm-start re-tune, second ensemble member |
+| b77soup-oev-tiny.pt | weight-average of the three b77 members - best single-file b77 accuracy (0.8584) |
 
 For the ensemble results, average the softmax probabilities of the members with equal weights: typed-decisions 0.7760 (four files), Banking77 0.8529 with ECE 0.0595 (three files: oev-base-banking77 + a + b).
 
@@ -59,7 +61,7 @@ from oev.evaluate import load_model
 from oev.tokenizer_hf import HFTokenPacker
 from huggingface_hub import hf_hub_download
 
-path = hf_hub_download("divyanshudhruv/oev-typed", "oev-base-td5.pt")
+path = hf_hub_download("divyanshudhruv/oev-typed", "student-r2b-oev-tiny.pt")
 model = load_model(path, "cuda")
 packer = HFTokenPacker(model.cfg["backbone"])
 
@@ -111,7 +113,10 @@ Fine-tuned checkpoints: `oev-base-banking77.pt` plus two warm-started re-tunes (
 | model | params | accuracy | ECE |
 |---|---|---:|---:|
 | Jev (published) | closed | 0.870 | - |
-| **OEV ensemble (3 checkpoints)** | 3 x 184M | **`0.8529`** | **`0.0595`** |
+| **OEV weight soup, one file (`b77soup-oev-tiny.pt`)** | **184M** | **`0.8584`** | `0.0965` |
+| OEV ensemble (3 checkpoints) | 3 x 184M | `0.8529` | **`0.0595`** |
 | OEV single re-tune | 184M | 0.8403 | 0.1905 |
 | OEV single (first release) | 184M | 0.8303 | 0.1860 |
 | laya | 421M | 0.425 | - |
+
+The soup (weight-space average of the three members) beats the probability ensemble with a single 735MB artifact, and reaches coverage `0.7604` at a `<=5%` error budget (`AURC 0.0389`) — 76% of decisions auto-pilotable under the stated budget. On a laptop CPU it runs at `447 ms` p50 (8 threads); no competing decision model publishes any CPU latency.

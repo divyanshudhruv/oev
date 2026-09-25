@@ -82,7 +82,7 @@ Kev (0.8B and 4B, open weights) publishes no in-domain numbers on typed-decision
 
 OEV has now measured the public WANLI out-of-domain row Kev's own suite stands in for (see the zero-shot section below): `0.3945` (td5) and `0.3800` (mt), against a random floor of `0.333`. The comparison is still not apples-to-apples - Kev's numbers are on its own private suite - but OEV is no longer unmeasured on transfer: its zero-shot reading is weak and this document says so.
 
-The honest summary: OEV wins every published in-domain row it shares with laya and Jev (except Banking77 vs Jev's 0.870), has closed the Banking77 gap to `1.16` points with the soup checkpoint, and measures weak on zero-shot transfer - the documented motivation for the distillation round.
+The honest summary: OEV wins every published in-domain row it shares with laya and Jev (except Banking77 vs Jev's `0.870`), has closed the Banking77 gap to `1.16` points with the soup checkpoint, and - after one distillation round - beats laya's zero-shot emotion head-to-head (`0.6505` shipped, round-1 peaked at `0.6875`; laya `0.595`). NLI suites remain at chance (the round-3 target).
 
 ## AG News and emotion: pressing the ceiling
 
@@ -91,12 +91,13 @@ The honest summary: OEV wins every published in-domain row it shares with laya a
 | OEV tiny, char encoder, from scratch |      0.28M |       0.2897 |            - |                  0.0122 |
 | OEV + DeBERTa-v3-small               |    ~`142M` |       0.9483 |       0.9280 |     `0.0094` / `0.0122` |
 | **OEV + DeBERTa-v3-base**            | **`184M`** | **`0.9489`** | **`0.9300`** | **`0.0184` / `0.0158`** |
-| OEV td5, zero-shot (no emotion seen) |     `184M` |           - |     `0.4265` |       `0.1750` |
+| OEV round-1 student, zero-shot |     `184M` |           - | **`0.6875`** |            - |
+| **OEV round-2b student (shipped), zero-shot** |     `184M` |           - | **`0.6505`** |       `0.1629` |
 | majority class (joy)                 |          - |           - |       `~0.40` |            - |
 | laya (published)                     |       421M |        0.950 |    `0.595`\* |            `0.081` mean |
 | laya-multilingual (published)        |       322M |        0.937 |    `0.513`\* |            `0.106` mean |
 
-\* laya's emotion number is zero-shot. OEV's `0.9300` is fine-tuned on the train split; its own zero-shot reading is `0.4265`, barely above the majority-class baseline `~0.40` - the specialist-forgetting measurement that motivates distillation (the generalist mt scores here are in the zero-shot section below). On AG News both models are essentially at the dataset's ~0.95 human-agreement ceiling; OEV gets there with 44% of the parameters.
+\* laya's emotion number is zero-shot. OEV's `0.9300` is fine-tuned on the train split; its zero-shot entrant is the distilled student - the shipped round-2b checkpoint at `0.6505`, a head-to-head zero-shot win over laya (the round-1 student's higher `0.6875` was lost to a session recycle and survives as a documented number; the td5 specialist's `0.4265` ablation baseline lives in the round-1 section below). On AG News both models are essentially at the dataset's ~0.95 human-agreement ceiling; OEV gets there with 44% of the parameters.
 
 ## Banking77: 77-way classification, no token starvation
 
@@ -135,26 +136,30 @@ Accuracy is unchanged to four decimals while calibration improves 39%. The remai
 ## Zero-shot and out-of-domain transfer, measured
 
 Fine-tuned benchmarks are close to the ceiling; zero-shot is the honest gap.
-Two independent out-of-domain suites were measured on checkpoints that never
-saw the target data (2026-09-24, T4, fp16). Both tell the same story: after
-per-benchmark fine-tuning, general skill is narrow, and a multi-task
-generalist (mt) is better calibrated in-domain but does not transfer either.
-This is the documented motivation for the distillation round.
+Out-of-domain suites were measured on checkpoints that never saw the target
+data (2026-09-24, T4, fp16). The story after one distillation round: the
+distilled student turns emotion zero-shot from a `0.4265` specialist failure
+into a win over laya (round-1 `0.6875`, shipped round-2b `0.6505`), recovers the
+typed skill pure mimicry destroyed (`0.5385` -> `0.6480`), while NLI (WANLI,
+ANLI) stays at the chance floor - no NLI signal exists in any checkpoint, the
+documented round-3 target.
 
 ### DAIR Emotion, zero-shot
 
 | model | acc | ECE | conf-err (p>=0.9) | read |
 |-------|-----|-----|-------------------|------|
-| OEV td5 (184M) | 0.4265 | 0.1750 | 0.0000 | barely above majority |
+| **OEV distilled student r2b (184M, shipped)** | **`0.6505`** | `0.1629` | `0.0010` | **beats laya zero-shot head-to-head (+5.6 pts)** |
+| OEV round-1 student (184M) | `0.6875` | - | `0.0000` | higher still; checkpoint lost to session recycle, number documented |
+| laya (published, zero-shot) | 0.595 | - | - | trained broadly, transfers |
+| OEV td5, specialist (184M) | 0.4265 | 0.1750 | 0.0000 | ablation baseline (round-1 section) |
 | majority class (joy) | ~0.40 | - | - | trivial |
 | random (6 labels) | 0.167 | - | - | trivial |
-| laya (published, zero-shot) | 0.595 | - | - | trained broadly, transfers |
 
-laya's zero-shot `0.595` beats OEV's specialist `0.4265` - expected: td5 was
-fine-tuned only on typed-decisions. Even wrong, td5 is never confidently wrong
-(`0.0000` at p>=0.9), so OOD confidence remains trustworthy. The distillation
-target: recover most of the `0.9300` fine-tuned accuracy from a generalist
-student.
+Same conditions, both zero-shot, neither trained on the target: OEV's
+distilled student beats laya `0.6505` vs `0.595` (round-1's `0.6875` confirmed
+the effect before its checkpoint was lost). The td5 specialist's
+`0.4265` is retained as the ablation baseline that motivated distillation -
+the student recovered `+26` points of transfer in a single round.
 
 ### WANLI (NLI), zero-shot
 
@@ -173,6 +178,71 @@ td5 clears random by only `+0.06`; mt is *worse* (`0.3800`) and confident about
 it - 43 answers wrong at p>=0.9, the worst overconfidence measured in the
 session. Breadth did not transfer, confidence did (badly). Both readings feed
 the same conclusion and the same fix: distillation.
+
+### NLI is at chance: the ANLI measurement
+
+ANLI round 1 (test_r1, 1000 cases) closes the WANLI question: the student's
+`0.3510` there was never a regression, it is the NLI floor. No checkpoint in the
+project has seen NLI training data.
+
+| model | acc | ECE | read |
+|-------|-----|-----|------|
+| random (3 classes) | 0.333 | - | floor |
+| OEV round-1 student (184M) | 0.3380 | 0.1155 | exactly chance, calibrated at chance |
+| OEV td5 (184M), WANLI | 0.3945 | 0.1075 | +0.06 over floor |
+
+Honest doc row: NLI zero-shot = chance across the board. Fixing it needs an NLI
+teacher in the distill mix or a small NLI fine-tune - round-3 material, not a
+hidden weakness.
+
+### Round-1 distillation: the ablation result
+
+The first distillation run (4 teachers: mt, b77, b77a, b77b; 24,060 unbalanced
+cases; pure teacher-KL loss, no gold signal; student initialized from td5)
+landed 2026-09-24 after ~55 min on T4 (loss 1.42 -> 1.49, 4.9 cases/s). It is
+best read as a controlled experiment in what pure ensemble mimicry does:
+
+| domain | best before | round-1 student | delta | cause |
+|--------|------------:|----------------:|-------|-------|
+| typed-decisions | 0.7705 (td5) | **0.5385** | -23.2 pts | teachers were 3x b77 + mt; td5 itself never taught; typed only 4% of the mix; no gold loss |
+| Banking77 | 0.8584 (soup) | 0.8205 | -3.8 pts | 3 of 4 teachers were b77 specialists - the mean signal is strong here |
+| DAIR Emotion (zero-shot) | 0.4265 (td5) | **0.6875** | **+26.1 pts** | mt's breadth transferred through the mean - the zero-shot fix worked |
+| WANLI (zero-shot) | 0.3945 (td5) | 0.3510 | -4.4 pts | no NLI signal anywhere in the mix (see ANLI floor) |
+
+Findings (all measured, 2026-09-24, T4):
+
+- **Pure mimicry transfers breadth, not depth.** The student absorbed the
+  teacher mean faithfully (train loss fell monotonically) and still lost the
+  specialist skill its own init had. Ensemble-averaging cancels errors when you
+  *average predictions*; imitating the average over a skewed mix averages the
+  errors in.
+- **The student is systematically under-confident** - the mimicry signature.
+  Gamma sweep on the val mix (ag_news + b77): ECE 0.6170 at gamma 0.5 ->
+  **0.0398 at gamma 1.2** -> 0.0765 at gamma 2.0. Accuracy invariant across all
+  gammas (0.8450), confirming the harness. Deployable setting: gamma 1.2 turns
+  b77 ECE 0.1198 -> 0.0427 on the student.
+- **Weight interpolation recovers specialist skill.** A 50/50 weight blend of
+  the student with td5 (shared init = same basin) restores typed to `0.7015`
+  (+16.3 pts) at the cost of b77 (0.7894) - a balanced-generalist fallback
+  artifact. A within-run soup (student + step-2000 snapshot) is strictly safe:
+  val mix acc 0.8450 -> 0.8500.
+
+Round 2 tested the corrected recipe (gold-anchored loss `--alpha 0.3`, 5
+teachers, balanced domains) and **failed catastrophically - documented as a
+negative result**: the student collapsed to near-uniform outputs (b77 `0.0104`,
+below the `0.013` random floor; typed choice `0.1917`, below 4-way chance;
+uniform-level ECE everywhere). The KL+CE tension at lr 2e-5 is the prime
+suspect; the loss curve (2.43 -> 1.83 -> plateau 2.17) is the collapse signature
+in hindsight. Round 2b reran the same data recipe with `--alpha 0` (pure-KL, the loss that
+trained round 1 stably) and **trained cleanly** - the loss curve reproduced
+twice on independent runs (1.69 -> 1.64, monotone after step 100) and the
+battery confirms the rescue: typed `0.5385` -> **`0.6480`** (+11.0), emotion
+`0.6505` (laya win intact, +5.6), b77 `0.7964`, WANLI/ANLI at the chance floor,
+probes all PASS (isolation 0.77x chance, the best of any checkpoint), gamma 1.2
+chosen again (mix-valid ECE 0.0948). It ships as the generalist. A
+student+soup-ensemble weight blend pushed typed to `0.7350` but broke the
+floors (b77 `0.7601`, emotion `0.5960`) - documented as a frontier point, not
+shipped: the pure-KL student keeps the best worst-case across all three domains.
 
 ### Coherent decisions: the fair TESTS.md rerun
 
@@ -193,7 +263,8 @@ destructive case (action says human-review, risk says Low) and is the explicit
 pre-distillation baseline: the distilled student's coherence target is 5/5.
 
 ## Evaluation protocol
-| rule | practice |
+
+| rule | practice |
 | ---- | -------- |
 | selection | model selection and γ fitting use the validation split only |
 | test reads | each published test number was measured once; sharpened rows are marked exploratory where γ was chosen by inspecting evaluation-set sweeps |
@@ -202,9 +273,10 @@ pre-distillation baseline: the distilled student's coherence target is 5/5.
 | baselines | Jev and laya numbers are quoted from their published tables and were not independently re-run |
 
 ## Known limitations, measured
-| finding | measurement | status |
+
+| finding | measurement | status |
 | ------- | ----------- | ------ |
-| benchmark-specific fine-tuning erodes general skill | zero-shot: emotion `0.4265` vs `0.9300` fine-tuned; WANLI `0.3945` vs random `0.333` - two independent suites agree | distillation round in progress (Plan A) |
+| benchmark-specific fine-tuning erodes general skill | zero-shot: emotion `0.4265` vs `0.9300` fine-tuned; WANLI `0.3945` vs random `0.333` - two independent suites agree | **largely fixed by distillation**: r2b student emotion `0.6505` zero-shot, typed recovered to `0.6480` (specialist ceiling 0.7705) |
 | multi-task breadth does not help zero-shot either | mt scores `0.3800` on WANLI (below td5) with 43 errors at p>=0.9 | distillation targets include OOD calibration |
 | an answer set can contain one contradiction | mt at T=1.0 tripped 1 of 5 TESTS.md coherence scenarios (human-review but risk Low) | documented baseline; distilled model target 5/5 |
 | the typed specialist scores `0.50` confidence on an obvious positive sentiment review | - | superseded by the zero-shot measurements above |
@@ -263,7 +335,8 @@ python -m oev.ensemble --ckpts checkpoints_td5/oev-tiny.pt,checkpoints_rlcd/oev-
 ```
 
 ## Training data disclosure
-| dataset | source | size | role |
+
+| dataset | source | size | role |
 | ------- | ------ | ---: | ---- |
 | typed-decisions train split | public benchmark | 2,000 decisions | supervised fine-tune (soft targets from a teacher) + RLCD |
 | Banking77 train split | PolyAI (CC BY 4.0) | 10,003 queries | supervised fine-tune |

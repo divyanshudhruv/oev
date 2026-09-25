@@ -283,6 +283,87 @@
       "checkpoint": "b77soup (184M)",
       "hardware": "laptop CPU, 8 threads",
       "eval": "agent.decide() timing loop, oev.infer.OEV on CPU"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.6875,
+      "benchmark": "dair_emotion_zero_shot",
+      "checkpoint": "distill-round1-student (184M)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint distill/student.pt --data-dir data/emotion",
+      "note": "+26.1 pts over td5 zero-shot (0.4265): teacher-mean mimicry transfers breadth. Round-1 ablation"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.5385,
+      "benchmark": "typed-decisions",
+      "checkpoint": "distill-round1-student (184M)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint distill/student.pt --data-dir data/typed",
+      "note": "pure-mimicry ablation: specialist skill lost (td5 init scored 0.7705). No gold loss, td5 not a teacher, typed 4% of mix. Round-2 fixes: alpha 0.3 gold CE, td5 as teacher, per-domain balance"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.648,
+      "benchmark": "typed-decisions",
+      "checkpoint": "distill-round2b-student (184M, shipped generalist)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint distill2b/student.pt --data-dir data/typed",
+      "note": "pure-KL rescue of the R2 gold-CE collapse: +11.0 pts over the R1 student. Balanced 4-domain mix, 5 teachers incl. td5, alpha 0. Recipe reproduced twice (Kaggle + Colab, final loss 1.6409/1.6422)"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.7964,
+      "benchmark": "banking77",
+      "checkpoint": "distill-round2b-student (184M)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint distill2b/student.pt --data-dir data/banking77",
+      "note": "generalist row; specialists remain b77soup 0.8584 and the R1 student 0.8205 (checkpoint lost)"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.6505,
+      "benchmark": "dair_emotion_zero_shot",
+      "checkpoint": "distill-round2b-student (184M, shipped generalist)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint distill2b/student.pt --data-dir data/emotion",
+      "note": "zero-shot win over laya 0.595 (+5.6 pts). R1 student scored 0.6875; its checkpoint was lost to a session recycle"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.735,
+      "benchmark": "typed-decisions",
+      "checkpoint": "r2b-student+td5 50/50 weight soup (184M)",
+      "params": "184M",
+      "eval": "evaluate_metrics on data/typed",
+      "note": "documented frontier, NOT shipped: blend lifted typed +8.7 but broke floors (b77 0.7601, emotion 0.5960)"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.338,
+      "benchmark": "anli_r1_zero_shot",
+      "checkpoint": "distill-round1-student (184M)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint distill/student.pt --data-dir data/anli",
+      "note": "chance = 0.333. Closes the WANLI question: 0.351 there is the NLI floor, not a regression. No NLI teacher exists in the project"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.7015,
+      "benchmark": "typed-decisions",
+      "checkpoint": "student-td5-blend (50/50 weight average, 184M)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint soup_trial.pt --data-dir data/typed",
+      "note": "weight interpolation with the shared init recovers specialist skill: +16.3 pts over the raw student, at b77 0.7894. Balanced-generalist fallback artifact"
+    },
+    {
+      "metric": "ece",
+      "value": 0.0398,
+      "benchmark": "distill valmix (ag_news + banking77, gamma 1.2)",
+      "checkpoint": "distill-round1-student (184M)",
+      "params": "184M",
+      "eval": "gamma sweep, evaluate_metrics on data/mix valid split, chosen gamma 1.2",
+      "note": "mimicry signature: student under-confident (ECE 0.6170 at gamma 0.5, 0.1443 at 1.0, 0.0765 at 2.0); accuracy invariant at 0.8450 across all gammas"
     }
   ]
 }

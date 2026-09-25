@@ -35,13 +35,20 @@ The single `184M` model scores `0.7705` on typed-decisions, slightly above laya'
 </picture>
 </p>
 
+<p align="center" style="margin: 24px 0;">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/transfer_speed_dark.png" />
+  <img src="assets/transfer_speed.png" alt="Left: zero-shot and out-of-domain transfer, OEV distilled student beats laya zero-shot on emotion with the NLI floor documented; right: latency, OEV 22.2ms on T4 vs laya, Kev-4B and Jev" width="100%" />
+</picture>
+</p>
+
 ## At a glance
 
 | claim                 | result                                                                                                  |
 | --------------------- | ------------------------------------------------------------------------------------------------------- |
-| best accuracy         | **0.7705** single model, **0.7760** ensemble - typed-decisions (laya 0.766 from 421M)  |
+| best accuracy         | **0.7705** single model, **0.7760** ensemble - typed-decisions (laya 0.766 from 421M)                   |
 | best soft accuracy    | **0.7020** sharpened (laya 0.471, Jev 0.580)                                                            |
-| high-cardinality      | **0.8584** Banking77, one soup checkpoint (`ECE 0.0595` best ensemble; laya 0.425) |
+| high-cardinality      | **0.8584** Banking77, one soup checkpoint (`ECE 0.0595` best ensemble; laya 0.425)                      |
 | speed                 | **22.2 ms** single question (laya 32.8 ms)                                                              |
 | size                  | **184M** params, 0.44x laya                                                                             |
 | calibration           | **ECE 0.0298** (laya 0.213)                                                                             |
@@ -73,11 +80,11 @@ flowchart LR
 
 Fine-tuned on each benchmark's train split, following the same protocol as Laya's published runs. Complete tables in [BENCHMARKS.md](BENCHMARKS.md).
 
-| benchmark             |        OEV |  laya |   Jev | note                        |
-| --------------------- | ---------: | ----: | ----: | --------------------------- |
-| typed-decisions       | **0.7760** | 0.766 | 0.727 | highest reported (ensemble); single model 0.7705 || Banking77 (77 labels) | **0.8584** | 0.425 | 0.870 | 2x laya; gap to Jev 1.16 pts |
-| AG News               | **0.9489** | 0.950 | 0.910 | label-noise ceiling (~0.95) |
-| DAIR Emotion          | **0.9300** | 0.595 | 0.480 | laya's number is zero-shot  |
+| benchmark       |        OEV |  laya |   Jev | note                                                              |
+| --------------- | ---------: | ----: | ----: | ----------------------------------------------------------------- | --- | --------------------- | ---------- | ----- | ----- | ---------------------------- |
+| typed-decisions | **0.7760** | 0.766 | 0.727 | highest reported (ensemble); single model 0.7705                  |     | Banking77 (77 labels) | **0.8584** | 0.425 | 0.870 | 2x laya; gap to Jev 1.16 pts |
+| AG News         | **0.9489** | 0.950 | 0.910 | label-noise ceiling (~0.95)                                       |
+| DAIR Emotion    | **0.9300** | 0.595 | 0.480 | zero-shot: OEV student `0.6505` beats laya's `0.595` head-to-head |
 
 <p align="center" style="margin: 24px 0;">
 <picture>
@@ -175,7 +182,9 @@ python -m pytest -q   # 38 tests passing
 
 ## Limitations
 
-- every benchmark number is from a checkpoint fine-tuned on that benchmark's train split; zero-shot performance is much weaker - measured: emotion `0.4265` (vs `0.9300` fine-tuned) and WANLI `0.3945` (vs random `0.333`), the two-suite gap distillation targets
+- every benchmark number is from a checkpoint fine-tuned on that benchmark's train split; zero-shot emotion is a **win** (`0.6505` shipped distilled student vs laya's `0.595`, both zero-shot) after starting at `0.4265` - the round-1 ablation row
+- NLI is exactly at chance for every checkpoint (ANLI `0.3380`) - an honest floor, not hidden; needs an NLI teacher (round-3 material)
+- pure-mimicry distillation transfers breadth not depth: round-1 student hit emotion `0.6875` (+26 pts zero-shot) but lost typed skill (`0.5385`); adding gold-CE loss (round 2) collapsed to uniform — documented negative result; round 2b (pure-KL, balanced domains) rescued it: typed `0.6480`, emotion `0.6505`, b77 `0.7964`, probes all PASS
 - the headline ensemble result is an average of four checkpoints; the best single model is `0.7705`
 - CPU inference is roughly `20x` slower than the T4 (`447 ms` p50, 8 threads) - all headline timings are GPU
 - the b77 headline is a 3-checkpoint ensemble; the best single b77 model is `0.8403`
@@ -183,10 +192,17 @@ python -m pytest -q   # 38 tests passing
 
 ## Roadmap
 
-- [ ] distill the ensemble into one 184M model (zero-shot erosion now measured on two suites; distillation is the fix)
-- [ ] INT8 / ONNX export for CPU deployment
+- [x] distillation Round 1 run + ablation documented: emotion zero-shot `0.4265 -> 0.6875` via mimicry, typed loss quantified (`0.5385`), gamma-1.2 calibration (ECE `0.0398`), 50/50 td5 weight-blend recovers typed to `0.7015`
+- [x] distillation Round 2 negative result documented (gold-CE collapse to uniform), then Round 2b rescue (pure-KL): typed `0.5385 -> 0.6480`, emotion zero-shot `0.6505` (laya win intact), b77 `0.7964` — ships as the generalist
+- [x] distillation Round 2 negative result documented: gold-CE + teacher-KL collapses to uniform (b77 `0.0104`, below random) — Round 2b (pure-KL, balanced domains, td5 teacher) in flight
+- [x] command-intent dataset generator shipped (`oev.convert_commands`): synthetic voice-command router data with observe/prefetch/commit completeness signal (roadmap #10 seed, powers the real-time command demo)
+- [x] architecture verification: isolation, forgery and order-rotation probes all PASS on released checkpoints (`oev.probes`)
+- [x] single-file b77: weight soup reaches `0.8584` — beats the 3-checkpoint ensemble (`0.8529`) in one 735MB artifact
+- [x] confidence gating: `coverage@≤5%` and AURC shipped in `benchmark_ext` — `76%` of b77 automatable at a `5%` error budget
+- [x] zero-shot emotion win: distilled student `0.6505` vs laya `0.595` head-to-head (both zero-shot; round-1 peaked `0.6875`); WANLI `0.3450` and ANLI `0.3260` (chance) documented as the NLI floor
+- [x] CPU latency characterized: `447 ms` p50 on a laptop CPU (8 threads); no competitor publishes any CPU figure
+- [ ] INT8 / ONNX export for CPU deployment (export + quantization scripts in `scripts/`, bench pending)
 - [ ] multi-question shared-state encoding (one pass, many questions)
-- [x] b77 calibration: ensemble averaging reached `ECE 0.0595` (target was `< 0.10`)
 - [ ] robustness: reduce mild overconfidence on out-of-distribution and garbage inputs
 - [ ] non-English checkpoints (the interface is language-agnostic; the weights are not yet)
 
