@@ -55,8 +55,9 @@ plt.rcParams.update({
 # =====================================================================
 
 # shared public benchmarks (in-domain). Kev publishes none of these.
-BENCH = ["typed-decisions", "AG News", "emotion", "Banking77"]
-OEVD = [0.7760, 0.9489, 0.9300, 0.8584]   # 0.8584 = soup, beats the 0.8529 ensemble
+BENCH = ["typed-decisions", "AG News", "emotion (zero-shot)", "Banking77"]
+OEVD = [0.7760, 0.9489, 0.6505, 0.8584]   # emotion = shipped student, zero-shot like laya/Jev; 0.8584 = soup
+# fine-tuned emotion specialist scores 0.9300 - kept in BENCHMARKS.md tables (not charted here)
 LAYA = [0.766, 0.950, 0.595, 0.425]
 JEV = [0.727, 0.910, 0.480, 0.870]
 

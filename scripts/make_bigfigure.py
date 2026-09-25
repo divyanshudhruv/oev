@@ -41,10 +41,10 @@ gs = fig.add_gridspec(3, 3, hspace=0.45, wspace=0.3)
 
 # ---------- Panel 1: accuracy on public datasets ----------
 ax = fig.add_subplot(gs[0, 0])
-bench = ["typed-decisions", "AG News", "DAIR Emotion", "Banking77"]
+bench = ["typed-decisions", "AG News", "emotion (zero-shot)", "Banking77"]
 jev = [0.727, 0.910, 0.480, 0.870]
 laya = [0.766, 0.950, 0.595, 0.425]
-oev = [0.7760, 0.9489, 0.9300, 0.8584]  # b77 = soup (single 735MB file)
+oev = [0.7760, 0.9489, 0.6505, 0.8584]  # emotion = zero-shot student; b77 = soup (single 735MB file)
 x = np.arange(len(bench)); w = 0.26
 b1 = ax.bar(x - w, jev, w, label="Jev (published)", color=GRAY)
 b2 = ax.bar(x, laya, w, label="laya (published)", color=RED)

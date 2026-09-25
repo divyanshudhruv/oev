@@ -1,7 +1,7 @@
 <p align="center" style="margin: 24px 0;">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/logo_transp.png" />
-  <img src="assets/logo_transp.png" alt="OEV" width="150" />
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/logo_transp.png" />
+  <img src="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/logo_transp.png" alt="OEV" width="150" />
 </picture>
 </p>
 
@@ -10,9 +10,6 @@
 OEV is a small (`184M params`) neural decision engine. Instead of generating text, it scores answer options directly. The state, the question, and every option are packed into one sequence. One forward pass returns a calibrated probability distribution.
 
 The single `184M` model scores `0.7705` on typed-decisions, slightly above laya's published `0.766` from a `421M` checkpoint. An ensemble of four `184M` checkpoints reaches `0.7760`, the `highest` reported result, and a single Banking77 soup checkpoint reaches `0.8584` (best ECE `0.0595` from the 3-checkpoint ensemble). Jev leads only on Banking77 (0.870).
-
-> [!WARNING]
-> Chart latency comparisons use different hardware and include published ranges; the current `runs/` manifest and raw timing samples are also unavailable here. The sharpening panel in the comparison figure shows historical gamma `2.5` values from an evaluation sweep; they are exploratory and not release claims. Reproduce claims from recorded run logs before treating them as release evidence.
 
 [![Hugging Face Model](https://img.shields.io/badge/%F0%9F%A4%97%20Model-divyanshudhruv%2Foev--typed-blue)](https://huggingface.co/divyanshudhruv/oev-typed)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
@@ -26,22 +23,22 @@ The single `184M` model scores `0.7705` on typed-decisions, slightly above laya'
 
 <p align="center" style="margin: 24px 0;">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/benchmarks_dark.png" />
-  <img src="assets/benchmarks.png" alt="OEV vs Jev and laya on shared public benchmarks" width="92%" />
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/benchmarks_dark.png" />
+  <img src="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/benchmarks.png" alt="OEV vs Jev and laya on shared public benchmarks" width="92%" />
 </picture>
 </p>
 
 <p align="center" style="margin: 24px 0;">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/oev_vs_jev_full_dark.png" />
-  <img src="assets/oev_vs_jev_full.png" alt="OEV versus TypeSafe Jev: accuracy on shared public datasets, every application workflow, speed, calibration, size, and soft-accuracy sharpening" width="95%" />
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/oev_vs_jev_full_dark.png" />
+  <img src="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/oev_vs_jev_full.png" alt="OEV versus TypeSafe Jev: accuracy on shared public datasets, every application workflow, speed, calibration, size, and soft-accuracy sharpening" width="95%" />
 </picture>
 </p>
 
 <p align="center" style="margin: 24px 0;">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/transfer_speed_dark.png" />
-  <img src="assets/transfer_speed.png" alt="Left: zero-shot and out-of-domain transfer, OEV distilled student beats laya zero-shot on emotion with the NLI floor documented; right: latency, OEV 22.2ms on T4 vs laya, Kev-4B and Jev" width="100%" />
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/transfer_speed_dark.png" />
+  <img src="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/transfer_speed.png" alt="Left: zero-shot and out-of-domain transfer, OEV distilled student beats laya zero-shot on emotion with the NLI floor documented; right: latency, OEV 22.2ms on T4 vs laya, Kev-4B and Jev" width="100%" />
 </picture>
 </p>
 
@@ -60,22 +57,73 @@ The single `184M` model scores `0.7705` on typed-decisions, slightly above laya'
 - `184M` params, `Apache 2.0` weights
 - Kev (0.8B / 4B) publishes no in-domain numbers on these datasets, so it is not in the tables; see [BENCHMARKS.md](BENCHMARKS.md) for the like-for-like comparison plan
 
+> [!WARNING]
+> Chart latency comparisons use different hardware and include published ranges; the current `runs/` manifest and raw timing samples are also unavailable here. The sharpening panel in the comparison figure shows historical gamma `2.5` values from an evaluation sweep; they are exploratory and not release claims. Reproduce claims from recorded run logs before treating them as release evidence.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    S["state\n(text / JSON)"] --> P["packer:\nstate + questions + anchors\none sequence"]
-    P --> E["encoder\nDeBERTa-v3-base (184M)\nor char transformer"]
-    E --> H["one linear head\nscores every ANCHOR"]
-    H --> D["softmax per question\n= calibrated distribution"]
-    D --> O["choice / noul / score"]
+    subgraph input["Input"]
+        direction TB
+        S["state<br/>text or JSON"]
+        Q["questions<br/>choice, noul, score"]
+    end
+
+    P["packer<br/>state + questions + anchors<br/>one packed sequence"]
+
+    subgraph pass["One forward pass, 22 ms on T4"]
+        direction TB
+        E["encoder<br/>DeBERTa-v3-base, 184M<br/>or the from-scratch char model"]
+        H["shared linear head<br/>scores every anchor"]
+    end
+
+    D["softmax per question<br/>calibrated distribution"]
+    O["outputs<br/>choice / noul / score"]
+
+    S --> P
+    Q --> P
+    P --> E
+    E --> H
+    H --> D
+    D --> O
 ```
+
+<details>
+<summary>Vertical layout</summary>
+
+```mermaid
+flowchart TB
+    subgraph input["Input"]
+        direction TB
+        S["state<br/>text or JSON"]
+        Q["questions<br/>choice, noul, score"]
+    end
+
+    P["packer<br/>state + questions + anchors<br/>one packed sequence"]
+
+    subgraph pass["One forward pass, 22 ms on T4"]
+        direction TB
+        E["encoder<br/>DeBERTa-v3-base, 184M<br/>or the from-scratch char model"]
+        H["shared linear head<br/>scores every anchor"]
+    end
+
+    D["softmax per question<br/>calibrated distribution"]
+    O["outputs<br/>choice / noul / score"]
+
+    S --> P
+    Q --> P
+    P --> E
+    E --> H
+    H --> D
+    D --> O
+```
+
+</details>
 
 - **One anchor mechanism** covers all three primitives - options, yes/no pairs, and score levels are each embedded as anchors in one packed sequence
 - **No text generation** - nothing to parse, nothing to hallucinate
-
-> **New question types need no new heads**
+- **New question types need no new heads** - new options are just new anchors
 
 ## Benchmarks: OEV vs the published field
 
@@ -84,39 +132,39 @@ Fine-tuned on each benchmark's train split, following the same protocol as Laya'
 > [!WARNING]
 > Banking77 uses 77 OEV labels, while the published Jev figure is from a 72-label configuration. The `0.8584` and `0.870` values are not a controlled head-to-head comparison.
 
-| benchmark       |        OEV |  laya |   Jev | note                                                              |
-| --------------- | ---------: | ----: | ----: | ----------------------------------------------------------------- |
-| typed-decisions | **0.7760** | 0.766 | 0.727 | highest reported (ensemble); single model 0.7705                  |
-| Banking77       | **0.8584** | 0.425 | 0.870 | 2x laya; gap to Jev 1.16 pts                                      |
-| AG News         | **0.9489** | 0.950 | 0.910 | label-noise ceiling (~0.95)                                       |
-| DAIR Emotion    | **0.9300** | 0.595 | 0.480 | zero-shot: OEV student `0.6505` beats laya's `0.595` head-to-head |
+| benchmark       |                     OEV |  laya |   Jev | note                                                                  |
+| --------------- | ----------------------: | ----: | ----: | --------------------------------------------------------------------- |
+| typed-decisions |              **0.7760** | 0.766 | 0.727 | highest reported (ensemble); single model 0.7705                      |
+| Banking77       |              **0.8584** | 0.425 | 0.870 | 2x laya; gap to Jev 1.16 pts                                          |
+| AG News         |              **0.9489** | 0.950 | 0.910 | label-noise ceiling (~0.95)                                           |
+| DAIR Emotion    | **0.9300** (fine-tuned) | 0.595 | 0.480 | zero-shot: OEV student **`0.6505`** beats laya's `0.595` head-to-head |
 
 <p align="center" style="margin: 24px 0;">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/headline_scorecard_dark.png" />
-  <img src="assets/headline_scorecard.png" alt="OEV headline results: typed-decisions accuracy, Banking77 accuracy, and hardware-separated latency" width="100%" />
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/headline_scorecard_dark.png" />
+  <img src="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/headline_scorecard.png" alt="OEV headline results: typed-decisions accuracy, Banking77 accuracy, and hardware-separated latency" width="100%" />
 </picture>
 </p>
 
 <p align="center" style="margin: 24px 0;">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/zeroshot_dark.png" />
-  <img src="assets/zeroshot.png" alt="Zero-shot and out-of-domain transfer as dot pairs: OEV 0.650 versus laya 0.595 on emotion, with the WANLI and ANLI floors marked" width="49%" />
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/zeroshot_dark.png" />
+  <img src="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/zeroshot.png" alt="Zero-shot and out-of-domain transfer as dot pairs: OEV 0.650 versus laya 0.595 on emotion, with the WANLI and ANLI floors marked" width="49%" />
 </picture>
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/latency_profile_dark.png" />
-  <img src="assets/latency_profile.png" alt="OEV latency on Tesla T4 and CPU, hardware separated; batch value is per-question throughput" width="49%" />
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/latency_profile_dark.png" />
+  <img src="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/latency_profile.png" alt="OEV latency on Tesla T4 and CPU, hardware separated; batch value is per-question throughput" width="49%" />
 </picture>
 </p>
 
 <p align="center" style="margin: 24px 0;">
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/workflows_dark.png" />
-  <img src="assets/workflows.png" alt="Typed-decisions accuracy per workflow: OEV wins invoice processing, customer service and agent-trace observability; laya wins security incidents" width="49%" />
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/workflows_dark.png" />
+  <img src="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/workflows.png" alt="Typed-decisions accuracy per workflow: OEV wins invoice processing, customer service and agent-trace observability; laya wins security incidents" width="49%" />
 </picture><picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/decision_primitives_dark.png" />
-  <img src="assets/decision_primitives.png" alt="Illustrative normalized distributions for OEV choice, noul, and score decision primitives" width="50%" />
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/decision_primitives_dark.png" />
+  <img src="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/decision_primitives.png" alt="Illustrative normalized distributions for OEV choice, noul, and score decision primitives" width="50%" />
 </picture>
 </p>
 
@@ -133,6 +181,7 @@ Optional extras:
 - `pip install -e ".[dev]"` - pytest
 - `pip install -e ".[data]"` - dataset converters
 - `pip install -e ".[backbone]"` - DeBERTa fine-tuning
+- `pip install -e ".[serve]"` - FastAPI server (`oev-serve`)
 - `pip install -e ".[app]"` - Gradio Space dependencies
 
 ```python
@@ -210,7 +259,7 @@ python -m pytest -q
 
 ## Limitations
 
-- every benchmark number is from a checkpoint fine-tuned on that benchmark's train split. Zero-shot emotion is a **win**: the shipped distilled student (`0.6505`, both models zero-shot) against laya's `0.595`, up from the round-1 starting point of `0.4265`
+- every benchmark number is from a checkpoint fine-tuned on that benchmark's train split (the `0.9300` emotion figure included). Zero-shot emotion is a separate **win**: the shipped distilled student (`0.6505`, both models zero-shot) against laya's `0.595`, up from the round-1 starting point of `0.4265`
 - ANLI remains near chance (`0.3380` for the round-1 student), while the WANLI specialist reaches `0.5645`; the NLI result is split-dependent, not uniformly at chance
 - pure-mimicry distillation transfers breadth, not depth. The round-1 student hit emotion `0.6875` (+26 pts zero-shot) but lost typed skill (`0.5385`). Adding gold-CE loss (round 2) collapsed to uniform, a documented negative result. Round 2b (pure-KL, balanced domains) rescued it: typed `0.6480`, emotion `0.6505`, b77 `0.7964`, probes all PASS
 - the headline ensemble result is an average of four checkpoints; the best single model is `0.7705`

@@ -32,6 +32,7 @@ Each option is embedded as its own anchor, so all 77 labels receive the full pac
 | result | value | note |
 | --- | ---: | --- |
 | DAIR Emotion zero-shot, shipped student | 0.6505 | laya published zero-shot: 0.595 |
+| DAIR Emotion, fine-tuned specialist | 0.9300 | not comparable to laya/Jev zero-shot rows |
 | Single-question latency, T4 p50 | 22.2 ms | `184M` checkpoint |
 | Single-question latency, CPU p50 | 447 ms | 8 threads, `184M` checkpoint |
 
