@@ -53,6 +53,7 @@ Per workflow (ensemble): invoice `0.836`, customer service `0.804`, agent-trace 
 | b77a-oev-tiny.pt | Banking77 warm-start re-tune (0.8403 historical value) - for the b77 ensemble |
 | b77b-oev-tiny.pt | Banking77 warm-start re-tune, second ensemble member |
 | b77soup-oev-tiny.pt | weight-average of the three b77 members - best single-file b77 accuracy (0.8584) |
+| mnli-oev-tiny.pt | MNLI specialist (entailment / neutral / contradiction). Transfers to WANLI at 0.5645; ANLI stays at chance |
 
 For the ensemble results, average the softmax probabilities of the members with equal weights: typed-decisions `0.7760` (four files), Banking77 `0.8529` with ECE `0.0595` (three files: `b77-oev-tiny.pt` + `b77a-oev-tiny.pt` + `b77b-oev-tiny.pt`).
 

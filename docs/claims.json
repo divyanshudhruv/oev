@@ -366,18 +366,18 @@
       "metric": "accuracy",
       "value": 0.5645,
       "benchmark": "wanli_zero_shot",
-      "checkpoint": "mnli-specialist (184M)",
+      "checkpoint": "mnli-oev-tiny.pt (184M)",
       "params": "184M",
-      "eval": "python -m oev.benchmark_ext --checkpoint ck_mnli/oev-tiny.pt --data-dir data/wanli",
+      "eval": "python -m oev.benchmark_ext --checkpoint mnli-oev-tiny.pt (download from the Hub: divyanshudhruv/oev-typed) --data-dir data/wanli",
       "note": "first above-floor NLI transfer in the project: +23 over random, +17 over td5. Fine-tuned on 12k MNLI train cases. Overconfident OOD (conf-err 0.2765) - gamma calibration pending. Round-3 teacher"
     },
     {
       "metric": "accuracy",
       "value": 0.336,
       "benchmark": "anli_r1_zero_shot",
-      "checkpoint": "mnli-specialist (184M)",
+      "checkpoint": "mnli-oev-tiny.pt (184M)",
       "params": "184M",
-      "eval": "python -m oev.benchmark_ext --checkpoint ck_mnli/oev-tiny.pt --data-dir data/anli",
+      "eval": "python -m oev.benchmark_ext --checkpoint mnli-oev-tiny.pt (download from the Hub: divyanshudhruv/oev-typed) --data-dir data/anli",
       "note": "ANLI stays at chance even with NLI training - adversarial split resists MNLI transfer"
     },
     {

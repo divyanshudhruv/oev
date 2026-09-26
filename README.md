@@ -251,7 +251,7 @@ python -m pytest -q
 - [ ] Round 3 distillation: 6 teachers, 5 domains including NLI
 - [ ] 4-member Banking77 ensemble: the live shot past `0.8584`
 - [ ] Round 4: one file near specialist numbers everywhere
-- [ ] INT8 / ONNX CPU deployment (export + quantization scripts in `scripts/`, bench pending)
+- [x] INT8 / ONNX CPU deployment: `54.2 ms` p50 on 8 threads, `228 MB` artifact (`scripts/bench_latency.py`)
 - [ ] Multi-question shared-state encoding (one pass, many questions)
 - [ ] Robustness: reduce mild overconfidence on out-of-distribution inputs
 - [ ] Non-English checkpoints (the interface is language-agnostic; the weights are not yet)
