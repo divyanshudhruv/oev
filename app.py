@@ -479,6 +479,21 @@ def _validate(state, qs_json):
 
             key = "options" if question_type == "choice" else "levels"
             values = question.get(key)
+            criteria = question.get("criteria")
+
+            if values is None and criteria is not None:
+                # Jev/TypeSafe schema (same as laya and Kev): criteria as an
+                # option-name map for choice, a level-label list for score.
+                if question_type == "choice":
+                    if not isinstance(criteria, dict) or not criteria:
+                        return None, f"question {name} (choice) criteria must be a non-empty object of option names"
+                    values = [str(option) for option in criteria]
+                    question["options"] = values
+                else:
+                    if not isinstance(criteria, list) or not criteria:
+                        return None, f"question {name} (score) criteria must be a list of level labels"
+                    values = list(criteria)
+                    question["levels"] = values
 
             if not isinstance(values, list) or not values or not all(
                 _valid_score_level(value) if question_type == "score"

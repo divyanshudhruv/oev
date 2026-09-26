@@ -73,6 +73,11 @@ question = {"name": "department", "type": "choice",
             "instructions": "Which department should handle this?",
             "options": ["billing", "technical", "other"], "answer": "billing"}
 
+# The Jev/TypeSafe `criteria` schema (used by laya and Kev) is also accepted:
+# {"name": "department", "type": "choice", "instructions": "...",
+#  "criteria": {"billing": "invoices, payments", "technical": "bugs, outages"}}
+# descriptions are ignored by OEV; the option names are what it scores.
+
 ids, anchors, _ = packer.pack(state, question, model.cfg["max_len"])
 with torch.no_grad():
     logits = model(torch.tensor([ids]).cuda(),

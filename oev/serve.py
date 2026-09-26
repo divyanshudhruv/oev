@@ -15,10 +15,13 @@ Usage:
     }'
 
     # Jev-compatible schema (drop-in for existing TypeSafe clients):
+    # questions accept the same "criteria" shape laya and Kev serve.
     curl -X POST localhost:8000/v1/systemone -H "Content-Type: application/json" -d '{
       "model": "oev",
       "state": "We were charged twice for the same order.",
       "questions": {
+        "department": {"type": "choice", "instructions": "Which department?",
+                       "criteria": {"billing": "payments and refunds", "technical": "bugs and outages"}},
         "refund_requested": {"type": "noul", "instructions": "Does the user request a refund?"}
       }
     }'
@@ -91,11 +94,33 @@ def _jevify(answers: dict) -> dict:
     return out
 
 
+def _validate_jev_questions(questions: dict) -> str | None:
+    """Return an error message for questions that do not match the Jev schema."""
+    for name, question in questions.items():
+        if not isinstance(question, dict):
+            return f"question {name} must be an object"
+        qtype = question.get("type")
+        if qtype not in {"choice", "noul", "score"}:
+            return f"question {name} has unsupported type"
+        if qtype in {"choice", "noul"}:
+            criteria = question.get("criteria")
+            if criteria is not None and (not isinstance(criteria, dict) or not criteria):
+                return f"question {name} ({qtype}) criteria must be a non-empty object"
+        else:
+            criteria = question.get("criteria")
+            if not isinstance(criteria, list) or not criteria:
+                return f"question {name} (score) needs a non-empty criteria list of level labels"
+    return None
+
+
 @app.post("/v1/systemone")
 def systemone(req: SystemOneRequest):
     """Jev-compatible endpoint: existing TypeSafe clients work by changing baseUrl."""
     if agent is None:
         raise HTTPException(status_code=503, detail="no checkpoint loaded - run oev-serve --checkpoint ...")
+    error = _validate_jev_questions(req.questions)
+    if error:
+        raise HTTPException(status_code=422, detail=error)
     answers = agent.decide(req.state, req.questions)
     return {
         "model": req.model,

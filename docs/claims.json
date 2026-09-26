@@ -1,6 +1,6 @@
 {
   "model": "oev",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "hardware": "single Tesla T4, fp32 inference; CPU: laptop, 8 threads",
   "notes": "baselines quoted from published tables, not re-run; gamma 2.5 was selected on an evaluation sweep and is exploratory; gamma 1.2 provenance depends on a private session log",
   "warnings": [
@@ -157,7 +157,7 @@
     },
     {
       "metric": "ece",
-      "value": 0.1750,
+      "value": 0.175,
       "benchmark": "dair_emotion",
       "checkpoint": "oev-base-td5 (zero-shot)",
       "params": "184M",
@@ -182,7 +182,7 @@
     },
     {
       "metric": "accuracy",
-      "value": 0.3800,
+      "value": 0.38,
       "benchmark": "wanli",
       "checkpoint": "multi-task (mt, unpublished checkpoint, zero-shot)",
       "params": "184M",

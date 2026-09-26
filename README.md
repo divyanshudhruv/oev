@@ -164,6 +164,15 @@ result = agent.decide("We were charged twice for the same order.", {
     "refund_requested": {"type": "noul"},
     "severity": {"type": "score", "levels": [1, 2, 3, 4, 5]},
 })
+
+# Native schema above; the Jev/TypeSafe `criteria` schema (the one laya and Kev
+# speak) works unchanged - drop-in for existing Jev clients:
+result = agent.decide("We were charged twice for the same order.", {
+    "department": {"type": "choice", "instructions": "Which department should handle this?",
+                   "criteria": {"billing": "invoices, payments", "technical": "bugs, outages"}},
+    "refund_requested": {"type": "noul"},
+    "severity": {"type": "score", "criteria": ["minor", "soon", "blocking"]},
+})
 ```
 
 ```json
@@ -201,7 +210,7 @@ HTTP server (native + Jev-compatible `/v1/systemone` endpoint - TypeSafe clients
 pip install -e ".[serve]"
 oev-serve --checkpoint checkpoints_td5/oev-tiny.pt --port 8000
 curl -X POST localhost:8000/decide -H "Content-Type: application/json" \
-  -d '{"state": "My payment failed twice", "questions": {"urgency": {"type": "score", "levels": [1, 2, 3]}}}'
+  -d '{"state": "My payment failed twice", "questions": {"urgency": {"type": "score", "criteria": ["not urgent", "soon", "blocking"]}}}'
 ```
 
 Docker:

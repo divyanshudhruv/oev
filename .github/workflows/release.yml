@@ -57,22 +57,11 @@ jobs:
       - name: Publish to PyPI (Trusted Publishing)
         uses: pypa/gh-action-pypi-publish@release/v1
 
-      - name: Extract CHANGELOG section for this version
-        run: |
-          python - <<'PY'
-          import os, re
-          ver = os.environ["OEV_VERSION"]
-          text = open("CHANGELOG.md", encoding="utf-8").read()
-          match = re.search(rf"## \[{re.escape(ver)}\].*?\n(.*?)(?=\n## \[|\Z)", text, re.S)
-          body = match.group(1).strip() if match else f"Release {ver}"
-          open("RELEASE_NOTES.md", "w", encoding="utf-8").write(body)
-          print(f"extracted notes for {ver}: {len(body)} chars")
-          PY
-
       - name: Create GitHub release (tag pushes only; v0.2.0 release already exists)
         if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
-          body_path: RELEASE_NOTES.md
+          name: OEV v${{ env.OEV_VERSION }}
+          body: Published to PyPI as `oev ${{ env.OEV_VERSION }}`. Benchmarks and the full experimental record live in BENCHMARKS.md.
           draft: false
           prerelease: false

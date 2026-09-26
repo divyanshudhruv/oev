@@ -29,6 +29,13 @@ kaggle_distill_session.ipynb
 OEVIA_SPEC.md
 ChatGPT-OEV README Review-*.md
 space_log.txt
+LAYA.txt
+OEV.txt
+kev_head_to_head.py
+kaggle_round3_session.ipynb
+head_to_head.md
+_diag_cell5.py
+LACK.md
 # docs/: keep private, except the claims registry
 docs/*
 !docs/claims.json

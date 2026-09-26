@@ -8,6 +8,36 @@ from oev.evaluate import load_model
 from oev.tokenizer_hf import HFTokenPacker
 
 
+def normalize_question(name, q):
+    """Accept either question schema and return an OEV-schema copy.
+
+    Native schema: choice uses a bare "options" list, score uses "levels".
+    Jev / TypeSafe schema: choice and noul carry "criteria" as a map of
+    option name -> description, score carries "criteria" as a list of level
+    labels. Descriptions are ignored (OEV was trained on bare options); the
+    option names become the options. Native keys win when both are present.
+    """
+    q = dict(q)
+    criteria = q.get("criteria")
+    if q.get("type") == "choice" and "options" not in q:
+        if isinstance(criteria, dict) and criteria:
+            q["options"] = [str(option) for option in criteria]
+        else:
+            raise ValueError(
+                f"question {name!r} (choice) needs an 'options' list "
+                "or a 'criteria' map of option name -> description"
+            )
+    elif q.get("type") == "score" and "levels" not in q:
+        if isinstance(criteria, list) and criteria:
+            q["levels"] = list(criteria)
+        else:
+            raise ValueError(
+                f"question {name!r} (score) needs a 'levels' list "
+                "or a 'criteria' list of level labels"
+            )
+    return q
+
+
 class OEV:
     def __init__(self, checkpoint="checkpoints/oev-tiny.pt", device="cpu", temperature=1.0):
         self.model = load_model(checkpoint, device)
@@ -21,6 +51,7 @@ class OEV:
             self.packer = HFTokenPacker(self.model.cfg["backbone"])
 
     def _question(self, name, q):
+        q = normalize_question(name, q)
         pq = {"name": name, "type": q["type"], "instructions": q.get("instructions", q["type"])}
         if q["type"] == "choice":
             pq["options"] = list(q["options"])
@@ -48,7 +79,8 @@ class OEV:
 
     def decide(self, state, questions, temperature=None):
         out = {}
-        for name, q in questions.items():
+        for name, raw_question in questions.items():
+            q = normalize_question(name, raw_question)
             pq = self._question(name, q)
             probs = self._probs(state, pq, temperature=temperature)
             best = max(range(len(probs)), key=probs.__getitem__)

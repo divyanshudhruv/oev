@@ -21,7 +21,6 @@ Conventions for AI agents and humans working in this repository.
 - `assets/` - README charts and logo; regenerate with
   `python scripts/make_charts.py` rather than editing PNGs by hand
 - `ROADMAP.md` - forward work list, linked from the README roadmap section
-- `PLAN.md` - research plan with pre-registered criteria and recorded failures
 
 ## Rules
 

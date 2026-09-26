@@ -1,6 +1,6 @@
 # OEV roadmap
 
-What I want to get done, roughly in order. Shipped work lands in the changelog and measured results go to [BENCHMARKS.md](BENCHMARKS.md).
+What I want to get done, roughly in order. Measured results go to [BENCHMARKS.md](BENCHMARKS.md).
 
 ## Next
 
