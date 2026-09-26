@@ -292,4 +292,6 @@ The interface and benchmark protocol follow [Laya](https://github.com/NandhaKish
 
 ---
 
-<img src="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/banner.png" alt="OEV banner" width="100%>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/divyanshudhruv/oev/refs/heads/main/assets/banner.png" alt="OEV banner" width="100%" />
+</p>

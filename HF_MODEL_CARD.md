@@ -10,10 +10,8 @@ tags:
   - deberta
 ---
 
-# OEV-typed
-
 <p align="center">
-  <img src="https://raw.githubusercontent.com/divyanshudhruv/oev/refs/heads/main/assets/banner.png" alt="OEV banner" width="100%" />
+  <img src="https://raw.githubusercontent.com/divyanshudhruv/oev/refs/heads/main/assets/banner-typed.png" alt="OEV-typed banner" width="100%" />
 </p>
 
 A `184M`-parameter decision engine. State + typed questions in, calibrated probability distributions out, one forward pass, `22.2 ms` p50 on T4.
