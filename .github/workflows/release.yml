@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to publish, e.g. 0.2.0 (defaults to the pyproject version)"
+        description: "Version to publish, e.g. 0.3.1 (defaults to the pyproject version)"
         required: false
         default: ""
 
@@ -57,7 +57,7 @@ jobs:
       - name: Publish to PyPI (Trusted Publishing)
         uses: pypa/gh-action-pypi-publish@release/v1
 
-      - name: Create GitHub release (tag pushes only; v0.2.0 release already exists)
+      - name: Create GitHub release (tag pushes only)
         if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:

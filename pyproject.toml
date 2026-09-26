@@ -36,6 +36,9 @@ oev-serve = "oev.serve:main"
 [project.urls]
 Homepage = "https://github.com/divyanshudhruv/oev"
 Model = "https://huggingface.co/divyanshudhruv/oev-typed"
+Repository = "https://github.com/divyanshudhruv/oev"
+Issues = "https://github.com/divyanshudhruv/oev/issues"
+Changelog = "https://github.com/divyanshudhruv/oev/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["setuptools>=68"]

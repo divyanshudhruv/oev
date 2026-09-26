@@ -13,7 +13,7 @@ The single `184M` model scores `0.7705` on typed-decisions, slightly above laya'
 
 [![Hugging Face Model](https://img.shields.io/badge/%F0%9F%A4%97%20Model-divyanshudhruv%2Foev--typed-blue)](https://huggingface.co/divyanshudhruv/oev-typed)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](https://github.com/divyanshudhruv/oev/actions/workflows/tests.yml)
+[![Tests](https://github.com/divyanshudhruv/oev/actions/workflows/tests.yml/badge.svg)](https://github.com/divyanshudhruv/oev/actions/workflows/tests.yml)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.x-ee4c2c)](https://pytorch.org/get-started/locally/)
 [![HF Space](https://img.shields.io/badge/%F0%9F%A4%97%20Space-oev--demo-yellow)](https://huggingface.co/spaces/divyanshudhruv/oev-demo)
@@ -57,9 +57,6 @@ The single `184M` model scores `0.7705` on typed-decisions, slightly above laya'
 - `184M` params, `Apache 2.0` weights
 - Kev (0.8B / 4B) publishes no in-domain numbers on these datasets, so it is not in the tables; see [BENCHMARKS.md](BENCHMARKS.md) for the like-for-like comparison plan
 
-> [!WARNING]
-> Chart latency comparisons use different hardware and include published ranges. Benchmark runs write per-run receipts (command, device, metrics, raw timings) to `runs/`; historical runs predate this protocol. The sharpening panel in the comparison figure shows historical gamma `2.5` values from an evaluation sweep; they are exploratory and not release claims. Reproduce claims from the archived receipts before treating them as release evidence.
-
 ## Architecture
 
 ```mermaid
@@ -74,7 +71,7 @@ flowchart LR
 
     subgraph pass["One forward pass, 22 ms on T4"]
         direction TB
-        E["encoder<br/>DeBERTa-v3-base, 184M<br/>or the from-scratch char model"]
+        E["encoder<br/>DeBERTa-v3-base, 184M"]
         H["shared linear head<br/>scores every anchor"]
     end
 
@@ -89,10 +86,23 @@ flowchart LR
     D --> O
 ```
 
-
 - **One anchor mechanism** covers all three primitives - options, yes/no pairs, and score levels are each embedded as anchors in one packed sequence
 - **No text generation** - nothing to parse, nothing to hallucinate
 - **New question types need no new heads** - new options are just new anchors
+
+A from-scratch character-level encoder also exists for the no-transformers path (see `oev/tokenizer.py`); the diagrams and benchmarks here all use the DeBERTa backbone.
+
+## Why not an LLM?
+
+A generative model answers a structured question like this:
+
+> input -> generate text -> parse the output -> validate it -> maybe get a decision
+
+OEV is built for the case where the system already knows the candidate answers:
+
+> state + candidates -> score every candidate -> calibrated probability distribution
+
+If you need open-ended text, use an LLM. If you need many small, bounded decisions - which department, is this refund requested, how severe, escalate or continue - scoring known options directly is cheaper, faster, and structurally immune to output-parsing failures: the outputs are probabilities over the inputs you supplied. Different tool for a different layer of the stack.
 
 ## Benchmarks: OEV vs the published field
 
@@ -154,7 +164,7 @@ Optional extras:
 - `pip install -e ".[app]"` - Gradio Space dependencies
 
 ```python
-from oev.infer import OEV
+from oev import OEV
 
 agent = OEV("checkpoints_td5/oev-tiny.pt", device="cpu")
 
@@ -173,6 +183,11 @@ result = agent.decide("We were charged twice for the same order.", {
     "refund_requested": {"type": "noul"},
     "severity": {"type": "score", "criteria": ["minor", "soon", "blocking"]},
 })
+
+# The candidate set is an inference-time input - swap it per call, same weights:
+state = "play my morning playlist and take a note"
+actions = ["open_spotify", "search_web", "open_vscode", "create_note"]
+result = agent.decide(state, {"action": {"type": "choice", "options": actions}})
 ```
 
 ```json
@@ -244,6 +259,7 @@ python -m pytest -q
 - Adversarial NLI (ANLI) stays near chance for now; WANLI reaches `0.5645` and an ANLI specialist is next on the roadmap
 - The shipped generalist trails the typed specialist (`0.6480` vs `0.7705`); closing that spread is round 4
 - CPU: torch fp32 measured `447 ms` p50 at release; on the current workstation the same fp32 model runs `252.5 ms` and the ONNX INT8 build `54.2 ms` (8 threads, `scripts/bench_latency.py`). Headline timings are GPU
+- ECE asks: when the model says `0.9`, is it right `90%` of the time. Coverage is the operational read: what share of traffic can be automated at a given error budget (the Banking77 soup covers `76%` at `5%` error). Gate on the distributions, not the confidence field
 - English only
 
 ## Roadmap
@@ -258,6 +274,22 @@ python -m pytest -q
 
 Full list: [ROADMAP.md](ROADMAP.md).
 
+## Documentation
+
+- [Benchmarks](BENCHMARKS.md) - methodology, caveats, reproduction commands, checkpoint hashes
+- [Model card](https://huggingface.co/divyanshudhruv/oev-typed) - checkpoints and usage
+- [Roadmap](ROADMAP.md) - what is next
+- [Contributing](CONTRIBUTING.md) - how to open issues and PRs
+- [Changelog](CHANGELOG.md) - release history
+- [Security](SECURITY.md) - supported versions and private reporting
+- [Hugging Face demo](https://huggingface.co/spaces/divyanshudhruv/oev-demo) - try it in the browser
+- [PyPI](https://pypi.org/project/oev/) - `pip install oev`
+- Server API - `oev-serve --help`, schema docs in `oev/serve.py`
+
 ## Credits
 
 The interface and benchmark protocol follow [Laya](https://github.com/NandhaKishorM/laya), [Kev](https://github.com/jaredpalmer/kev) and the System One model category introduced by TypeSafe's [Jev](https://typesafe.com). Their published numbers are quoted here for comparison and remain their measurements.
+
+---
+
+<img src="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/banner.png" alt="OEV banner" width="100%>

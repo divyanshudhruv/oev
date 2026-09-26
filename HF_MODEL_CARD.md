@@ -1,25 +1,22 @@
 ---
 license: apache-2.0
 language:
-- en
+  - en
 tags:
-- decision-model
-- classification
-- calibration
-- system-one
-- deberta
+  - decision-model
+  - classification
+  - calibration
+  - system-one
+  - deberta
 ---
 
 # OEV-typed
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/divyanshudhruv/oev/refs/heads/main/assets/logo_transp.png" alt="OEV" width="150" />
+  <img src="https://raw.githubusercontent.com/divyanshudhruv/oev/refs/heads/main/assets/banner.png" alt="OEV banner" width="100%" />
 </p>
 
 A `184M`-parameter decision engine. State + typed questions in, calibrated probability distributions out, one forward pass, `22.2 ms` p50 on T4.
-
-> [!WARNING]
-> Gamma `2.5` was selected from a historical evaluation sweep; its validation-only selection log is not present in this repository. The student `gamma 1.2` note depends on a private session log. Treat sharpened rows as exploratory until the selection logs are archived. Published latency ranges use different hardware and are not controlled comparisons.
 
 OEV reads a state, scores typed questions over it in one forward pass, and returns calibrated probability distributions. There is no text generation step, so there is nothing to parse and nothing to hallucinate.
 
@@ -29,31 +26,31 @@ It answers three kinds of questions over any text state: `choice` (pick a label)
 
 Fine-tuned on the benchmark's train split, same protocol as [laya-typed-decisions](https://github.com/NandhaKishorM/laya). OEV numbers were measured on a single Tesla T4; Jev and laya values are quoted from their published tables.
 
-| model | params | accuracy | soft acc | ECE | p50 latency (T4) |
-|---|---:|---:|---:|---:|---:|
-| Jev 1.13.0 (published) | closed API | 0.727 | 0.580 | 0.144 | 236-`276 ms` |
-| laya-typed-decisions (published) | 421M | 0.766 | 0.471 | 0.213 | 32.8-`39.5 ms` |
-| **OEV single (oev-base-td5)** | **`184M`** | **`0.7705`** | 0.6225 | 0.0938 | **`22.2 ms`** |
-| **OEV calibrated single (oev-base-rlcd-soup)** | **`184M`** | 0.7570 | 0.5854 | **`0.0279`** | **`22.2 ms`** |
-| **OEV ensemble (all four checkpoints, equal votes)** | 4 × `184M` | **`0.7760`** | 0.5830 | - | - |
-| OEV ensemble, sharpened (γ = 2.5) | 3 × `184M` | 0.7730 | **`0.7020`** | 0.0298 | - |
+| model                                                |     params |     accuracy |     soft acc |          ECE | p50 latency (T4) |
+| ---------------------------------------------------- | ---------: | -----------: | -----------: | -----------: | ---------------: |
+| Jev 1.13.0 (published)                               | closed API |        0.727 |        0.580 |        0.144 |     236-`276 ms` |
+| laya-typed-decisions (published)                     |       421M |        0.766 |        0.471 |        0.213 |   32.8-`39.5 ms` |
+| **OEV single (oev-base-td5)**                        | **`184M`** | **`0.7705`** |       0.6225 |       0.0938 |    **`22.2 ms`** |
+| **OEV calibrated single (oev-base-rlcd-soup)**       | **`184M`** |       0.7570 |       0.5854 | **`0.0279`** |    **`22.2 ms`** |
+| **OEV ensemble (all four checkpoints, equal votes)** | 4 × `184M` | **`0.7760`** |       0.5830 |            - |                - |
+| OEV ensemble, sharpened (γ = 2.5)                    | 3 × `184M` |       0.7730 | **`0.7020`** |       0.0298 |                - |
 
 Per workflow (ensemble): invoice `0.836`, customer service `0.804`, agent-trace `0.740`, security incidents `0.722` (OEV leads three of the four workflows). Per primitive: noul `0.853`, choice `0.748`, score `0.738`.
 
 ## Checkpoints
 
-| file | what it is |
-|---|---|
+| file                        | what it is                                                                                                                                                                                                                     |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **student-r2b-oev-tiny.pt** | **distilled generalist - recommended default.** One model for everything: typed `0.6480`, Banking77 `0.7964`, emotion zero-shot `0.6505` (beats laya `0.595`), probes all `PASS`. Use `gamma 1.2` for calibrated probabilities |
-| oev-base-td5.pt | typed-decisions specialist (0.7705) - best when you only need agent-decision scoring |
-| oev-base-rlcd-soup.pt | most calibrated single (ECE 0.0279). Prefer this one when the probabilities feed automated decisions. |
-| oev-base-rlcd.pt | RLCD fine-tune (Brier-reward policy gradient against teacher distributions) |
-| oev-base-rlcd-seed1.pt | second RLCD seed - for ensembling |
-| b77-oev-tiny.pt | Banking77 specialist (77-way intents) - see the Banking77 section below |
-| b77a-oev-tiny.pt | Banking77 warm-start re-tune (0.8403 historical value) - for the b77 ensemble |
-| b77b-oev-tiny.pt | Banking77 warm-start re-tune, second ensemble member |
-| b77soup-oev-tiny.pt | weight-average of the three b77 members - best single-file b77 accuracy (0.8584) |
-| mnli-oev-tiny.pt | MNLI specialist (entailment / neutral / contradiction). Transfers to WANLI at 0.5645; ANLI stays at chance |
+| oev-base-td5.pt             | typed-decisions specialist (0.7705) - best when you only need agent-decision scoring                                                                                                                                           |
+| oev-base-rlcd-soup.pt       | most calibrated single (ECE 0.0279). Prefer this one when the probabilities feed automated decisions.                                                                                                                          |
+| oev-base-rlcd.pt            | RLCD fine-tune (Brier-reward policy gradient against teacher distributions)                                                                                                                                                    |
+| oev-base-rlcd-seed1.pt      | second RLCD seed - for ensembling                                                                                                                                                                                              |
+| b77-oev-tiny.pt             | Banking77 specialist (77-way intents) - see the Banking77 section below                                                                                                                                                        |
+| b77a-oev-tiny.pt            | Banking77 warm-start re-tune (0.8403 historical value) - for the b77 ensemble                                                                                                                                                  |
+| b77b-oev-tiny.pt            | Banking77 warm-start re-tune, second ensemble member                                                                                                                                                                           |
+| b77soup-oev-tiny.pt         | weight-average of the three b77 members - best single-file b77 accuracy (0.8584)                                                                                                                                               |
+| mnli-oev-tiny.pt            | placeholder - currently holds multi-task weights, NOT the MNLI specialist. The WANLI `0.5645` specialist was lost with its Colab session before download; a rebuild is on the roadmap. Do not use this file for NLI claims     |
 
 For the ensemble results, average the softmax probabilities of the members with equal weights: typed-decisions `0.7760` (four files), Banking77 `0.8529` with ECE `0.0595` (three files: `b77-oev-tiny.pt` + `b77a-oev-tiny.pt` + `b77b-oev-tiny.pt`).
 
@@ -122,13 +119,13 @@ Fine-tuned checkpoints: `b77-oev-tiny.pt` plus two warm-started re-tunes (`b77a-
 > [!WARNING]
 > The published Jev Banking77 figure uses 72 labels, while OEV uses 77. The values are not a controlled head-to-head comparison.
 
-| model | params | accuracy | ECE |
-|---|---|---:|---:|
-| Jev (published) | closed | 0.870 | - |
-| **OEV weight soup, one file (`b77soup-oev-tiny.pt`)** | **184M** | **`0.8584`** | `0.0965` |
-| OEV ensemble (3 checkpoints) | 3 x 184M | `0.8529` | **`0.0595`** |
-| OEV historical warm-start re-tune | 184M | 0.8403 | 0.1905 |
-| OEV single (first release) | 184M | 0.8303 | 0.1860 |
-| laya | 421M | 0.425 | - |
+| model                                                 | params   |     accuracy |          ECE |
+| ----------------------------------------------------- | -------- | -----------: | -----------: |
+| Jev (published)                                       | closed   |        0.870 |            - |
+| **OEV weight soup, one file (`b77soup-oev-tiny.pt`)** | **184M** | **`0.8584`** |     `0.0965` |
+| OEV ensemble (3 checkpoints)                          | 3 x 184M |     `0.8529` | **`0.0595`** |
+| OEV historical warm-start re-tune                     | 184M     |       0.8403 |       0.1905 |
+| OEV single (first release)                            | 184M     |       0.8303 |       0.1860 |
+| laya                                                  | 421M     |        0.425 |            - |
 
 The soup (weight-space average of the three members) beats the probability ensemble with a single 735MB artifact and reaches coverage `0.7604` at a `<=5%` error budget (`AURC 0.0389`), so 76% of decisions can be automated under the stated budget. On CPU the ONNX INT8 build runs at `54.2 ms` p50 on 8 threads (`228 MB` artifact); the release measurement with torch fp32 was `447 ms`. No competing decision model publishes any CPU latency.

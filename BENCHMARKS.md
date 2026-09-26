@@ -63,6 +63,7 @@ SHA-256 of every checkpoint published on the Hub, computed from the training art
 | hub file | sha256 |
 | --- | --- |
 | student-r2b-oev-tiny.pt | `02f8f8c85c92e78d38f99bf50c38f7d35086c942473c5738507546e869999828` |
+| mnli-oev-tiny.pt | `9e26803184eda11814cf9bde69b3534c3a368f5cad6619167d1c42077ce71d65` - WARNING: identical hash to `oev-base-mt.pt` above; the Hub file holds multi-task weights, not the WANLI `0.5645` specialist (lost with its Colab session). Rebuild pending |
 | oev-base-td5.pt | `d9e93e99af60f2263a626c4bce6136b91429d9c4f12217d9ebf3d0467888aa3a` |
 | oev-base-mt.pt | `9e26803184eda11814cf9bde69b3534c3a368f5cad6619167d1c42077ce71d65` |
 | oev-base-rlcd.pt | `e07fd7494c400a5306190f812c4ecdd1d006df05740f135180b5165c93d3af8f` |
