@@ -1,20 +1,7 @@
-"""Convert PolyAI/banking77 into OEV format.
+"""Convert PolyAI/banking77 into OEV format: all 77 intents as anchors.
 
-Banking77: 13,083 customer-service queries, 77 fine-grained intents.
-This is the high-cardinality test: 77 options in ONE choice question.
-Laya's published number is 0.425 (head token budget squeezes each label
-to 3-4 tokens); Jev publishes 0.870. Our anchor mechanism gives every
-option full tokens, so this is our most winnable remaining benchmark row.
-
-One choice question per state, all 77 intents as options with their
-human-readable intent names as option text.
-
-Usage:
     python -m oev.convert_banking77
-Writes:
-    data/banking77/train.jsonl  (~10k cases, 1 question each)
-    data/banking77/valid.jsonl  (1,000 cases)
-    data/banking77/test.jsonl   (3,000 cases)
+Writes data/banking77/{train,valid,test}.jsonl.
 """
 
 import json
@@ -22,7 +9,7 @@ from pathlib import Path
 
 
 def _read_csv(url, names):
-    """Download one PolyAI banking csv (columns: text,category) into row dicts."""
+    # download one PolyAI banking csv (columns: text,category)
     import csv
     import io
     import urllib.request
@@ -43,9 +30,8 @@ def download_banking77(names):
 
 
 def intent_names():
-    """Official BANKING77 intent names in the HF dataset's label-id order,
-    fetched from the dataset's schema. Checkpoints are trained against this
-    exact id order, so it must never be replaced by another source."""
+    # official intent names in HF label-id order; checkpoints train against
+    # this exact order, so never replace the source
     import json
     import urllib.request
 
@@ -64,7 +50,7 @@ def write_jsonl(rows, path):
 
 
 def convert(rows, names):
-    """One case per query: a single choice question with ALL 77 intents."""
+    # one case per query: a single choice question with ALL 77 intents
     n = len(names)
     for r in rows:
         label = int(r["label"])
@@ -85,14 +71,24 @@ def convert(rows, names):
 
 
 if __name__ == "__main__":
+    import random
+
     names = intent_names()
     assert len(names) == 77, f"expected 77 intents, got {len(names)}"
     train, test = download_banking77(names)
 
     train_rows = list(convert(train, names))
-    # carve a validation split off the train pool
+    # the source csv is sorted by category, so a naive tail-carve produces a
+    # valid split holding only the alphabetically-last intents (8 of 77 seen
+    # in one bad split). Shuffle with a fixed seed BEFORE carving: valid must
+    # span the intent space or valid_loss is meaningless as a model gate.
+    random.Random(20260929).shuffle(train_rows)
+    valid_rows = train_rows[-1000:]
+    seen = {r["questions"][0]["answer"] for r in valid_rows}
+    assert len(seen) >= 50, f"valid split covers only {len(seen)}/77 intents: split is broken"
     write_jsonl(train_rows[:-1000], "data/banking77/train.jsonl")
-    write_jsonl(train_rows[-1000:], "data/banking77/valid.jsonl")
+    write_jsonl(valid_rows, "data/banking77/valid.jsonl")
     test_rows = list(convert(test, names))
     write_jsonl(test_rows, "data/banking77/test.jsonl")
-    print(f"banking77 train/valid/test written: {len(train_rows) - 1000}/{1000}/{len(test_rows)} cases (77 options each)")
+    print(f"banking77 train/valid/test written: {len(train_rows) - 1000}/{1000}/{len(test_rows)} cases "
+          f"(77 options each, valid spans {len(seen)} intents)")
