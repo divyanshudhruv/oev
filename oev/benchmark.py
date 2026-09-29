@@ -6,17 +6,9 @@ from torch.utils.data import DataLoader
 
 from oev.calibrate import fit_temperature_from_logits
 from oev.dataset import OEVDataset, collate
-from oev.evaluate import ece, load_model
+from oev.evaluate import ece, load_model, stack_ragged
 from oev.model import HFBackboneOEV
-from oev.tokenizer_hf import HFTokenPacker
-
-
-def stack_ragged(rows):
-    kmax = max(r.numel() for r in rows)
-    out = torch.full((len(rows), kmax), -1e4)
-    for i, r in enumerate(rows):
-        out[i, : r.numel()] = r
-    return out
+from oev.tokenizer_hf import HFTokenPacker  # noqa: F401 - re-exported for CLI parity with the char model
 
 
 def evaluate_benchmark(checkpoint, data_dir, calibrate=True, batch_size=64):

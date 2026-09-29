@@ -95,7 +95,7 @@ def _case(i, state, intent, complete, prefix):
         "questions": [
             {"name": "intent", "type": "choice", "instructions": INSTRUCTIONS_INTENT,
              "options": INTENTS, "answer": intent},
-            {"name": "complete", "type": "noul",
+            {"name": "complete", "type": "noul", "options": ["no", "yes"],
              "instructions": "Is this a finished command, or is the user still speaking?",
              "answer": "yes" if complete else "no"},
         ],

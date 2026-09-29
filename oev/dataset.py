@@ -69,9 +69,9 @@ def collate(batch):
     targets = torch.zeros(B, A, dtype=torch.float32)
     has_target = torch.zeros(B, dtype=torch.bool)
     for i, b in enumerate(batch):
-        n, l = b["n"], len(b["ids"])
-        ids[i, :l] = b["ids"]
-        pad_mask[i, :l] = False
+        n, seq_len = b["n"], len(b["ids"])
+        ids[i, :seq_len] = b["ids"]
+        pad_mask[i, :seq_len] = False
         anchor_pos[i, :n] = b["anchors"]
         anchor_valid[i, :n] = True
         logits_mask[i, :n] = 0.0

@@ -2,8 +2,7 @@ import argparse
 import json
 
 import torch
-
-from oev.evaluate import load_model
+from oev.evaluate import load_model, pack_question
 from oev.tokenizer_hf import HFTokenPacker
 
 
@@ -17,16 +16,12 @@ def ensemble_accuracy(ckpts, data_dir, device="cuda"):
         rows = [json.loads(line) for line in handle]
 
     correct = total = 0
+    # per-question projection comes from oev.evaluate.pack_question (the same
+    # normalization benchmark_ext, distill and serve use)
     with torch.no_grad():
         for r in rows:
             for q in r["questions"]:
-                pq = {
-                    "name": q["name"],
-                    "type": q["type"],
-                    "instructions": q.get("instructions", q["type"]),
-                    "options": q["options"],
-                    "answer": q["answer"],
-                }
+                pq = pack_question(q)
                 probs_sum = None
                 label = None
                 for m, p in zip(models, packers):

@@ -7,7 +7,7 @@ import time
 import torch
 import torch.nn.functional as F
 
-from oev.evaluate import load_model
+from oev.evaluate import load_model, pack_question
 from oev.tokenizer_hf import HFTokenPacker
 
 
@@ -21,13 +21,8 @@ class Teacher:
 
     @torch.no_grad()
     def question_probs(self, state, question, max_len, tau):
-        q = {
-            "name": question["name"],
-            "type": question["type"],
-            "instructions": question.get("instructions", question["type"]),
-            "options": question["options"],
-            "answer": question.get("answer", question["options"][0]),
-        }
+        # distill cases always carry answers; the default mirrors rotate()'s contract
+        q = pack_question(dict(question, answer=question.get("answer", question["options"][0])))
         ids, anchors, _ = self.packer.pack(state, q, min(max_len, self.model.cfg["max_len"]))
         tids = torch.tensor([ids], device=self.device)
         pmask = torch.zeros(1, len(ids), dtype=torch.bool, device=self.device)
@@ -186,7 +181,13 @@ def main():
         student.eval().to(device)
         print("student initialized from scratch", flush=True)
 
-    teachers = [Teacher(p.strip(), device) for p in args.teachers.split(",") if p.strip()]
+    teacher_paths = [p.strip() for p in args.teachers.split(",") if p.strip()]
+    teachers = []
+    for i, tpath in enumerate(teacher_paths, 1):
+        # each Teacher is a full backbone load: the slowest silent stretch in
+        # this script, so every load announces itself
+        print(f"loading teacher {i}/{len(teacher_paths)}: {tpath} (model load, 1-2 min each)", flush=True)
+        teachers.append(Teacher(tpath, device))
     print(f"{len(teachers)} teachers loaded", flush=True)
 
     packer = HFTokenPacker(student.cfg["backbone"])

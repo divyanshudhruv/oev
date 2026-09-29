@@ -7,8 +7,7 @@ import numpy as np
 import onnxruntime as ort
 import torch
 from onnxruntime.quantization import QuantType, quantize_dynamic
-
-from oev.evaluate import load_model
+from oev.evaluate import load_model, pack_question as question_for
 from oev.tokenizer_hf import HFTokenPacker
 
 
@@ -30,12 +29,6 @@ def load_rows(data_dir, max_cases):
             for i in range(5)
         ]
     return rows
-
-
-def question_for(q):
-    return {"name": q["name"], "type": q["type"],
-            "instructions": q.get("instructions", q["type"]),
-            "options": q["options"], "answer": q["answer"]}
 
 
 def pack_case(packer, state, q, max_len):

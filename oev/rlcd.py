@@ -86,9 +86,9 @@ def rlcd(checkpoint, data_dir="data/typed", epochs=2, batch_size=8, lr=5e-5, max
     for epoch in range(epochs):
         tot = bsum = n = 0
         for i, batch in enumerate(dl):
-            l, b = rlcd_step(model, batch, device, opt, scaler, alpha=alpha)
-            tot += l
-            bsum += b
+            loss, brier = rlcd_step(model, batch, device, opt, scaler, alpha=alpha)
+            tot += loss
+            bsum += brier
             n += 1
             if (i + 1) % 50 == 0:
                 print(f"epoch {epoch} step {i + 1}/{steps} loss {tot / n:.4f} brier {bsum / n:.4f}", flush=True)

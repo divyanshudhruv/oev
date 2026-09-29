@@ -1,13 +1,13 @@
-import json
+import json  # noqa: E402
 
-import pytest
+import pytest  # noqa: E402
 
 transformers = pytest.importorskip("transformers")
-from tokenizers import Tokenizer, models, pre_tokenizers
-from transformers import AutoConfig, AutoModel, PreTrainedTokenizerFast
+from tokenizers import Tokenizer, models, pre_tokenizers  # noqa: E402
+from transformers import AutoConfig, AutoModel, PreTrainedTokenizerFast  # noqa: E402
 
-from oev.infer import OEV
-from oev.train import train
+from oev.infer import OEV  # noqa: E402
+from oev.train import train  # noqa: E402
 
 
 @pytest.fixture(scope="module")

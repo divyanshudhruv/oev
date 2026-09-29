@@ -17,18 +17,12 @@ from datetime import datetime, timezone
 
 import torch
 
-from oev.evaluate import load_model
+from oev.evaluate import ece, load_model, pack_question
 from oev.tokenizer_hf import HFTokenPacker
 
 
 def _predict_probs(model, packer, state, question, device, gamma=1.0):
-    pq = {
-        "name": question["name"],
-        "type": question["type"],
-        "instructions": question.get("instructions", question["type"]),
-        "options": question["options"],
-        "answer": question["answer"],
-    }
+    pq = pack_question(question)
     ids, anchors, label = packer.pack(state, pq, model.cfg["max_len"])
     tids = torch.tensor([ids], device=device)
     pmask = torch.zeros(1, len(ids), dtype=torch.bool, device=device)
@@ -42,22 +36,13 @@ def _predict_probs(model, packer, state, question, device, gamma=1.0):
     return probs, label, question["type"], question.get("target")
 
 
+# the published metric name keeps its old import surface and its 10-bin
+# default; the implementation lives in oev.evaluate.ece (the canonical copy,
+# whose own default of 15 bins serves oev.benchmark's published rows)
+
+
 def ece_metric(confs, corrs, n_bins=10):
-    """Expected Calibration Error: weighted |confidence - accuracy| over bins."""
-    if not confs:
-        return 0.0
-    bins = [[] for _ in range(n_bins)]
-    for c, o in zip(confs, corrs):
-        b = min(int(c * n_bins), n_bins - 1)
-        bins[b].append((c, o))
-    e = 0.0
-    for b in bins:
-        if not b:
-            continue
-        acc = sum(o for _, o in b) / len(b)
-        conf = sum(c for c, _ in b) / len(b)
-        e += (len(b) / len(confs)) * abs(conf - acc)
-    return e
+    return ece(confs, corrs, bins=n_bins)
 
 
 def confident_error_rate(confs, corrs, threshold=0.9):
@@ -135,11 +120,16 @@ def write_manifest(out_dir, checkpoint, data_dir, device, result):
 def evaluate_metrics(checkpoints, data_dir, device="cuda", gamma=1.0, latency=False,
                      permute=0, allow_cpu=False, manifest_dir=None):
     device = resolve_device(device, allow_cpu)
-    models = [load_model(c, device) for c in checkpoints]
+    models = []
+    for i, ckpt in enumerate(checkpoints, 1):
+        # every load is a full backbone init: announce it so the notebook log
+        # never shows an unexplained silent stretch
+        print(f"loading model {i}/{len(checkpoints)}: {ckpt} (model load, 1-2 min)", flush=True)
+        models.append(load_model(ckpt, device))
     packers = [HFTokenPacker(m.cfg["backbone"]) for m in models]
 
     with open(f"{data_dir}/test.jsonl", encoding="utf-8") as fh:
-        rows = [json.loads(l) for l in fh]
+        rows = [json.loads(line) for line in fh]
 
     n = correct = 0
     soft_acc_sum = 0.0
@@ -151,6 +141,8 @@ def evaluate_metrics(checkpoints, data_dir, device="cuda", gamma=1.0, latency=Fa
     by_type = {}
     by_domain = {}
 
+    import time
+    t_eval = time.time()
     with torch.no_grad():
         for r in rows:
             for q in r["questions"]:
@@ -167,6 +159,8 @@ def evaluate_metrics(checkpoints, data_dir, device="cuda", gamma=1.0, latency=Fa
                 correct += hit
                 confs.append(probs.max().item())
                 corrs.append(hit)
+                if n % 500 == 0:
+                    print(f"eval progress: {n} questions ({n / (time.time() - t_eval):.0f} q/s)", flush=True)
 
                 # soft accuracy: the probability mass the model put on the gold answer
                 soft_acc_sum += probs[label].item()
@@ -285,7 +279,7 @@ def measure_latency(model, packer, rows, device, n_single=50, n_batch=200, batch
     qs = [(r["state"], q) for r in rows for q in r["questions"]]
 
     def run_one(s, q):
-        pq = {"name": q["name"], "type": q["type"], "instructions": q.get("instructions", q["type"]), "options": q["options"], "answer": q["answer"]}
+        pq = pack_question(q)
         ids, an, _ = packer.pack(s, pq, model.cfg["max_len"])
         t0 = time.perf_counter()
         with torch.no_grad():
@@ -307,8 +301,7 @@ def measure_latency(model, packer, rows, device, n_single=50, n_batch=200, batch
         chunk = items[i : i + batch_size]
         packed = []
         for s, q in chunk:
-            pq = {"name": q["name"], "type": q["type"], "instructions": q.get("instructions", q["type"]), "options": q["options"], "answer": q["answer"]}
-            packed.append(packer.pack(s, pq, model.cfg["max_len"]))
+            packed.append(packer.pack(s, pack_question(q), model.cfg["max_len"]))
         L = max(len(p[0]) for p in packed)
         A = max(len(p[1]) for p in packed)
         B = len(packed)

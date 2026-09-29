@@ -33,6 +33,28 @@ def majority_baseline(answers):
     return counts.most_common(1)[0][1] / len(answers)
 
 
+def pack_question(question):
+    # canonical per-question projection used by every packing path: fixed key
+    # order, instructions defaulting to the type, answer carried through
+    return {
+        "name": question["name"],
+        "type": question["type"],
+        "instructions": question.get("instructions", question["type"]),
+        "options": question["options"],
+        "answer": question["answer"],
+    }
+
+
+def stack_ragged(rows):
+    # pad variable-length option logits to a common width with -1e4 so
+    # padding options carry ~0 probability after softmax
+    kmax = max(r.numel() for r in rows)
+    out = torch.full((len(rows), kmax), -1e4)
+    for i, r in enumerate(rows):
+        out[i, : r.numel()] = r
+    return out
+
+
 def load_model(path, device="cpu"):
     ckpt = torch.load(path, map_location=device, weights_only=True)
     if "backbone" in ckpt["config"]:

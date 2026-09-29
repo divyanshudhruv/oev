@@ -7,6 +7,10 @@ Benchmark numbers below are measured or published; decision primitive values are
 - Kev: published by jaredpalmer/kev (OOD-suite accuracies; its in-domain
   rows are omitted where it publishes no comparable number)
 
+Colors, rcParams and light/dark text tones live in chartstyle.py (one place).
+All measured/published numbers live in chartdata.py, which cross-checks the
+registered OEV values against docs/claims.json at import time.
+
 Charts use transparent backgrounds so the surrounding page shows through.
 Light variants use dark text; dark variants use light text. Colors are
 pastel so nothing vibrates against either background.
@@ -14,6 +18,12 @@ pastel so nothing vibrates against either background.
 Light + dark variants are written for every chart.
 """
 import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import chartstyle as cs
+import chartdata
 
 import matplotlib
 
@@ -22,84 +32,53 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
 
+# fail loudly at import if chart numbers and the claims registry diverged
+_claims = chartdata.load()
+
 os.makedirs("assets", exist_ok=True)
 
-# pastel palette: legible on both light and dark pages
-P_BLUE, P_RED, P_GREEN, P_SAND, P_GRAY = "#a8c5e6", "#f0a8a8", "#b5d4bf", "#e8d5a3", "#b0b8c0"
-ACC = [P_BLUE, P_RED, P_GREEN, P_SAND, P_GRAY]
+# palette + text tones: single source in chartstyle (aliased so the plotting
+# code below stays readable and byte-stable)
+P_BLUE, P_RED, P_GREEN, P_SAND, P_GRAY = cs.P_BLUE, cs.P_RED, cs.P_GREEN, cs.P_SAND, cs.P_GRAY
+ACC = cs.ACC
+TEXT, EDGE, SUB, LINE = cs.TEXT, cs.EDGE, cs.SUB, cs.LINE
+GRAY_ANNOT = cs.GRAY_ANNOT
+DARK_TEXT, DARK_SUB, DARK_EDGE, DARK_LINE = cs.DARK_TEXT, cs.DARK_SUB, cs.DARK_EDGE, cs.DARK_LINE
 
-plt.rcParams.update({
-    "figure.facecolor": "none",
-    "axes.facecolor": "none",
-    "savefig.transparent": True,
-    "axes.grid": True,
-    "grid.color": "#c8ccd0",
-    "grid.linewidth": 0.5,
-    "grid.alpha": 0.6,
-    "axes.titlepad": 14,
-    "figure.autolayout": False,
-    "font.size": 13,
-    "axes.titlesize": 15,
-    "axes.labelsize": 12,
-    "axes.spines.top": False,
-    "axes.spines.right": False,
-    "text.color": "#24292f",
-    "axes.edgecolor": "#57606a",
-    "axes.labelcolor": "#24292f",
-    "xtick.color": "#24292f",
-    "ytick.color": "#24292f",
-})
+plt.rcParams.update(cs.BASE_RC)
 
 # =====================================================================
-# measured / published numbers (single source of truth for this script)
+# measured / published numbers (single source: chartdata, claims-checked)
 # =====================================================================
 
-# shared public benchmarks (in-domain). Kev publishes none of these.
-BENCH = ["typed-decisions", "AG News", "emotion (zero-shot)", "Banking77"]
-OEVD = [0.7760, 0.9489, 0.6505, 0.8584]   # emotion = shipped student, zero-shot like laya/Jev; 0.8584 = soup
-# fine-tuned emotion specialist scores 0.9300 - kept in BENCHMARKS.md tables (not charted here)
-LAYA = [0.766, 0.950, 0.595, 0.425]
-JEV = [0.727, 0.910, 0.480, 0.870]
+BENCH = chartdata.BENCH
+OEVD = chartdata.OEVD
+LAYA = chartdata.LAYA
+JEV = chartdata.JEV
 
-# zero-shot / OOD transfer, one dot per model, attributed per label.
-# OEV dots: emotion = r2b distilled student 0.6505 (beats laya's zero-shot
-# head-to-head); WANLI = td5 0.3945; ANLI = round-1 student 0.3380.
-# BENCHMARKS.md holds the per-checkpoint tables.
-ZS_ROWS = ["emotion (zero-shot)", "WANLI OOD (zero-shot)", "ANLI R1 (zero-shot)", "Kev new sources (own tasks)"]
-ZS_OEV = [0.6505, 0.3945, 0.3380, None]
-ZS_LAYA = [0.595, None, None, None]
-ZS_KEV = [None, None, None, 0.838]   # Kev-4B, test split of its new-sources protocol
-ZS_WHO = [("OEV", ZS_OEV, P_BLUE), ("laya", ZS_LAYA, P_RED), ("Kev", ZS_KEV, P_GREEN)]
+ZS_ROWS = chartdata.ZS_ROWS
+ZS_OEV = chartdata.ZS_OEV
+ZS_LAYA = chartdata.ZS_LAYA
+ZS_KEV = chartdata.ZS_KEV
+ZS_WHO = [(who, vals, color) for (who, vals, _), color in zip(chartdata.ZS_WHO, ACC)]
 ZS_COLORS = {who: color for who, _, color in ZS_WHO}
 
-# latency (published or measured); ranges use midpoint
-LAT_LABELS = [
-    "OEV\n(184M, T4)",
-    "laya\n(range midpoint)",
-    "Kev-4B\n(L40S)",
-    "Jev\n(range midpoint)",
-]
-LAT_VALS = [22.2, 36.2, 41.5, 256.0]   # laya 32.8-39.5 and Jev 236-276 are ranges; Kev-4B 41.5 L40S
+LAT_LABELS = chartdata.LAT_LABELS
+LAT_VALS = chartdata.LAT_VALS
 
-# accuracy vs size (published points only; Jev size not published)
-PTS = [
-    ("laya (AG News)", 421, 0.950, P_RED),
-    ("laya (typed)", 421, 0.766, P_RED),
-    ("OEV base (AG News)", 184, 0.9489, P_BLUE),
-    ("OEV base (emotion)", 184, 0.9300, P_BLUE),
-    ("OEV soup (b77)", 184, 0.8584, P_BLUE),
-    ("OEV ensemble", 4 * 184, 0.7760, P_BLUE),
-    ("OEV single", 184, 0.7705, P_BLUE),
-    ("Kev-0.8B (new sources)", 800, 0.697, P_GREEN),
-    ("Kev-4B (new sources)", 4000, 0.838, P_GREEN),
-    ("Kev-9B (new sources)", 9000, 0.852, P_GREEN),
-    ("Kev-27B (new sources)", 27000, 0.896, P_GREEN),
-]
-# per-workflow accuracy (typed-decisions)
-WF_LABELS = ["invoice\nprocessing", "customer\nservice", "agent-trace\nobservability", "security\nincidents"]
-WF_LAYA = [0.804, 0.764, 0.730, 0.766]
-WF_OEV = [0.8360, 0.8040, 0.7400, 0.7220]
+CAL_LABELS = chartdata.CAL_LABELS
+CAL_VALS = chartdata.CAL_VALS
+CAL_COLORS = chartdata.CAL_COLORS
 
+PTS = [(name, params, acc, chartdata.oev_color(color)) for name, params, acc, color in chartdata.PTS]
+
+WF_LABELS = chartdata.WF_LABELS
+WF_LAYA = chartdata.WF_LAYA
+WF_OEV = chartdata.WF_OEV
+
+HEAD_SCORE = chartdata.HEAD_SCORE
+BASENAMES = chartdata.BASELINE_NAMES
+BASEVALS = chartdata.BASELINE_VALS
 
 def _dot_legend(edge, size=9):
     return [Line2D([0], [0], marker="o", color="none", markerfacecolor=c,
@@ -155,17 +134,17 @@ for i in range(len(ZS_ROWS)):
     pts = [(vals[i], who) for who, vals, _ in ZS_WHO if vals[i] is not None]
     if pts:
         ax.hlines(i, min(v for v, _ in pts), max(v for v, _ in pts),
-                  color="#c8ccd0", lw=2, zorder=1)
+                  color=LINE, lw=2, zorder=1)
     else:
         ax.annotate("all three: not published", (0.995, i),
                     xycoords=("axes fraction", "data"), ha="right", va="center",
-                    fontsize=9, color="#8b949e", style="italic")
+                    fontsize=9, color=GRAY_ANNOT, style="italic")
     for v, who in pts:
         ax.scatter(v, i, s=170, color=ZS_COLORS[who],
-                   zorder=3, edgecolors="#57606a", linewidths=0.7)
+                   zorder=3, edgecolors=EDGE, linewidths=0.7)
         _zs_annotate(ax, i, v, who, None)
-ax.axvline(0.333, color="#8b949e", ls=":", lw=1.2)
-ax.annotate("random floor, 3 classes", (0.335, 3.45), fontsize=8.5, color="#8b949e")
+ax.axvline(0.333, color=GRAY_ANNOT, ls=":", lw=1.2)
+ax.annotate("random floor, 3 classes", (0.335, 3.45), fontsize=8.5, color=GRAY_ANNOT)
 ax.set_yticks(range(len(ZS_ROWS)))
 ax.set_yticklabels(ZS_ROWS, fontsize=11)
 ax.set_xlim(0, 1.0)
@@ -188,14 +167,14 @@ for i in range(len(ZS_ROWS)):
     pts = [(vals[i], who) for who, vals, _ in ZS_WHO if vals[i] is not None]
     if pts:
         axt.hlines(i, min(v for v, _ in pts), max(v for v, _ in pts),
-                   color="#c8ccd0", lw=2, zorder=1)
+                   color=LINE, lw=2, zorder=1)
     for v, who in pts:
         axt.scatter(v, i, s=140, color=ZS_COLORS[who],
-                    zorder=3, edgecolors="#57606a", linewidths=0.7)
+                    zorder=3, edgecolors=EDGE, linewidths=0.7)
         axt.annotate(f"{v:.3f}", (v, i), textcoords="offset points", xytext=(0, 11),
                      ha="center", fontsize=9)
-axt.axvline(0.333, color="#8b949e", ls=":", lw=1.2)
-axt.annotate("floor 0.333", (0.34, 3.45), fontsize=8.5, color="#8b949e")
+axt.axvline(0.333, color=GRAY_ANNOT, ls=":", lw=1.2)
+axt.annotate("floor 0.333", (0.34, 3.45), fontsize=8.5, color=GRAY_ANNOT)
 axt.set_yticks(range(len(ZS_ROWS)))
 axt.set_yticklabels(ZS_ROWS, fontsize=9.5)
 axt.set_xlim(0, 1.0)
@@ -203,14 +182,14 @@ axt.set_ylim(3.7, -0.7)
 axt.invert_yaxis()
 axt.set_xlabel("accuracy")
 axt.set_title("zero-shot / OOD transfer", fontweight="bold", pad=12, fontsize=13)
-axt.legend(handles=_dot_legend("#57606a"), frameon=False, fontsize=9.5,
+axt.legend(handles=_dot_legend(EDGE), frameon=False, fontsize=9.5,
            loc="lower left", bbox_to_anchor=(0, 1.005), ncols=3,
            columnspacing=1.2, handletextpad=0.2)
 
 lbars = axl.bar(range(len(LAT_LABELS)), LAT_VALS,
                 color=[ACC[0], ACC[1], ACC[2], ACC[4]])
 axl.set_xticks(range(len(LAT_LABELS)))
-axl.set_xticklabels([l.replace("\n", " ") for l in LAT_LABELS], fontsize=9)
+axl.set_xticklabels([label.replace("\n", " ") for label in LAT_LABELS], fontsize=9)
 axl.bar_label(lbars, fmt="%.1f ms", fontsize=9, padding=3)
 axl.set_ylim(0, 290)
 axl.set_ylabel("ms per question")
@@ -221,17 +200,15 @@ fig.savefig("assets/transfer_speed.png", dpi=150, transparent=True)
 plt.close(fig)
 
 
-
-
 def _headline_scorecard(path, text, edge, sub, face):
     fig, axes = plt.subplots(1, 3, figsize=(12, 4.6),
                              gridspec_kw={"wspace": 0.34})
     fig.subplots_adjust(left=0.07, right=0.98, top=0.78, bottom=0.20)
     charts = [
-        ("Typed decisions", ["single", "ensemble"], [0.7705, 0.7760],
+        ("Typed decisions", ["single", "ensemble"], HEAD_SCORE,
          "accuracy", (0, 0.82), [P_BLUE, P_GREEN]),
-        ("Banking77", ["soup"], [0.8584], "accuracy", (0, 0.95), [P_SAND]),
-        ("Latency", ["T4", "CPU"], [22.2, 447], "ms per question (log scale)",
+        ("Banking77", ["soup"], [chartdata.B77_SOUP], "accuracy", (0, 0.95), [P_SAND]),
+        ("Latency", ["T4", "CPU"], chartdata.SCORE_LAT, "ms per question (log scale)",
          (1, 700), [P_BLUE, P_RED]),
     ]
     for ax, (title, labels, values, ylabel, ylim, colors) in zip(axes, charts):
@@ -240,7 +217,7 @@ def _headline_scorecard(path, text, edge, sub, face):
                       color=colors, width=0.56, edgecolor=edge, linewidth=0.5)
         ax.bar_label(bars, labels=[f"{v:.4f}" if v < 1 else f"{v:.1f} ms"
                                    for v in values], padding=4, color=text,
-                      fontsize=9)
+                     fontsize=9)
         ax.set_title(title, color=text, fontweight="bold", pad=10)
         ax.set_ylabel(ylabel, color=text)
         ax.set_ylim(*ylim)
@@ -294,12 +271,38 @@ def _decision_primitives(path, text, edge, sub, face):
     plt.close(fig)
 
 
+def _calibration(path, text, edge, sub, face):
+    fig, ax = plt.subplots(figsize=(9, 4.2))
+    fig.subplots_adjust(left=0.24, right=0.95, top=0.80, bottom=0.20)
+    y = np.arange(len(CAL_LABELS))
+    bars = ax.barh(y, CAL_VALS, color=CAL_COLORS, height=0.52,
+                   edgecolor=edge, linewidth=0.5)
+    ax.bar_label(bars, labels=[f"{v:.4f}" for v in CAL_VALS], padding=6,
+                 color=text, fontsize=10)
+    ax.set_yticks(y)
+    ax.set_yticklabels(CAL_LABELS, color=text, fontsize=10.5)
+    ax.invert_yaxis()
+    ax.set_xlim(0, 0.11)
+    ax.set_xlabel("ECE (lower is better)", color=text)
+    ax.set_title("typed-decisions calibration: temperature scaling sets a new best",
+                 color=text, fontweight="bold", pad=12)
+    ax.set_facecolor(face)
+    ax.grid(axis="x", color=edge, alpha=0.25)
+    ax.tick_params(colors=text)
+    for spine in ax.spines.values():
+        spine.set_color(edge)
+    fig.text(0.24, 0.04, "Temperature fitted on the valid split only; accuracy unchanged. Receipts in runs/.",
+             color=sub, fontsize=9)
+    fig.savefig(path, dpi=150, transparent=True)
+    plt.close(fig)
+
+
 def _latency_profile(path, text, edge, sub, face):
     fig, (gpu, cpu) = plt.subplots(1, 2, figsize=(10, 4.8),
                                    gridspec_kw={"width_ratios": [1.25, 0.75]})
     fig.subplots_adjust(wspace=0.32, left=0.10, right=0.96, top=0.78, bottom=0.19)
     gpu_labels = ["single", "batch 32"]
-    gpu_values = [22.2, 15.9]
+    gpu_values = chartdata.OEV_LAT
     bars = gpu.bar(gpu_labels, gpu_values, color=[P_BLUE, P_GREEN], width=0.56)
     gpu.bar_label(bars, labels=[f"{v:.1f} ms" for v in gpu_values], padding=4,
                   color=text, fontsize=10)
@@ -325,10 +328,11 @@ def _latency_profile(path, text, edge, sub, face):
     plt.close(fig)
 
 
-_light_text, _light_edge, _light_sub, _light_face = "#24292f", "#57606a", "#6e7480", "#f6efe7"
+_light_text, _light_edge, _light_sub, _light_face = TEXT, EDGE, SUB, cs.LIGHT_FACE
 _headline_scorecard("assets/headline_scorecard.png", _light_text, _light_edge, _light_sub, _light_face)
 _decision_primitives("assets/decision_primitives.png", _light_text, _light_edge, _light_sub, _light_face)
 _latency_profile("assets/latency_profile.png", _light_text, _light_edge, _light_sub, _light_face)
+_calibration("assets/calibration.png", _light_text, _light_edge, _light_sub, _light_face)
 
 # =====================================================================
 # chart 7: per-workflow accuracy (typed-decisions)
@@ -354,29 +358,13 @@ fig.savefig("assets/workflows.png", dpi=150, transparent=True)
 plt.close(fig)
 
 print("light charts written: benchmarks, zeroshot, transfer_speed, "
-      "headline_scorecard, decision_primitives, latency_profile, workflows")
+      "headline_scorecard, decision_primitives, latency_profile, calibration, workflows")
 
 # =====================================================================
 # dark variants: same transparent figures, light text and edge swaps
 # =====================================================================
 
-DARK_TEXT = "#e6edf3"
-DARK_SUB = "#9aa4ae"
-DARK_EDGE = "#6e7681"
-DARK_LINE = "#3d444d"
-plt.rcParams.update({
-    "text.color": DARK_TEXT,
-    "axes.edgecolor": DARK_EDGE,
-    "axes.labelcolor": DARK_TEXT,
-    "xtick.color": DARK_TEXT,
-    "ytick.color": DARK_TEXT,
-    "grid.color": DARK_LINE,
-})
-
-def _edge(bars, color):
-    for p in bars.patches:
-        p.set_edgecolor(color)
-        p.set_linewidth(0.4)
+cs.apply_dark()
 
 # benchmarks (dark)
 fig, ax = plt.subplots(figsize=(12, 6.2))
@@ -384,7 +372,7 @@ b1 = ax.bar(x - w, JEV, w, label="Jev (closed API, published)", color=ACC[4])
 b2 = ax.bar(x, LAYA, w, label="laya (published)", color=ACC[1])
 b3 = ax.bar(x + w, OEVD, w, label="OEV (this repo, soup/ensemble)", color=ACC[0])
 for b in (b1, b2, b3):
-    _edge(b, DARK_TEXT)
+    cs.edge_bars(b, DARK_TEXT)
 ax.set_xticks(x)
 ax.set_xticklabels(BENCH)
 ax.set_ylim(0, 1.18)
@@ -454,9 +442,9 @@ axt.legend(handles=_dot_legend(DARK_TEXT), frameon=False, fontsize=9.5,
            columnspacing=1.2, handletextpad=0.2, labelcolor=DARK_TEXT)
 lbars = axl.bar(range(len(LAT_LABELS)), LAT_VALS,
                 color=[ACC[0], ACC[1], ACC[2], ACC[4]])
-_edge(lbars, DARK_TEXT)
+cs.edge_bars(lbars, DARK_TEXT)
 axl.set_xticks(range(len(LAT_LABELS)))
-axl.set_xticklabels([l.replace("\n", " ") for l in LAT_LABELS], fontsize=9)
+axl.set_xticklabels([label.replace("\n", " ") for label in LAT_LABELS], fontsize=9)
 axl.bar_label(lbars, fmt="%.1f ms", fontsize=9, padding=3, color=DARK_TEXT)
 axl.set_ylim(0, 290)
 axl.set_ylabel("ms per question")
@@ -466,21 +454,18 @@ fig.tight_layout()
 fig.savefig("assets/transfer_speed_dark.png", dpi=150, transparent=True)
 plt.close(fig)
 
-
-
-
-_dark_face = "#2b211c"
+_dark_face = cs.DARK_FACE
 _headline_scorecard("assets/headline_scorecard_dark.png", DARK_TEXT, DARK_EDGE, DARK_SUB, _dark_face)
 _decision_primitives("assets/decision_primitives_dark.png", DARK_TEXT, DARK_EDGE, DARK_SUB, _dark_face)
 _latency_profile("assets/latency_profile_dark.png", DARK_TEXT, DARK_EDGE, DARK_SUB, _dark_face)
-
+_calibration("assets/calibration_dark.png", DARK_TEXT, DARK_EDGE, DARK_SUB, _dark_face)
 
 # workflows (dark)
 fig, ax = plt.subplots(figsize=(9, 4.8))
 b1 = ax.bar(xw - ww / 2, WF_LAYA, ww, label="laya (published)", color=ACC[1])
 b2 = ax.bar(xw + ww / 2, WF_OEV, ww, label="OEV (4-voter ensemble)", color=ACC[0])
 for b in (b1, b2):
-    _edge(b, DARK_TEXT)
+    cs.edge_bars(b, DARK_TEXT)
 ax.bar_label(b1, fmt="%.3f", fontsize=9, padding=2, color=DARK_TEXT)
 ax.bar_label(b2, fmt="%.3f", fontsize=9, padding=2, color=DARK_TEXT)
 ax.axhline(0.766, color=ACC[1], ls=":", lw=1)
@@ -495,4 +480,4 @@ fig.tight_layout()
 fig.savefig("assets/workflows_dark.png", dpi=150, transparent=True)
 plt.close(fig)
 
-print("dark variants written (transparent)")
+print(f"dark variants written (transparent); claims cross-check: {_claims['n_claims']} claims OK")

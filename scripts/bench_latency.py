@@ -10,7 +10,7 @@ import onnxruntime as ort
 import torch
 from onnxruntime.capi.onnxruntime_pybind11_state import Fail
 
-from oev.evaluate import load_model
+from oev.evaluate import load_model, pack_question as question_for
 from oev.tokenizer_hf import HFTokenPacker
 
 
@@ -29,12 +29,6 @@ def load_rows(data_dir, max_cases):
                                 "options": ["a", "b", "c", "d"], "answer": "a"}]}
                 for i in range(100)]
     return rows
-
-
-def question_for(q):
-    return {"name": q["name"], "type": q["type"],
-            "instructions": q.get("instructions", q["type"]),
-            "options": q["options"], "answer": q["answer"]}
 
 
 def bench(forward, packer, model_cfg, rows, n_single, n_batch, batch_size):
