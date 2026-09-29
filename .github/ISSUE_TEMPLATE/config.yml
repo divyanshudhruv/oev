@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and ideas
+    url: https://github.com/divyanshudhruv/oev/discussions
+    about: Ask about the architecture, benchmarks, checkpoints, or usage here.
+  - name: Security vulnerabilities
+    url: https://github.com/divyanshudhruv/oev/security/advisories/new
+    about: Report security issues privately. Please do not open a public issue.
+  - name: Hugging Face demo
+    url: https://huggingface.co/spaces/divyanshudhruv/oev-demo
+    about: Try OEV in the browser before filing anything.

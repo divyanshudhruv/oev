@@ -28,8 +28,10 @@ Fine-tuned on the benchmark's train split, same protocol as [laya-typed-decision
 | ---------------------------------------------------- | ---------: | -----------: | -----------: | -----------: | ---------------: |
 | Jev 1.13.0 (published)                               | closed API |        0.727 |        0.580 |        0.144 |     236-`276 ms` |
 | laya-typed-decisions (published)                     |       421M |        0.766 |        0.471 |        0.213 |   32.8-`39.5 ms` |
-| **OEV single (oev-base-td5)**                        | **`184M`** | **`0.7705`** |       0.6225 |       0.0938 |    **`22.2 ms`** |
-| **OEV calibrated single (oev-base-rlcd-soup)**       | **`184M`** |       0.7570 |       0.5854 | **`0.0279`** |    **`22.2 ms`** |
+| **OEV single (oev-base-td5)**                        | **`184M`** | **`0.7705`** |       0.6225 |       0.0938 |    **`22.2 ms`** || **OEV calibrated single (oev-base-rlcd-soup)**                       | **`184M`** |       0.7570 |       0.5854 | **`0.0279`** |    **`22.2 ms`** |
+| **OEV temperature-calibrated (oev-base-td5, T=0.598)**               | **`184M`** |       0.7705 |            - | **`0.0204`** |    **`22.2 ms`** |
+
+The temperature-calibrated row is the best calibrated single: temperature `0.598` fitted on the valid split only (receipt in the repo's `runs/`), accuracy unchanged by monotone scaling. Use it via `OEV(checkpoint, temperature=0.598)`.
 | **OEV ensemble (all four checkpoints, equal votes)** | 4 × `184M` | **`0.7760`** |       0.5830 |            - |                - |
 | OEV ensemble, sharpened (γ = 2.5)                    | 3 × `184M` |       0.7730 | **`0.7020`** |       0.0298 |                - |
 
@@ -40,7 +42,7 @@ Per workflow (ensemble): invoice `0.836`, customer service `0.804`, agent-trace 
 | file                        | what it is                                                                                                                                                                                                                     |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **student-r2b-oev-tiny.pt** | **distilled generalist - recommended default.** One model for everything: typed `0.6480`, Banking77 `0.7964`, emotion zero-shot `0.6505` (beats laya `0.595`), probes all `PASS`. Use `gamma 1.2` for calibrated probabilities |
-| oev-base-td5.pt             | typed-decisions specialist (0.7705) - best when you only need agent-decision scoring                                                                                                                                           |
+| oev-base-td5.pt             | typed-decisions specialist (0.7705; with temperature 0.598 it is the most calibrated single at ECE 0.0204) - best when you only need agent-decision scoring                                                                    |
 | oev-base-rlcd-soup.pt       | most calibrated single (ECE 0.0279). Prefer this one when the probabilities feed automated decisions.                                                                                                                          |
 | oev-base-rlcd.pt            | RLCD fine-tune (Brier-reward policy gradient against teacher distributions)                                                                                                                                                    |
 | oev-base-rlcd-seed1.pt      | second RLCD seed - for ensembling                                                                                                                                                                                              |

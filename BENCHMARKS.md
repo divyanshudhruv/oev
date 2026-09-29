@@ -36,8 +36,16 @@ Each option is embedded as its own anchor, so all 77 labels receive the full pac
 | Single-question latency, T4 p50 | 22.2 ms | `184M` checkpoint |
 | Single-question latency, CPU p50 | 447 ms | 8 threads, `184M` checkpoint (original release measurement) |
 | Single-question latency, CPU p50, ONNX INT8 | 54.2 ms | same workstation, 8 threads, `228 MB` artifact; torch fp32 on the identical machine: 252.5 ms, ONNX fp32: 58.3 ms (`scripts/bench_latency.py`) |
+| fp16 autocast eval, T4 p50 | 28.89 ms | accuracy identical to fp32 (0.7705 both) on the full test set; same-session fp32 p50 32.61 ms (`runs/20260928-091824-fp16eval-oev-base-td5.json`) |
+| 4 questions batched, T4 | 72.17 ms | per-question loop on the same questions: 98.54 ms; bounds the shared-state encoder win (`runs/20260928-091830-batched-latency-oev-base-td5.json`) |
 
 The confidence field is the maximum probability of a choice distribution, not a calibrated error rate. Use the full distribution and coverage-at-error results for gating.
+
+## Calibration and out-of-distribution behavior
+
+Temperature scaling fitted on the typed-decisions validation split only (eval-rules compliant) cuts test ECE from `0.0938` to `0.0204` on the 2,000-decision test set, beating the published best calibrated single (`0.0279`, rlcd-soup). Accuracy is unchanged by monotone temperature scaling. Use `OEV(checkpoint, temperature=0.598)` (`runs/20260928-092030-calibration-oev-base-td5.json`).
+
+The shipped generalist (student-r2b) shows the expected mild OOD conservatism rather than overconfidence: `0` of `800` WANLI zero-shot answers and `0` of `6` garbage-input answers reach `p >= 0.9`, and on emotion `14` of `800` are confident with `1` confidently wrong (`runs/20260928-092113-ood-sweep-student-r2b.json`).
 
 ## Evaluation rules
 

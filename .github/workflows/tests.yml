@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   pytest:
     runs-on: ubuntu-latest
@@ -26,6 +29,11 @@ jobs:
         run: |
           pip install ruff
           ruff check oev scripts tests
+
+      - name: Dependency audit (pip-audit, known CVEs fail the build)
+        run: |
+          pip install pip-audit
+          pip-audit --strict --skip-editable
 
       - name: README image links resolve (HTTP 200)
         run: |
@@ -56,16 +64,44 @@ jobs:
       - name: Claims integrity (version parity + claims map + eval commands)
         run: python scripts/check_claims.py
 
+      - name: Validate community metadata files
+        run: |
+          python - <<'PY'
+          import re, tomllib
+
+          py = tomllib.load(open("pyproject.toml", "rb"))["project"]["version"]
+          src = open("oev/__init__.py", encoding="utf-8").read()
+          init = re.search(r'__version__\s*=\s*"([^"]+)"', src).group(1)
+          cff = open("CITATION.cff", encoding="utf-8").read()
+          m = re.search(r'^version:\s*(\S+)', cff, re.M)
+          assert m, "CITATION.cff has no version field"
+          cff_ver = m.group(1).strip('"')
+          assert py == init == cff_ver, f"version mismatch: pyproject {py}, __init__ {init}, CITATION.cff {cff_ver}"
+          for field in ("title", "authors", "abstract", "license", "repository-code"):
+              assert re.search(rf"^{field}:", cff, re.M), f"CITATION.cff missing {field}"
+          sec = open("SECURITY.md", encoding="utf-8").read()
+          assert "security/advisories/new" in sec, "SECURITY.md must link private reporting"
+          print(f"community metadata OK (version {py} in pyproject, __init__ and CITATION.cff)")
+          PY
+
       - name: Chart freshness (tracked PNGs match the generator, pixel-identical)
         run: |
           pip install matplotlib==3.11.2 numpy pillow
           python - <<'PY'
           import os, shutil, subprocess, sys, tempfile
+          from pathlib import Path
+
           import numpy as np
           from PIL import Image
           with tempfile.TemporaryDirectory() as td:
-              shutil.copy("scripts/make_charts.py", os.path.join(td, "make_charts.py"))
-              r = subprocess.run([sys.executable, "make_charts.py"], cwd=td,
+              # mirror the repo layout: scripts/ next to docs/, because
+              # chartdata.load() resolves the repo root from the module path
+              os.makedirs(os.path.join(td, "scripts"))
+              os.makedirs(os.path.join(td, "docs"))
+              for f in ("make_charts.py", "chartstyle.py", "chartdata.py"):
+                  shutil.copy(os.path.join("scripts", f), os.path.join(td, "scripts", f))
+              shutil.copy(os.path.join("docs", "claims.json"), os.path.join(td, "docs", "claims.json"))
+              r = subprocess.run([sys.executable, "scripts/make_charts.py"], cwd=td,
                                  capture_output=True, text=True)
               assert r.returncode == 0, r.stderr
               fresh = sorted(f for f in os.listdir(os.path.join(td, "assets"))

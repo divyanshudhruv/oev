@@ -24,13 +24,16 @@ Measured results go to [BENCHMARKS.md](BENCHMARKS.md). Done items are checked wi
 ## Inference
 
 - [x] Run the INT8 ONNX bench. It landed at `54.2 ms` p50 on 8 threads, about 4.7x under the torch fp32 figure on the same machine, and the artifact is `228 MB` instead of `735 MB`
-- [ ] Try fp16 autocast on the eval path. Everything currently runs fp32, and autocast should roughly double GPU throughput if accuracy holds
+- [x] Try fp16 autocast on the eval path. Accuracy holds exactly (0.7705 both dtypes on the full test set); single-question p50 landed at 28.89 ms vs 32.61 ms fp32 on the same T4 instance (11 percent at batch 1, latency-bound). Receipt in `runs/`
+- [x] Measure the batched-latency bound for shared-state encoding: 4 questions in one padded batch run 72.17 ms vs 98.54 ms per-question, a 27 percent cut any true one-pass encoder must beat
+- [x] Fit calibration temperature on valid only: temperature 0.5981 cuts typed-decisions test ECE 0.0938 -> 0.0204, beating the published best calibrated single (0.0279). Receipt in `runs/`
 - [ ] Encode many questions against one shared state in a single pass instead of re-encoding the packed state per request
 - [ ] Fit calibration temperature inside `train.py` so every new checkpoint ships calibrated instead of needing a separate pass afterwards
 
 ## Reliability
 
-- [ ] Chase down the mild overconfidence the models still show on out-of-distribution and garbage inputs
+- [x] Quantify the OOD behavior: student-r2b shows mild conservatism, not overconfidence. 0 of 800 WANLI and 0 of 6 garbage-input answers reach p >= 0.9; emotion 14 of 800 confident, 1 confidently wrong. Receipt in `runs/`
+- [ ] Chase down the residual confident errors on in-distribution-adjacent inputs (1 of 800 emotion answers confidently wrong)
 
 ## Internationalization
 

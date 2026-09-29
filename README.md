@@ -14,6 +14,7 @@ The single `184M` model scores `0.7705` on typed-decisions, slightly above laya'
 [![Hugging Face Model](https://img.shields.io/badge/%F0%9F%A4%97%20Model-divyanshudhruv%2Foev--typed-blue)](https://huggingface.co/divyanshudhruv/oev-typed)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Tests](https://github.com/divyanshudhruv/oev/actions/workflows/tests.yml/badge.svg)](https://github.com/divyanshudhruv/oev/actions/workflows/tests.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/divyanshudhruv/oev/badge)](https://scorecard.dev/viewer/?uri=github.com/divyanshudhruv/oev)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.x-ee4c2c)](https://pytorch.org/get-started/locally/)
 [![HF Space](https://img.shields.io/badge/%F0%9F%A4%97%20Space-oev--demo-yellow)](https://huggingface.co/spaces/divyanshudhruv/oev-demo)
@@ -252,6 +253,13 @@ python -m pytest -q
 
 ## Reading the numbers
 
+<p align="center" style="margin: 24px 0;">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/calibration_dark.png" />
+  <img src="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/calibration.png" alt="Typed-decisions ECE: temperature scaling fitted on valid only sets a new project best of 0.0204" width="70%" />
+</picture>
+</p>
+
 - Each benchmark number comes from a checkpoint fine-tuned on that benchmark's train split, matching the baselines' published protocol
 - Zero-shot emotion is a separate head-to-head win: shipped student `0.6505` vs laya `0.595` (both zero-shot)
 - The `0.7760` headline is a 4-checkpoint ensemble; the best single file is `0.7705`
@@ -260,6 +268,7 @@ python -m pytest -q
 - The shipped generalist trails the typed specialist (`0.6480` vs `0.7705`); closing that spread is round 4
 - CPU: torch fp32 measured `447 ms` p50 at release; on the current workstation the same fp32 model runs `252.5 ms` and the ONNX INT8 build `54.2 ms` (8 threads, `scripts/bench_latency.py`). Headline timings are GPU
 - ECE asks: when the model says `0.9`, is it right `90%` of the time. Coverage is the operational read: what share of traffic can be automated at a given error budget (the Banking77 soup covers `76%` at `5%` error). Gate on the distributions, not the confidence field
+- Temperature `0.598` (fitted on the valid split only) cuts typed-decisions ECE from `0.0938` to `0.0204`, the best calibrated single in the project; pass it as `OEV(checkpoint, temperature=0.598)`. fp16 eval holds accuracy exactly (0.7705 both dtypes)
 - English only
 
 ## Roadmap

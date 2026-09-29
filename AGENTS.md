@@ -14,8 +14,13 @@ Conventions for AI agents and humans working in this repository.
 - `examples/` - worked usage scripts
 - `app.py` - the Hugging Face Space demo (Gradio); syncs to the Space on
   every push to main
-- `scripts/` - chart generators (`make_charts.py`, `make_bigfigure.py`);
-  all charts are transparent-background pastel with light + dark variants
+- `scripts/` - generators and private tooling: chart generators
+  (`make_charts.py`, `make_bigfigure.py`) sharing one palette and number
+  registry (`chartstyle.py`, `chartdata.py`; the registry cross-checks
+  charted OEV numbers against `docs/claims.json`), plus one-off tools.
+  The Kaggle notebook builder and the r4fix generator are private
+  (gitignored). All charts are
+  transparent-background pastel with light + dark variants
 - `docs/` - private working notes (gitignored); only `claims.json` is
   tracked, mapping every published number to its checkpoint and eval command
 - `assets/` - README charts and logo; regenerate with
@@ -33,8 +38,9 @@ Conventions for AI agents and humans working in this repository.
    `git log` first and match. No signatures or trailers in commit messages.
 3. Run `python -m pytest -q` before proposing any code change. The suite
    is CPU-only and finishes in under a minute.
-4. Docstrings are banned in this codebase by owner preference. Use plain
-   comments where explanation is needed.
+4. Docstring policy: module-level docstrings are allowed (usage, schema
+   notes, CLI examples); function and class docstrings are not. Inside
+   functions and classes use plain comments where explanation is needed.
 5. No em dashes, curly quotes, or other typography that renders as
    AI-generated in committed markdown. No `statement - appositive; fragment`
    sentence patterns either; write plain sentences with varied structure.

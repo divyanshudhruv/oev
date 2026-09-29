@@ -1,0 +1,9 @@
+# line endings: normalize text, keep Windows checkouts working
+* text=auto
+
+# binary assets
+*.png binary
+*.pt binary
+
+# private session artifacts never belong in review diffs
+*.zip -text

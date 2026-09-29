@@ -7,6 +7,8 @@ dist/
 build/
 data/
 checkpoints*/
+ck_diag/
+runs/
 benchmarks/
 *.zip
 *.pt
@@ -39,3 +41,12 @@ LACK.md
 # docs/: keep private, except the claims registry
 docs/*
 !docs/claims.json
+
+# kaggle session tooling: generated notebooks + private builders stay local
+# (notebooks clone the repo at runtime; the session cells live in chat/local
+# files, none of this needs to be on GitHub)
+oev_phase1_benchmarks_kaggle.ipynb
+oev_phase2_round34_kaggle.ipynb
+oev_phase3_inference_kaggle.ipynb
+scripts/make_kaggle_notebooks.py
+scripts/gen_r4fix.py

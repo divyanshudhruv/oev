@@ -6,6 +6,9 @@ on:
     paths: ["app.py", "requirements.txt", "pyproject.toml", "README.md", "HF_MODEL_CARD.md", "LICENSE", "oev/**", "space/**", ".github/workflows/space.yml"]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   sync:
     runs-on: ubuntu-latest

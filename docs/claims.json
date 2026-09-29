@@ -415,6 +415,69 @@
       "params": "184M",
       "eval": "gamma sweep, evaluate_metrics on data/mix valid split, chosen gamma 1.2",
       "note": "mimicry signature: student under-confident (ECE 0.6170 at gamma 0.5, 0.1443 at 1.0, 0.0765 at 2.0); accuracy invariant at 0.8450 across all gammas. Validation sweep was recorded in a private session log; archive it before treating gamma 1.2 as a release-selection claim."
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.7705,
+      "benchmark": "typed-decisions (fp16 autocast eval)",
+      "checkpoint": "oev-base-td5",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint checkpoints_td5/oev-tiny.pt --data-dir data/typed under torch.autocast(fp16); receipt runs/20260928-091824-fp16eval-oev-base-td5.json",
+      "note": "fp16 matches fp32 accuracy exactly on the full 2,000-decision test (both 0.7705); single-question p50 28.89 ms vs 32.61 ms fp32 on the same T4 instance"
+    },
+    {
+      "metric": "latency_p50_ms",
+      "value": 28.89,
+      "benchmark": "typed-decisions (fp16 autocast, single question)",
+      "checkpoint": "oev-base-td5",
+      "params": "184M",
+      "eval": "phase 3 notebook fp16eval timing loop with 3 warmups, receipt runs/20260928-091824-fp16eval-oev-base-td5.json",
+      "note": "same-session fp32 p50 32.61 ms: 11 percent faster at batch 1 (latency-bound); measured on a different T4 instance than the published 22.2 ms release row"
+    },
+    {
+      "metric": "batched_latency_ms_4q",
+      "value": 72.17,
+      "benchmark": "typed-decisions (4 questions, pad-to-common-length batch)",
+      "checkpoint": "oev-base-td5",
+      "params": "184M",
+      "eval": "phase 3 notebook batched timing loop, receipt runs/20260928-091830-batched-latency-oev-base-td5.json",
+      "note": "per-question loop for the same 4 questions: 98.54 ms; batching alone cuts 27 percent, which bounds the win a true shared-state encoder must beat"
+    },
+    {
+      "metric": "calibration_temperature",
+      "value": 0.598,
+      "benchmark": "typed-decisions (temperature calibrated, short form of 0.5981)",
+      "checkpoint": "oev-base-td5",
+      "params": "184M",
+      "eval": "same receipt as the calibration_temperature claim: runs/20260928-092030-calibration-oev-base-td5.json",
+      "note": "the 3-decimal spelling used in docs and the OEV() API example"
+    },
+    {
+      "metric": "calibration_temperature",
+      "value": 0.5981,
+      "benchmark": "typed-decisions",
+      "checkpoint": "oev-base-td5",
+      "params": "184M",
+      "eval": "oev.calibrate.fit_temperature_from_logits on data/typed/valid.jsonl, receipt runs/20260928-092030-calibration-oev-base-td5.json",
+      "note": "fitted on the valid split only, eval-rules compliant; usable at inference as OEV(checkpoint, temperature=0.598)"
+    },
+    {
+      "metric": "ece",
+      "value": 0.0204,
+      "benchmark": "typed-decisions (temperature calibrated)",
+      "checkpoint": "oev-base-td5 with temperature 0.5981",
+      "params": "184M",
+      "eval": "temperature 0.5981 applied to the 2,000-decision test set, receipt runs/20260928-092030-calibration-oev-base-td5.json",
+      "note": "raw ECE 0.0938 drops to 0.0204, beating the published best calibrated single (rlcd-soup, 0.0279); accuracy is unchanged by monotone temperature scaling"
+    },
+    {
+      "metric": "ood_confident_answers",
+      "value": 0,
+      "benchmark": "wanli zero-shot + garbage inputs (student-r2b)",
+      "checkpoint": "student-r2b-oev-tiny",
+      "params": "184M",
+      "eval": "phase 3 OOD sweep, receipt runs/20260928-092113-ood-sweep-student-r2b.json",
+      "note": "0 of 800 WANLI answers and 0 of 6 garbage-input answers reach p >= 0.9; emotion: 14 of 800 confident, 1 confidently wrong. Quantifies the mild OOD overconfidence noted in the roadmap"
     }
   ]
 }
