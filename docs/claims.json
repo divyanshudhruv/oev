@@ -1,6 +1,6 @@
 {
   "model": "oev",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "hardware": "single Tesla T4, fp32 inference; CPU: laptop, 8 threads",
   "notes": "baselines quoted from published tables, not re-run; gamma 2.5 was selected on an evaluation sweep and is exploratory; gamma 1.2 provenance depends on a private session log",
   "warnings": [

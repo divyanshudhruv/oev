@@ -69,7 +69,7 @@ def _count_tokens(agent, state, questions):
                 ids, _, _ = pack(state, pq, agent.max_len)
             n += len(ids)
         return n
-    except Exception:
+    except Exception:  # noqa: BLE001 - probe: any tokenizer failure means the packer can't handle the state
         return None
 
 
@@ -100,7 +100,7 @@ def _probability_row(label, probability, winner=False):
 
 def _render_result(result, questions):
     if not isinstance(result, dict):
-        raise ValueError("model result must be an object")
+        raise TypeError("model result must be an object")
     payload = {}
     markdown = []
     for name, question in questions.items():
@@ -125,7 +125,7 @@ def _render_result(result, questions):
             markdown.append(_probability_row("no", 1.0 - probability, probability < 0.5))
             continue
         if not isinstance(value, dict) or not isinstance(value.get("probabilities"), dict):
-            raise ValueError(f"invalid result for question {name}")
+            raise TypeError(f"invalid result for question {name}")
         probabilities = {
             str(label): _safe_probability(probability)
             for label, probability in value["probabilities"].items()
@@ -267,7 +267,7 @@ def _decide(state, qs_json, t):
         return "", "", "", _error_markdown(err)
     try:
         payload, md, st = _run(state, questions, t)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - UI boundary: show any inference failure as an error card, never crash the Space
         return "", "", "", _error_markdown(f"{type(e).__name__}: {e}")
     coh = _coherence_md(_coherence(payload))
     if coh:
@@ -290,7 +290,7 @@ def _order_check(state, qs_json, t):
         rq = dict(q, options=rot)
         try:
             payload, _, _ = _run(state, {first: rq}, t)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - UI boundary: show any inference failure as an error card, never crash the Space
             return "", "", _error_markdown(f"{type(e).__name__}: {e}")
         pick = payload[first]["answer"]
         picks.append(pick)
@@ -313,9 +313,9 @@ with gr.Blocks(title="OEV") as demo:
         # ================= playground =================
         with gr.Tab("Playground"):
             with gr.Row(elem_id="presets"):
-                ex_agent = gr.Button("agent run", size="sm")
                 ex_support = gr.Button("support triage", size="sm")
                 ex_invoice = gr.Button("invoice check", size="sm")
+                ex_agent = gr.Button("agent run", size="sm")
                 ex_security = gr.Button("security alert", size="sm")
                 ex_play = gr.Button("text playground", size="sm")
 
@@ -400,8 +400,9 @@ with gr.Blocks(title="OEV") as demo:
 
     @ _gpu
     def _verify():
-        import io
         import contextlib
+        import io
+
         from oev import probes as pr
 
         a = load()

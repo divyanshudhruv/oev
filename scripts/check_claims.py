@@ -52,6 +52,35 @@ if unknown:
 else:
     print(f"claims cross-check OK ({len(accs)} accuracy-like numbers)")
 
+# headline numbers that must resolve to the same registered claim everywhere
+# they appear. a number here must (a) exist as an exact claim of that metric
+# and benchmark in claims.json and (b) appear in both README.md and
+# BENCHMARKS.md - edit claims.json and both docs together, or drop the pin.
+PINNED = {
+    "0.7705": ("accuracy", "typed-decisions", 0.7705),
+    "0.7760": ("accuracy", "typed-decisions", 0.776),
+    "0.8594": ("accuracy", "banking77", 0.8594),
+    "0.0583": ("ece", "banking77", 0.0583),
+    "0.8700": ("accuracy", "dair_emotion_zero_shot", 0.87),
+    "0.5750": ("accuracy", "anli_r1_finetuned", 0.575),
+    "22.2": ("latency_p50_ms", "typed-decisions", 22.2),
+}
+
+texts = {}
+for f in ["README.md", "BENCHMARKS.md"]:
+    with open(f, encoding="utf-8") as fh:
+        texts[f] = fh.read()
+for num, (metric, bench, value) in PINNED.items():
+    short = num.rstrip("0").rstrip(".") if "." in num else num
+    if not any(str(c["value"]) in (num, short) and c["metric"] == metric
+               and c["benchmark"].startswith(bench) for c in claims):
+        fail.append(f"pinned {num}: no matching {metric}/{bench} claim in claims.json")
+    for f, body in texts.items():
+        if num not in body and f".{short.lstrip('0')}" not in body:
+            fail.append(f"pinned {num}: missing from {f}")
+if not [x for x in fail if x.startswith("pinned")]:
+    print(f"semantic anchors OK ({len(PINNED)} headline numbers consistent across docs)")
+
 placeholders = [c for c in claims if "..." in c.get("eval", "")]
 if placeholders:
     fail.append(f"placeholder eval commands in claims.json: {len(placeholders)}")
