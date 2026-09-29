@@ -10,7 +10,8 @@ import onnxruntime as ort
 import torch
 from onnxruntime.capi.onnxruntime_pybind11_state import Fail
 
-from oev.evaluate import load_model, pack_question as question_for
+from oev.evaluate import load_model
+from oev.evaluate import pack_question as question_for
 from oev.tokenizer_hf import HFTokenPacker
 
 

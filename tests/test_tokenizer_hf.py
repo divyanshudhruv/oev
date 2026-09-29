@@ -1,10 +1,10 @@
-import pytest  # noqa: E402
+import pytest
 
 transformers = pytest.importorskip("transformers")
-from tokenizers import Tokenizer, models, pre_tokenizers  # noqa: E402
-from transformers import PreTrainedTokenizerFast  # noqa: E402
+from tokenizers import Tokenizer, models, pre_tokenizers
+from transformers import PreTrainedTokenizerFast
 
-from oev.tokenizer_hf import HFTokenPacker  # noqa: E402
+from oev.tokenizer_hf import HFTokenPacker
 
 
 @pytest.fixture(scope="module")

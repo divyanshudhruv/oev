@@ -8,7 +8,7 @@ from oev.calibrate import fit_temperature_from_logits
 from oev.dataset import OEVDataset, collate
 from oev.evaluate import ece, load_model, stack_ragged
 from oev.model import HFBackboneOEV
-from oev.tokenizer_hf import HFTokenPacker  # noqa: F401 - re-exported for CLI parity with the char model
+from oev.tokenizer_hf import HFTokenPacker
 
 
 def evaluate_benchmark(checkpoint, data_dir, calibrate=True, batch_size=64):

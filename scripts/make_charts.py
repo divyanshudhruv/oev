@@ -7,9 +7,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import chartstyle as cs
 import chartdata
-
+import chartstyle as cs
 import matplotlib
 
 matplotlib.use("Agg")

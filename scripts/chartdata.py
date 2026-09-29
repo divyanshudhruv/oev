@@ -139,7 +139,8 @@ def _fmt(value):
 def load():
     # cross-check registered chart numbers against docs/claims.json. Fails
     # loudly when BENCHMARKS/claims and the charts would diverge.
-    claims = json.load(open(_REPO / "docs" / "claims.json", encoding="utf-8"))["claims"]
+    with open(_REPO / "docs" / "claims.json", encoding="utf-8") as fh:
+        claims = json.load(fh)["claims"]
     indexed = {}
     for c in claims:
         key = (c["metric"], c["benchmark"], _fmt(c["value"]))

@@ -5,8 +5,8 @@ authors:
   - given-names: Divyanshu
     family-names: Dhruv
     github: divyanshudhruv
-version: 0.3.0
-date-released: "2026-09-26"
+version: 0.4.0
+date-released: "2026-09-29"
 license: Apache-2.0
 repository-code: "https://github.com/divyanshudhruv/oev"
 url: "https://github.com/divyanshudhruv/oev"

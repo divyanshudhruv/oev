@@ -27,7 +27,7 @@ jobs:
 
       - name: Ruff
         run: |
-          pip install ruff
+          pip install ruff==0.16.9
           ruff check oev scripts tests
 
       - name: Dependency audit (pip-audit, known CVEs fail the build)

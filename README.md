@@ -251,26 +251,6 @@ python -m pytest -q
 
 `train_colab.ipynb` runs the entire pipeline end to end. Evaluation rules and scope notes are in [BENCHMARKS.md](BENCHMARKS.md).
 
-## Reading the numbers
-
-<p align="center" style="margin: 24px 0;">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/calibration_dark.png" />
-  <img src="https://raw.githubusercontent.com/divyanshudhruv/oev/main/assets/calibration.png" alt="Typed-decisions ECE: temperature scaling fitted on valid only sets a new project best of 0.0204" width="70%" />
-</picture>
-</p>
-
-- Each benchmark number comes from a checkpoint fine-tuned on that benchmark's train split, matching the baselines' published protocol
-- Zero-shot emotion is a separate head-to-head win: round-3 student `0.8650` vs laya `0.595` (both zero-shot; the shipped r2b student scored `0.6505`)
-- The `0.7760` headline is a 4-checkpoint ensemble; the best single file is `0.7705`
-- The Banking77 single-file best is the 4-member soup at `0.8594`; `0.8584` is the previous 3-member soup, `0.8403` a historical re-tune
-- WANLI reaches `0.5690` through the ANLI R1 fine-tune (best NLI transfer in the project); ANLI R1 in-domain lands at `0.5750` against the `0.333` chance floor, and the NLI checkpoints' OOD overconfidence is the open cost (calibration pending)
-- The round-4 generalist cut the gap to the typed specialist to `7.2` pts (`0.6985` vs `0.7705`, from `12.3` at r2b) and lifted zero-shot emotion to `0.8700`; its 5 distillation fix domains target the live head-to-head failure modes (Banking77 takes a stated `1.8`-pt trade for them)
-- CPU: torch fp32 measured `447 ms` p50 at release; on the current workstation the same fp32 model runs `252.5 ms` and the ONNX INT8 build `54.2 ms` (8 threads, `scripts/bench_latency.py`). Headline timings are GPU
-- ECE asks: when the model says `0.9`, is it right `90%` of the time. Coverage is the operational read: what share of traffic can be automated at a given error budget (the Banking77 soup covers `76%` at `5%` error). Gate on the distributions, not the confidence field
-- Temperature `0.598` (fitted on the valid split only) cuts typed-decisions ECE from `0.0938` to `0.0204`, the best calibrated single in the project; pass it as `OEV(checkpoint, temperature=0.598)`. fp16 eval holds accuracy exactly (0.7705 both dtypes)
-- English only
-
 ## Roadmap
 
 - [x] Round 3 distillation: 3 teachers, 5 domains including NLI - typed `0.6895` (r2b `0.6480`), Banking77 `0.8370`, emotion zero-shot `0.8650`, checkpoint on the Hub

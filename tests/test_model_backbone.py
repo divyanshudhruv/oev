@@ -1,10 +1,10 @@
-import pytest  # noqa: E402
+import pytest
 
 transformers = pytest.importorskip("transformers")
-import torch  # noqa: E402
-from transformers import AutoConfig, AutoModel  # noqa: E402
+import torch
+from transformers import AutoConfig, AutoModel
 
-from oev.model import HFBackboneOEV  # noqa: E402
+from oev.model import HFBackboneOEV
 
 
 @pytest.fixture(scope="module")

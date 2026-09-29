@@ -2,7 +2,7 @@
 
 Notable changes to OEV. Versions follow [SemVer](https://semver.org/).
 
-## Unreleased
+## 0.4.0 - 2026-09-29
 
 ### Added
 
