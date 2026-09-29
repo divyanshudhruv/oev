@@ -24,7 +24,10 @@ Conventions for AI agents and humans working in this repository.
 - `docs/` - private working notes (gitignored); only `claims.json` is
   tracked, mapping every published number to its checkpoint and eval command
 - `assets/` - README charts and logo; regenerate with
-  `python scripts/make_charts.py` rather than editing PNGs by hand
+  `python scripts/make_charts.py` rather than editing PNGs by hand.
+  REMINDER: `banner_typed.png` must always exist here; HF_MODEL_CARD.md
+  embeds it by exact filename (underscore, not hyphen). If it is ever
+  missing, restore it before any push or the model card image breaks
 - `ROADMAP.md` - forward work list, linked from the README roadmap section
 
 ## Rules

@@ -2,6 +2,43 @@
 
 Notable changes to OEV. Versions follow [SemVer](https://semver.org/).
 
+## Unreleased
+
+### Added
+
+- Round-3 distilled generalist published as `student-r3-oev-tiny.pt` (sha256
+  `1871dbbb...84aa3` on the Hub): typed `0.6895` (r2b `0.6480`), Banking77
+  `0.8370` (r2b `0.7964`), emotion zero-shot `0.8650` (r2b `0.6505`). Three
+  teachers, 5 domains incl. MNLI, pure KL, 27,000 cases, Kaggle T4
+- ANLI R1 fine-tune of the rebuilt specialist published as
+  `anli-r1-oev-tiny.pt`: first adversarial NLI row, `0.5750` in-domain
+  (chance `0.333`), WANLI zero-shot `0.5690`, the project's best NLI transfer.
+  Known cost: OOD overconfidence (ECE `0.2308`), calibration pending
+- Round-4 distilled generalist published as `student-r4-oev-tiny.pt`
+  (sha256 `a43869a3...03ce2b` on the Hub): typed `0.6985` (r3 `0.6895`),
+  emotion zero-shot `0.8700` (r3 `0.8650`), Banking77 `0.8188` (r3 `0.8370`,
+  stated trade for the 5 head-to-head fix domains now in training)
+
+### Fixed
+
+- Banking77 validation split: the converter carved the un-shuffled last 1,000
+  train rows as valid, and the source csv sorts by intent, so valid held only
+  8 of 77 intents (938 of 1,000 valid questions had intents unseen in train).
+  Now shuffled with a fixed seed before carving and gated to span the intent
+  space. Test numbers, including every published Banking77 figure, were never
+  affected
+- `mnli-oev-tiny.pt` on the Hub replaced: it held multi-task weights from an
+  upload mistake; it is now the rebuilt MNLI specialist (WANLI `0.5265`,
+  sha256 `ff9095...ba5`). The lost original scored `0.5645`
+- ECE `0.0279` claim attribution corrected to `oev-base-rlcd-soup`, matching
+  the BENCHMARKS table and the model card
+
+### Changed
+
+- `oev/convert_banking77.py` shuffle + intent-coverage gate
+- Charts: zeroshot and transfer panels updated for the ANLI checkpoint and the
+  round-3 emotion zero-shot; registry cross-checks extended
+
 ## 0.3.0
 
 ### Added

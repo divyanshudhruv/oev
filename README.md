@@ -9,7 +9,7 @@
 
 OEV is a small (`184M params`) neural decision engine. Instead of generating text, it scores answer options directly. The state, the question, and every option are packed into one sequence. One forward pass returns a calibrated probability distribution.
 
-The single `184M` model scores `0.7705` on typed-decisions, slightly above laya's published `0.766` from a `421M` checkpoint. An ensemble of four `184M` checkpoints reaches `0.7760`, the `highest` reported result, and a single Banking77 soup checkpoint reaches `0.8584` (best ECE `0.0595` from the 3-checkpoint ensemble). Jev leads only on Banking77 (0.870).
+The single `184M` model scores `0.7705` on typed-decisions, slightly above laya's published `0.766` from a `421M` checkpoint. An ensemble of four `184M` checkpoints reaches `0.7760`, the `highest` reported result, and a single Banking77 soup checkpoint reaches `0.8594` (best ECE `0.0583` from the 4-checkpoint ensemble). Jev leads only on Banking77 (0.870).
 
 [![Hugging Face Model](https://img.shields.io/badge/%F0%9F%A4%97%20Model-divyanshudhruv%2Foev--typed-blue)](https://huggingface.co/divyanshudhruv/oev-typed)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
@@ -48,13 +48,13 @@ The single `184M` model scores `0.7705` on typed-decisions, slightly above laya'
 | claim                 | result                                                                                                  |
 | --------------------- | ------------------------------------------------------------------------------------------------------- |
 | best accuracy         | **0.7705** single model, **0.7760** ensemble - typed-decisions (laya 0.766 from 421M)                   |
-| high-cardinality      | **0.8584** Banking77, one soup checkpoint (`ECE 0.0595` best ensemble; laya 0.425)                      |
+| high-cardinality      | **0.8594** Banking77, one soup checkpoint (`ECE 0.0583` best ensemble; laya 0.425)                      |
 | speed                 | **22.2 ms** single question (laya 32.8-39.5 ms published range)                                         |
 | size                  | **184M** params, 0.44x laya                                                                             |
 | weights & checkpoints | Apache 2.0 - [huggingface.co/divyanshudhruv/oev-typed](https://huggingface.co/divyanshudhruv/oev-typed) |
 
 - `22.2 ms` per question on a `T4` (GPU); on CPU the ONNX INT8 build runs at `54.2 ms` p50 on 8 threads (`228 MB` artifact, 3.2x smaller)
-- `0.8584` on 77-label `Banking77` from a single soup checkpoint (the 3-checkpoint ensemble still holds best ECE `0.0595`): each option is embedded as its own anchor with full tokens, so accuracy scales with label count (gap to Jev 1.16 pts)
+- `0.8594` on 77-label `Banking77` from a single soup checkpoint (the 4-checkpoint ensemble holds best ECE `0.0583`): each option is embedded as its own anchor with full tokens, so accuracy scales with label count (gap to Jev 1.06 pts)
 - `184M` params, `Apache 2.0` weights
 - Kev (0.8B / 4B) publishes no in-domain numbers on these datasets, so it is not in the tables; see [BENCHMARKS.md](BENCHMARKS.md) for the like-for-like comparison plan
 
@@ -110,14 +110,14 @@ If you need open-ended text, use an LLM. If you need many small, bounded decisio
 Fine-tuned on each benchmark's train split, following the same protocol as Laya's published runs. Selected results and evaluation notes are in [BENCHMARKS.md](BENCHMARKS.md).
 
 > [!WARNING]
-> Banking77 uses 77 OEV labels, while the published Jev figure is from a 72-label configuration. The `0.8584` and `0.870` values are not a controlled head-to-head comparison.
+> Banking77 uses 77 OEV labels, while the published Jev figure is from a 72-label configuration. The `0.8594` and `0.870` values are not a controlled head-to-head comparison.
 
 | benchmark       |                     OEV |  laya |   Jev | note                                                                  |
 | --------------- | ----------------------: | ----: | ----: | --------------------------------------------------------------------- |
 | typed-decisions |              **0.7760** | 0.766 | 0.727 | highest reported (ensemble); single model 0.7705                      |
-| Banking77       |              **0.8584** | 0.425 | 0.870 | 2x laya; gap to Jev 1.16 pts                                          |
+| Banking77       |              **0.8594** | 0.425 | 0.870 | 2x laya; gap to Jev 1.06 pts                                          |
 | AG News         |              **0.9489** | 0.950 | 0.910 | label-noise ceiling (~0.95)                                           |
-| DAIR Emotion    | **0.9300** (fine-tuned) | 0.595 | 0.480 | zero-shot: OEV student **`0.6505`** beats laya's `0.595` head-to-head |
+| DAIR Emotion    | **0.9300** (fine-tuned) | 0.595 | 0.480 | zero-shot: OEV round-3 student **`0.8650`** beats laya's `0.595` head-to-head |
 
 <p align="center" style="margin: 24px 0;">
 <picture>
@@ -261,11 +261,11 @@ python -m pytest -q
 </p>
 
 - Each benchmark number comes from a checkpoint fine-tuned on that benchmark's train split, matching the baselines' published protocol
-- Zero-shot emotion is a separate head-to-head win: shipped student `0.6505` vs laya `0.595` (both zero-shot)
+- Zero-shot emotion is a separate head-to-head win: round-3 student `0.8650` vs laya `0.595` (both zero-shot; the shipped r2b student scored `0.6505`)
 - The `0.7760` headline is a 4-checkpoint ensemble; the best single file is `0.7705`
-- The Banking77 single-file best is the soup at `0.8584`; `0.8403` is a historical re-tune, not the shipped artifact
-- Adversarial NLI (ANLI) stays near chance for now; WANLI reaches `0.5645` and an ANLI specialist is next on the roadmap
-- The shipped generalist trails the typed specialist (`0.6480` vs `0.7705`); closing that spread is round 4
+- The Banking77 single-file best is the 4-member soup at `0.8594`; `0.8584` is the previous 3-member soup, `0.8403` a historical re-tune
+- WANLI reaches `0.5690` through the ANLI R1 fine-tune (best NLI transfer in the project); ANLI R1 in-domain lands at `0.5750` against the `0.333` chance floor, and the NLI checkpoints' OOD overconfidence is the open cost (calibration pending)
+- The round-4 generalist cut the gap to the typed specialist to `7.2` pts (`0.6985` vs `0.7705`, from `12.3` at r2b) and lifted zero-shot emotion to `0.8700`; its 5 distillation fix domains target the live head-to-head failure modes (Banking77 takes a stated `1.8`-pt trade for them)
 - CPU: torch fp32 measured `447 ms` p50 at release; on the current workstation the same fp32 model runs `252.5 ms` and the ONNX INT8 build `54.2 ms` (8 threads, `scripts/bench_latency.py`). Headline timings are GPU
 - ECE asks: when the model says `0.9`, is it right `90%` of the time. Coverage is the operational read: what share of traffic can be automated at a given error budget (the Banking77 soup covers `76%` at `5%` error). Gate on the distributions, not the confidence field
 - Temperature `0.598` (fitted on the valid split only) cuts typed-decisions ECE from `0.0938` to `0.0204`, the best calibrated single in the project; pass it as `OEV(checkpoint, temperature=0.598)`. fp16 eval holds accuracy exactly (0.7705 both dtypes)
@@ -273,9 +273,11 @@ python -m pytest -q
 
 ## Roadmap
 
-- [ ] Round 3 distillation: 6 teachers, 5 domains including NLI
-- [ ] 4-member Banking77 ensemble: the live shot past `0.8584`
-- [ ] Round 4: one file near specialist numbers everywhere
+- [x] Round 3 distillation: 3 teachers, 5 domains including NLI - typed `0.6895` (r2b `0.6480`), Banking77 `0.8370`, emotion zero-shot `0.8650`, checkpoint on the Hub
+- [ ] Push Banking77 past Jev's `0.870`: soup4 landed `0.8594`; the lever is lineage diversity, data augmentation or distillation, not more warm-starts
+- [x] Round 4: 10-domain distill from the round-3 student - typed `0.6985`, emotion zero-shot `0.8700`, b77 `0.8188` (stated trade), 5 h2h fix domains in
+- [x] MNLI specialist rebuilt: WANLI zero-shot `0.5265` (lost original `0.5645`), Hub file fixed
+- [x] ANLI R1 fine-tune: first adversarial NLI row, `0.5750` in-domain (chance `0.333`), WANLI transfer up to `0.5690`
 - [x] INT8 / ONNX CPU deployment: `54.2 ms` p50 on 8 threads, `228 MB` artifact (`scripts/bench_latency.py`)
 - [ ] Multi-question shared-state encoding (one pass, many questions)
 - [ ] Robustness: reduce mild overconfidence on out-of-distribution inputs

@@ -11,7 +11,7 @@ tags:
 ---
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/divyanshudhruv/oev/refs/heads/main/assets/banner-typed.png" alt="OEV-typed banner" width="100%" />
+  <img src="https://raw.githubusercontent.com/divyanshudhruv/oev/refs/heads/main/assets/banner_typed.png" alt="OEV-typed banner" width="100%" />
 </p>
 
 A `184M`-parameter decision engine. State + typed questions in, calibrated probability distributions out, one forward pass, `22.2 ms` p50 on T4.
@@ -28,7 +28,8 @@ Fine-tuned on the benchmark's train split, same protocol as [laya-typed-decision
 | ---------------------------------------------------- | ---------: | -----------: | -----------: | -----------: | ---------------: |
 | Jev 1.13.0 (published)                               | closed API |        0.727 |        0.580 |        0.144 |     236-`276 ms` |
 | laya-typed-decisions (published)                     |       421M |        0.766 |        0.471 |        0.213 |   32.8-`39.5 ms` |
-| **OEV single (oev-base-td5)**                        | **`184M`** | **`0.7705`** |       0.6225 |       0.0938 |    **`22.2 ms`** || **OEV calibrated single (oev-base-rlcd-soup)**                       | **`184M`** |       0.7570 |       0.5854 | **`0.0279`** |    **`22.2 ms`** |
+| **OEV single (oev-base-td5)**                        | **`184M`** | **`0.7705`** |       0.6225 |       0.0938 |    **`22.2 ms`** |
+| **OEV calibrated single (oev-base-rlcd-soup)**       | **`184M`** |       0.7570 |       0.5854 | **`0.0279`** |    **`22.2 ms`** |
 | **OEV temperature-calibrated (oev-base-td5, T=0.598)**               | **`184M`** |       0.7705 |            - | **`0.0204`** |    **`22.2 ms`** |
 
 The temperature-calibrated row is the best calibrated single: temperature `0.598` fitted on the valid split only (receipt in the repo's `runs/`), accuracy unchanged by monotone scaling. Use it via `OEV(checkpoint, temperature=0.598)`.
@@ -41,7 +42,9 @@ Per workflow (ensemble): invoice `0.836`, customer service `0.804`, agent-trace 
 
 | file                        | what it is                                                                                                                                                                                                                     |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **student-r2b-oev-tiny.pt** | **distilled generalist - recommended default.** One model for everything: typed `0.6480`, Banking77 `0.7964`, emotion zero-shot `0.6505` (beats laya `0.595`), probes all `PASS`. Use `gamma 1.2` for calibrated probabilities |
+| **student-r3-oev-tiny.pt** | **distilled generalist - recommended default.** Round-3 pure-KL distill, one model for everything: typed `0.6895`, Banking77 `0.8370`, emotion zero-shot `0.8650` (beats laya `0.595` by +27) |
+| student-r4-oev-tiny.pt      | round-4 generalist, warm-started from r3 with 5 head-to-head fix domains mixed in: typed `0.6985`, emotion zero-shot `0.8700`, Banking77 `0.8188` (stated trade for the fixes). Distill underconfidence: apply gamma sharpening for calibrated probabilities |
+| student-r2b-oev-tiny.pt     | previous distilled generalist (round 2b): typed `0.6480`, Banking77 `0.7964`, emotion zero-shot `0.6505`. Superseded by the round-3 student |
 | oev-base-td5.pt             | typed-decisions specialist (0.7705; with temperature 0.598 it is the most calibrated single at ECE 0.0204) - best when you only need agent-decision scoring                                                                    |
 | oev-base-rlcd-soup.pt       | most calibrated single (ECE 0.0279). Prefer this one when the probabilities feed automated decisions.                                                                                                                          |
 | oev-base-rlcd.pt            | RLCD fine-tune (Brier-reward policy gradient against teacher distributions)                                                                                                                                                    |
@@ -49,8 +52,10 @@ Per workflow (ensemble): invoice `0.836`, customer service `0.804`, agent-trace 
 | b77-oev-tiny.pt             | Banking77 specialist (77-way intents) - see the Banking77 section below                                                                                                                                                        |
 | b77a-oev-tiny.pt            | Banking77 warm-start re-tune (0.8403 historical value) - for the b77 ensemble                                                                                                                                                  |
 | b77b-oev-tiny.pt            | Banking77 warm-start re-tune, second ensemble member                                                                                                                                                                           |
-| b77soup-oev-tiny.pt         | weight-average of the three b77 members - best single-file b77 accuracy (0.8584)                                                                                                                                               |
-| mnli-oev-tiny.pt            | placeholder - currently holds multi-task weights, NOT the MNLI specialist. The WANLI `0.5645` specialist was lost with its Colab session before download; a rebuild is on the roadmap. Do not use this file for NLI claims     |
+| b77soup-oev-tiny.pt         | weight-average of the three b77 members (0.8584)                                                                                                                                                                              |
+| b77soup4-oev-tiny.pt        | 4-member weight soup with a soup re-tune member - best single-file b77 accuracy (`0.8594`)                                                                                                                                     |
+| mnli-oev-tiny.pt            | MNLI specialist, WANLI zero-shot `0.5265` (rebuilt 2026-09-29 after the lost original scored `0.5645`). Warm-start for ANLI fine-tunes and NLI-domain distillation     |
+| anli-r1-oev-tiny.pt         | ANLI R1 fine-tune of the MNLI specialist: `0.5750` in-domain (chance `0.333`), WANLI zero-shot `0.5690` - the project's best NLI transfer. Overconfident OOD (ECE `0.2308`); calibrate before automated gating     |
 
 For the ensemble results, average the softmax probabilities of the members with equal weights: typed-decisions `0.7760` (four files), Banking77 `0.8529` with ECE `0.0595` (three files: `b77-oev-tiny.pt` + `b77a-oev-tiny.pt` + `b77b-oev-tiny.pt`).
 
@@ -62,7 +67,7 @@ from oev.evaluate import load_model
 from oev.tokenizer_hf import HFTokenPacker
 from huggingface_hub import hf_hub_download
 
-path = hf_hub_download("divyanshudhruv/oev-typed", "student-r2b-oev-tiny.pt")
+path = hf_hub_download("divyanshudhruv/oev-typed", "student-r3-oev-tiny.pt")
 model = load_model(path, "cuda")
 packer = HFTokenPacker(model.cfg["backbone"])
 
@@ -122,8 +127,10 @@ Fine-tuned checkpoints: `b77-oev-tiny.pt` plus two warm-started re-tunes (`b77a-
 | model                                                 | params   |     accuracy |          ECE |
 | ----------------------------------------------------- | -------- | -----------: | -----------: |
 | Jev (published)                                       | closed   |        0.870 |            - |
-| **OEV weight soup, one file (`b77soup-oev-tiny.pt`)** | **184M** | **`0.8584`** |     `0.0965` |
-| OEV ensemble (3 checkpoints)                          | 3 x 184M |     `0.8529` | **`0.0595`** |
+| **OEV weight soup, one file (`b77soup4-oev-tiny.pt`)** | **184M** | **`0.8594`** |     `0.1062` |
+| OEV weight soup (`b77soup-oev-tiny.pt`)               |    184M |     `0.8584` |     `0.0965` |
+| OEV 4-member ensemble                                 | 4 x 184M |     `0.8568` | **`0.0583`** |
+| OEV ensemble (3 checkpoints)                          | 3 x 184M |     `0.8529` |     `0.0595` |
 | OEV historical warm-start re-tune                     | 184M     |       0.8403 |       0.1905 |
 | OEV single (first release)                            | 184M     |       0.8303 |       0.1860 |
 | laya                                                  | 421M     |        0.425 |            - |

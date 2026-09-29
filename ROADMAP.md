@@ -4,13 +4,13 @@ Measured results go to [BENCHMARKS.md](BENCHMARKS.md). Done items are checked wi
 
 ## Near term
 
-- [ ] Round 3 distillation with 6 teachers and 5 domains, MNLI included. Pure-KL loss only, because round 2 already showed what gold-CE does to the student
-- [ ] Try the 4-member Banking77 ensemble. Soup plus re-tune plus both seeds is the most realistic shot at getting past `0.8584` toward Jev's `0.870`
-- [ ] Rebuild the MNLI specialist. It trained once, hit WANLI `0.5645`, and the Colab artifact was lost before download. The recipe works, it needs about 50 GPU minutes. (The Hub file `mnli-oev-tiny.pt` currently holds multi-task weights from an earlier upload mistake - do not use it for NLI)
+- [x] Round 3 distillation with 3 teachers and 5 domains, MNLI included. Pure-KL loss only, because round 2 already showed what gold-CE does to the student. Landed typed `0.6895` (r2b `0.6480`), Banking77 `0.8370` (r2b `0.7964`), emotion zero-shot `0.8650` (r2b `0.6505`); checkpoint published as `student-r3-oev-tiny.pt`
+- [x] Try the 4-member Banking77 ensemble. Landed `0.8594` (soup4, +0.10 over the 3-member soup); the 5-member attempt showed ensemble saturation, so past Jev's `0.870` needs a different lever (lineage diversity, data augmentation or distillation), not more warm-starts
+- [x] Rebuild the MNLI specialist. The rebuild landed WANLI `0.5265` (same recipe as the lost `0.5645` original; receipt in `runs/`), and the Hub file `mnli-oev-tiny.pt` now holds the real specialist instead of multi-task weights
 
 ## Model quality
 
-- [ ] Round 4 distillation: per-domain specialist teachers with balanced data. The point is depth. Right now the generalist scores `0.6480` on typed where the specialist hits `0.7705`. Training data to add, from the live head-to-head findings:
+- [x] Round 4 distillation: 10 domains, the live head-to-head fix sets mixed in. Landed the best generalist typed `0.6985` and emotion zero-shot `0.8700`, trading Banking77 to `0.8188` (the fix domains are not b77 classes). Published as `student-r4-oev-tiny.pt`. The fix-domain gains await a Kev head-to-head validation. Fix datasets that fed it:
   - [ ] invoices and billing words appearing in technical contexts (the model hears "invoice" and ignores the 500 error)
   - [ ] multi-issue tickets with a "both" option, so two problems in one message stop collapsing to the first noun
   - [ ] benign security logins next to real incidents, to kill the alert-everything lean
@@ -18,7 +18,7 @@ Measured results go to [BENCHMARKS.md](BENCHMARKS.md). Done items are checked wi
   - [ ] trace pairs where the only difference is runtime, one alerting and one silent, so latency stops being invisible
   - [ ] a head-consistency term so "approve" never pairs with "clear mismatch"
 - [ ] Bring coherence back up. Distillation traded decision conservatism for breadth, so the student scores `3/5` on the five decision-coherence scenarios where the teacher scores `4/5`. A conservative-decision term in the loss should close that
-- [ ] Fine-tune on ANLI R1's train split. WANLI transfer worked, adversarial splits are a different animal, and a fine-tuned row would tell us how far it goes
+- [x] Fine-tune on ANLI R1's train split. Landed `0.5750` in-domain (chance `0.333`) warm-started from the rebuilt specialist, and the adversarial tune lifted WANLI transfer to `0.5690` (from `0.5265`). OOD overconfidence (conf-err `0.1290`) is the open cost
 - [ ] Train more specialists for guardrails, moderation and RAG filtering
 
 ## Inference
