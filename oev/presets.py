@@ -1,22 +1,11 @@
-"""Ready-made question schemas for common workflows.
-
-Typed question sets for common workflows, ready to import. Instead of
-hand-writing questions for triage or safety checks, import a preset and
-pass your state to `decide`. Every preset is plain data, edit freely.
-
-Usage:
-    from oev.infer import OEV
-    from oev.presets import triage_questions
-
-    agent = OEV("checkpoints_td5/oev-tiny.pt")
-    result = agent.decide({"message": "My payment failed twice"}, triage_questions())
-"""
+# Ready-made question schemas for common workflows. Plain data: import one,
+# pass your state to agent.decide, edit freely.
 
 
 
 
 def triage_questions():
-    """Support ticket triage: intent, urgency, frustration, churn."""
+    # support ticket triage: intent, urgency, frustration, churn
     return {
         "department": {
             "type": "choice",
@@ -40,7 +29,7 @@ def triage_questions():
 
 
 def guard_questions():
-    """Prompt guardrails: jailbreaks, injections, leaks."""
+    # prompt guardrails: jailbreaks, injections, leaks
     return {
         "jailbreak": {
             "type": "noul",
@@ -58,7 +47,7 @@ def guard_questions():
 
 
 def moderation_questions():
-    """Content safety: toxicity, harassment, threats."""
+    # content safety: toxicity, harassment, threats
     return {
         "toxic": {
             "type": "noul",
@@ -76,7 +65,7 @@ def moderation_questions():
 
 
 def router_questions():
-    """Route a request between small and frontier models."""
+    # route a request between small and frontier models
     return {
         "complexity": {
             "type": "score",
@@ -96,18 +85,9 @@ def router_questions():
 
 
 def gate(result, threshold=0.85):
-    """Confidence-gating recipe: returns (name, payload, confident).
-
-    Because OEV's probabilities are trained with proper scoring rules against
-    calibrated targets, confidence is statistically meaningful, so automate when
-    confident, escalate when not:
-
-        for name, payload, confident in gate(result, threshold=0.85):
-            if confident:
-                automate(name, payload)
-            else:
-                escalate(name, payload)
-    """
+    # (name, payload, confident) per answer: automate when confident,
+    # escalate when not. Confidence is trained against calibrated targets,
+    # so the threshold is statistically meaningful.
     out = []
     for name, payload in result.items():
         if isinstance(payload, dict):
@@ -124,8 +104,7 @@ def gate(result, threshold=0.85):
 
 
 def decide(agent, state, questions, device=None):
-    """Convenience wrapper: batch every question for one state in the fewest
-    forward passes and return answers plus per-question confidence."""
+    # answers plus per-question confidence and an overall automatable flag
     answers = agent.decide(state, questions)
     gated = dict(gate(answers))
     return {

@@ -1,14 +1,5 @@
-"""Extended benchmark metrics for typed-decisions: soft accuracy, Brier score,
-score MAE, and per-workflow / per-primitive breakdowns.
-
-Mirrors the metric set published in Laya's typed-decisions table so results
-are directly comparable column-for-column.
-
-Usage:
-    python -m oev.benchmark_ext --checkpoint CKPT --data-dir data/typed
-Ensembles:
-    python -m oev.benchmark_ext --ckpts a.pt,b.pt,c.pt --data-dir data/typed
-"""
+"""Extended benchmark metrics for typed-decisions, mirroring Laya's published
+table column-for-column (soft accuracy, Brier, ECE, coverage, AURC)."""
 
 import argparse
 import json
@@ -46,7 +37,7 @@ def ece_metric(confs, corrs, n_bins=10):
 
 
 def confident_error_rate(confs, corrs, threshold=0.9):
-    """Fraction of all answers that are wrong despite p >= threshold."""
+    # wrong answers with p >= threshold, as a fraction of ALL answers
     errs = [(c, o) for c, o in zip(confs, corrs) if c >= threshold]
     if not errs:
         return 0.0, 0
@@ -54,8 +45,7 @@ def confident_error_rate(confs, corrs, threshold=0.9):
 
 
 def coverage_at_error_budget(confs, corrs, budget=0.05):
-    """Largest fraction of questions automatable (answer taken when p >= t)
-    while keeping the error rate on automated answers <= budget."""
+    # largest fraction automatable (p >= t) while automated error stays <= budget
     best = 0.0
     for t in sorted(set(confs), reverse=True):
         kept = [(c, o) for c, o in zip(confs, corrs) if c >= t]
@@ -69,8 +59,7 @@ def coverage_at_error_budget(confs, corrs, budget=0.05):
 
 
 def aurc(confs, corrs):
-    """Area under the risk-coverage curve: sort by confidence desc,
-    risk at coverage c is the error rate of the top-c fraction. Lower is better."""
+    # area under the risk-coverage curve, lower is better
     pairs = sorted(zip(confs, corrs), key=lambda x: -x[0])
     n = len(pairs)
     cum_err = 0.0
@@ -82,8 +71,8 @@ def aurc(confs, corrs):
 
 
 def resolve_device(device="cuda", allow_cpu=False):
-    """Pin the eval device. A missing GPU fails loudly unless allow_cpu is set,
-    so CPU numbers can never pass for GPU numbers in a published report."""
+    # fail loudly on a missing GPU unless allow_cpu: CPU numbers must never
+    # pass for GPU numbers in a published report
     if device.startswith("cuda") and not torch.cuda.is_available():
         if allow_cpu:
             print("WARNING: CUDA unavailable; running on CPU (--allow-cpu). "
@@ -96,8 +85,8 @@ def resolve_device(device="cuda", allow_cpu=False):
 
 
 def write_manifest(out_dir, checkpoint, data_dir, device, result):
-    """Persist a per-run receipt: exact inputs, resolved device, metrics and
-    raw timing samples. Published numbers should be reproducible from these."""
+    # per-run receipt: exact inputs, resolved device, metrics. published
+    # numbers should be reproducible from these
     os.makedirs(out_dir, exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     name = os.path.splitext(os.path.basename(str(checkpoint)))[0] or "ensemble"
@@ -231,9 +220,8 @@ def evaluate_metrics(checkpoints, data_dir, device="cuda", gamma=1.0, latency=Fa
 
 
 def permute_flip_rate(model, packer, rows, device, n_perm=6, max_cases=300):
-    """How much does answer identity depend on option order? For choice
-    questions, rotate the options n_perm times and count how often the
-    argmax changes relative to the identity order. Lower is better."""
+    # rotate choice options n_perm times, count argmax changes vs the
+    # identity order. lower is better
 
     cases = []
     for r in rows:
@@ -272,8 +260,8 @@ def permute_flip_rate(model, packer, rows, device, n_perm=6, max_cases=300):
 
 
 def measure_latency(model, packer, rows, device, n_single=50, n_batch=200, batch_size=32):
-    """Latency protocol: p50 single-question and batched per-question throughput.
-    Model must already be on `device` and warmed up by at least a few calls."""
+    # p50 single-question and batched per-question ms; model must already be
+    # on the device and warmed up
     import time
 
     qs = [(r["state"], q) for r in rows for q in r["questions"]]

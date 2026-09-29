@@ -48,9 +48,8 @@ def rotate(q, rng, p):
 
 
 def load_cases(data_dir, domains, max_cases, seed, per_domain=0):
-    """Load train cases; with per_domain>0, balance every domain to that count
-    (big domains sampled down, small domains repeated -- rotation augmentation
-    makes repeats non-identical)."""
+    # with per_domain>0, balance every domain to that count: big domains
+    # sampled down, small ones repeated (rotation makes repeats non-identical)
     rng = random.Random(seed)
     pools = []
     for d in domains:

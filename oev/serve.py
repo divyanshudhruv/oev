@@ -1,41 +1,10 @@
 """Minimal HTTP server for OEV decisions.
 
-Usage:
-    pip install fastapi uvicorn
     python -m oev.serve --checkpoint checkpoints_td5/oev-tiny.pt --port 8000
+    python -m oev.serve --onnx exported.int8.onnx
 
-The per-question projection (name/type/instructions/options/answer) is shared
-with the eval and distill paths via oev.evaluate.pack_question; this module
-adds its own schema normalization and answer defaulting on top of it.
-
-    # native schema:
-    curl -X POST localhost:8000/decide -H "Content-Type: application/json" -d '{
-      "state": "We were charged twice for the same order.",
-      "questions": {
-        "department": {"type": "choice", "options": ["billing", "technical", "other"],
-                       "instructions": "Which department?"},
-        "refund_requested": {"type": "noul"}
-      }
-    }'
-
-    # Jev-compatible schema (drop-in for existing TypeSafe clients):
-    # questions accept the same "criteria" shape laya and Kev serve.
-    curl -X POST localhost:8000/v1/systemone -H "Content-Type: application/json" -d '{
-      "model": "oev",
-      "state": "We were charged twice for the same order.",
-      "questions": {
-        "department": {"type": "choice", "instructions": "Which department?",
-                       "criteria": {"billing": "payments and refunds", "technical": "bugs and outages"}},
-        "refund_requested": {"type": "noul", "instructions": "Does the user request a refund?"}
-      }
-    }'
-
-    # ONNX INT8 backend: torch-free process, smaller runtime, same endpoints.
-    # Pass the export from scripts/export_onnx.py plus the packing config
-    # (defaults match the td5 release: deberta-v3-base packed at max_len 768).
-    #   python -m oev.serve --onnx checkpoints_export/td5-oev-tiny.int8.onnx
-    #   python -m oev.serve --onnx router.int8.onnx --max-len 768 \
-    #     --backbone microsoft/deberta-v3-base
+/decide speaks the native schema; /v1/systemone accepts the Jev/TypeSafe
+criteria schema, so existing clients work by changing baseUrl.
 """
 
 import argparse
@@ -90,7 +59,7 @@ class SystemOneRequest(BaseModel):
 
 
 def _jevify(answers: dict) -> dict:
-    """Map OEV answers onto the Jev System One response shape."""
+    # map OEV answers onto the Jev System One response shape
     out = {}
     for name, a in answers.items():
         if isinstance(a, dict) and "probabilities" in a:
@@ -108,7 +77,7 @@ def _jevify(answers: dict) -> dict:
 
 
 def _validate_jev_questions(questions: dict) -> str | None:
-    """Return an error message for questions that do not match the Jev schema."""
+    # return an error string for anything the Jev schema does not allow
     for name, question in questions.items():
         if not isinstance(question, dict):
             return f"question {name} must be an object"
@@ -128,7 +97,7 @@ def _validate_jev_questions(questions: dict) -> str | None:
 
 @app.post("/v1/systemone")
 def systemone(req: SystemOneRequest):
-    """Jev-compatible endpoint: existing TypeSafe clients work by changing baseUrl."""
+    # drop-in for TypeSafe clients: same request/response shape as Jev
     if agent is None:
         raise HTTPException(status_code=503, detail="no checkpoint loaded - run oev-serve --checkpoint ...")
     error = _validate_jev_questions(req.questions)
@@ -237,7 +206,7 @@ class OnnxBackend:
 
 
 def _resolve_checkpoint(spec: str) -> str:
-    """Accept a local path or a Hugging Face id (repo/filename)."""
+    # accept a local path or a Hugging Face id (repo/filename)
     if "/" not in spec or os.path.exists(spec):
         return spec
     from huggingface_hub import hf_hub_download

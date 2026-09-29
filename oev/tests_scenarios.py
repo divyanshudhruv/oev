@@ -1,11 +1,7 @@
 """5 agent-trace scenarios for the fair TESTS.md rerun.
 
-Fair conditions: mt checkpoint (broadest training), temperature 1.0,
-coherence scored across fields (do action/risk/needs_review tell one story?).
-
-Each scenario: (name, state, questions, expected_story).
-expected_story is plain language - score by checking whether the top answers
-compose into it. The FIRST scenario is the original TESTS.md case.
+(name, state, questions, expected_story) per scenario; expected_story is
+plain language scored by whether the top answers compose into it.
 """
 
 SHARED_QS = {

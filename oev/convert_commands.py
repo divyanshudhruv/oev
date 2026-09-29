@@ -1,17 +1,6 @@
-"""Synthetic command-intent dataset: the OEV Live router specialist.
+"""Synthetic command-intent dataset for the router specialist (seeded, no download).
 
-Generates voice-command transcripts labeled with an intent choice question and
-a completeness noul question. The completeness signal is what powers the
-observe / prefetch / commit pipeline: a partial transcript ("open spotify and
-play...") is intent=unknown or low-confidence intent with complete=no, while a
-finished command is complete=yes. A checkpoint fine-tuned on this split becomes
-the decision model for the real-time command router demo.
-
-Run:
-    python -m oev.convert_commands             # writes data/commands/{train,valid,test}.jsonl
-    python -m oev.benchmark_ext --checkpoint <router.pt> --data-dir data/commands
-
-The data is fully synthetic (seeded, reproducible); no download required.
+    python -m oev.convert_commands
 """
 import json
 import os
@@ -103,10 +92,9 @@ def _case(i, state, intent, complete, prefix):
 
 
 def generate(n, seed, prefix):
-    """Balanced generation: intent classes get equal quotas; within each class
-    the full/partial/trigger/chat mix teaches the observe/prefetch/commit split.
-    Repeats (unavoidable for small pools like apps) are re-randomized instead of
-    being dropped, so a class is never starved by dedupe."""
+    # balanced: equal intent quotas; the full/partial/trigger/chat mix inside
+    # each class teaches the finished-vs-still-speaking split. repeats are
+    # re-randomized rather than dropped so no class is starved by dedupe.
     rng = random.Random(seed)
     # one slot per case, cycling intent classes so every class gets n/len(INTENTS)
     slots = [INTENTS[i % len(INTENTS)] for i in range(n)]

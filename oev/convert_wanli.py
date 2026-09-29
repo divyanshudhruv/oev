@@ -1,12 +1,6 @@
-"""Convert the WANLI out-of-domain test split to OEV choice-question format.
+"""Convert the WANLI OOD test split for zero-shot eval only.
 
-Zero-shot evaluation only: a checkpoint that never saw WANLI (td5, b77
-specialists) is scored on natural-language-inference labels it must
-transfer to. WANLI classes (from the dataset schema): entailment,
-neutral, contradiction.
-
-    python -m oev.convert_wanli          # writes data/wanli/test.jsonl
-    python -m oev.benchmark_ext --checkpoint checkpoints_td5/oev-tiny.pt --data-dir data/wanli
+    python -m oev.convert_wanli
 """
 import json
 import os

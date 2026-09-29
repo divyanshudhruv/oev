@@ -11,22 +11,13 @@ from oev.tokenizer_hf import HFTokenPacker
 
 
 def brier(probs, target):
-    """Mean Brier score between predicted and reference distributions (lower is better)."""
+    # mean Brier score vs the reference distributions (lower is better)
     return ((probs - target) ** 2).sum(-1).mean()
 
 
 def rlcd_step(model, batch, device, opt, scaler, alpha=0.5):
-    """One RLCD update.
-
-    Phase 1 (imitation anchor): soft cross-entropy against the teacher's
-    distribution, which keeps the model from drifting off the teacher entirely.
-    Phase 2 (Brier improvement): evaluate the Brier score of the model's own
-    predicted distribution against the teacher's reference; treat (1 - Brier)
-    as the reward and follow its gradient (REINFORCE-style, on the argmax
-    path the model actually commits to).
-
-    alpha blends the two losses.
-    """
+    # one RLCD update: alpha-blended imitation anchor on the teacher's soft
+    # targets, plus a Brier-reward REINFORCE step on the argmax path
     batch = {k: v.to(device) if torch.is_tensor(v) else v for k, v in batch.items()}
     with torch.autocast(device_type=device, dtype=torch.float16, enabled=scaler is not None and device == "cuda"):
         logits = model(batch["ids"], batch["pad_mask"], batch["anchor_pos"]) + batch["logits_mask"]

@@ -9,14 +9,9 @@ from oev.tokenizer_hf import HFTokenPacker
 
 
 def normalize_question(name, q):
-    """Accept either question schema and return an OEV-schema copy.
-
-    Native schema: choice uses a bare "options" list, score uses "levels".
-    Jev / TypeSafe schema: choice and noul carry "criteria" as a map of
-    option name -> description, score carries "criteria" as a list of level
-    labels. Descriptions are ignored (OEV was trained on bare options); the
-    option names become the options. Native keys win when both are present.
-    """
+    # accept either schema: native (options/levels) or Jev/TypeSafe
+    # (criteria maps/lists). descriptions are ignored, option names become
+    # the options, native keys win when both are present.
     q = dict(q)
     criteria = q.get("criteria")
     if q.get("type") == "choice" and "options" not in q:

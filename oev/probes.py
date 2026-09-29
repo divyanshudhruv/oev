@@ -1,26 +1,6 @@
-"""Architecture verification probes for the packed-sequence design.
-
-Three checks, answerable with any checkpoint on CPU or GPU:
-
-isolation     a secret is placed in question A's instructions; question B
-              (the probe) asks which code was mentioned. If the packed
-              sequence leaks between questions, the probe can read the
-              secret and the leak probability rises above chance.
-
-forgery       adversarial option text embeds anchor-like tokens and
-              delimiter-style strings. The model must still return a
-              distribution over exactly the options it was given - the
-              number of scored anchors must not change and the forged
-              option must not vanish or duplicate.
-
-order         option-order sensitivity: rotate a choice question's options
-              and report how often the argmax lands on a different option.
-              (Same measurement as benchmark_ext --permute, exposed here
-              for arbitrary states.)
-
-Usage:
-    python -m oev.probes --checkpoint checkpoints_td5/oev-tiny.pt
-"""
+# Architecture verification probes for the packed-sequence design.
+# isolation: cross-question leak. forgery: anchor spoofing. order: option
+# rotation stability. Run: python -m oev.probes --checkpoint CKPT
 
 import argparse
 
@@ -63,8 +43,8 @@ def _predict(model, packer, state, question, device):
 
 
 def isolation(model, packer, device, repeats=3):
-    """Mean probability the probe assigns to a secret that lives only in a
-    sibling question's instructions. Chance = 1 / n_choices."""
+    # mean p(secret) on a probe whose answer lives only in a sibling
+    # question's instructions; chance = 1 / n_choices
     options = SECRETS + DECOYS + ["none"]
     chance = 1 / len(options)
     leak_probs = []
@@ -100,8 +80,8 @@ def isolation(model, packer, device, repeats=3):
 
 
 def forgery(model, packer, device):
-    """Anchor-token and delimiter forgery: the head must score exactly one
-    anchor per option regardless of what the option text contains."""
+    # the head must score exactly one anchor per option no matter what the
+    # option text contains (anchor tokens, delimiters, json)
     anchor_token = packer.tok.convert_ids_to_tokens([packer.anchor_id])[0]
     cases = [
         ("clean", ["billing", "technical", "other"]),
@@ -133,7 +113,7 @@ def forgery(model, packer, device):
 
 
 def order(model, packer, device, rotations=6, max_cases=50):
-    """Argmax stability under cyclic option rotation."""
+    # argmax stability under cyclic option rotation
     cases = [
         ("We were charged twice for the same order.",
          ["billing", "technical", "sales", "other"]),

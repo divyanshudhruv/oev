@@ -1,7 +1,4 @@
-"""Weight-average (soup) multiple warm-started checkpoints into one.
-
-Works because the inputs share a loss basin (warm-started from the same
-parent). Run on checkpoints that fine-tuned from a common init:
+"""Weight-average checkpoints that share a loss basin (same warm-start parent).
 
     python -m oev.soup --checkpoints a.pt,b.pt,c.pt --out soup.pt
 """

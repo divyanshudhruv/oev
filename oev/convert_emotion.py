@@ -1,11 +1,6 @@
-"""Convert the DAIR Emotion test split to OEV choice-question format.
+"""Convert the DAIR Emotion test split for zero-shot eval only.
 
-Zero-shot evaluation only: this writes the *test* set so a checkpoint that
-never saw emotion data (e.g. the typed-decisions specialist) can be scored
-without any fine-tuning. Run:
-
-    python -m oev.convert_emotion            # writes data/emotion/test.jsonl
-    python -m oev.benchmark_ext --checkpoint checkpoints_td5/oev-tiny.pt --data-dir data/emotion
+    python -m oev.convert_emotion
 """
 import json
 import os
