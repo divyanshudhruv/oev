@@ -6,5 +6,5 @@ transformers>=4.40
 sentencepiece
 protobuf
 huggingface_hub>=0.23
-gradio[oauth,mcp]==6.1.0
+gradio[oauth,mcp]==6.28.0
 spaces==0.51.3
