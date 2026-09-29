@@ -3,7 +3,7 @@ name: sync-space
 on:
   push:
     branches: [main]
-    paths: ["app.py", "requirements.txt", "pyproject.toml", "README.md", "HF_MODEL_CARD.md", "LICENSE", "oev/**", "space/**", ".github/workflows/space.yml"]
+    paths: ["app.py", "space_ui/**", "requirements.txt", "pyproject.toml", "README.md", "HF_MODEL_CARD.md", "LICENSE", "oev/**", "space/**", ".github/workflows/space.yml"]
   workflow_dispatch:
 
 permissions:
@@ -21,6 +21,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -q "huggingface_hub[cli]"
           hf upload divyanshudhruv/oev-demo app.py app.py --repo-type space
+          hf upload divyanshudhruv/oev-demo space_ui space_ui --repo-type space
           hf upload divyanshudhruv/oev-demo oev oev --repo-type space
           hf upload divyanshudhruv/oev-demo pyproject.toml pyproject.toml --repo-type space
           hf upload divyanshudhruv/oev-demo space/README.md README.md --repo-type space

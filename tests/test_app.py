@@ -98,7 +98,10 @@ def test_run_does_not_leave_temperature_changed_after_error(app_module, monkeypa
 
 def test_ui_uses_warm_dark_pastel_theme_and_normalizes_text(app_module):
     css = app_module.CSS
+    # the theme lives in space_ui/css.py now; read the shell + the css module
     source = Path(app_module.__file__).read_text(encoding="utf-8")
+    css_path = Path(app_module.__file__).parent / "space_ui" / "css.py"
+    source += css_path.read_text(encoding="utf-8")
     assert "primary_hue=\"orange\"" in source
     assert "body_background_fill=\"#171412\"" in source
     assert "body_text_color=\"#f5eee8\"" in source
