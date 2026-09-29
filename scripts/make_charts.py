@@ -1,21 +1,6 @@
-"""Generate README charts from measured OEV numbers into assets/.
+"""Generate the README charts (light + dark variants) into assets/.
 
-Benchmark numbers below are measured or published; decision primitive values are illustrative:
-- OEV: BENCHMARKS.md (this repo, measured)
-- laya: published by NandhaKishorM/laya
-- Jev: published by TypeSafe
-- Kev: published by jaredpalmer/kev (OOD-suite accuracies; its in-domain
-  rows are omitted where it publishes no comparable number)
-
-Colors, rcParams and light/dark text tones live in chartstyle.py (one place).
-All measured/published numbers live in chartdata.py, which cross-checks the
-registered OEV values against docs/claims.json at import time.
-
-Charts use transparent backgrounds so the surrounding page shows through.
-Light variants use dark text; dark variants use light text. Colors are
-pastel so nothing vibrates against either background.
-
-Light + dark variants are written for every chart.
+All numbers come from chartdata.py (claims-checked); style from chartstyle.py.
 """
 import os
 import sys
@@ -110,7 +95,7 @@ fig.savefig("assets/benchmarks.png", dpi=150, transparent=True)
 plt.close(fig)
 
 def _zs_annotate(ax, i, v, who, color, size=9.5):
-    """Label a zero-shot dot; spread labels horizontally when dots sit close."""
+    # label a zero-shot dot; spread labels when dots sit close
     row = [(u, val) for u, vals, _ in ZS_WHO if (val := vals[i]) is not None]
     row.sort(key=lambda t: t[1])
     near = [u for u, val in row if u != who and abs(val - v) < 0.1]

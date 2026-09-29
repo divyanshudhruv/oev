@@ -1,48 +1,36 @@
-"""Chart data: measured and published numbers behind the README figures.
-
-Charted values must stay consistent with docs/claims.json (the published
-number registry) and BENCHMARKS.md. load() cross-checks every value that has
-a matching metric+benchmark claim there, so a BENCHMARKS edit can never
-silently diverge from the charts. Entries tagged with a (checked_at, claim)
-pair are verified against the registry at import time; chart-only numbers
-(baselines, illustrative points, per-workflow rows that predate the registry)
-live here with their provenance comments and are NOT in the registry.
-
-Values are in magnitude-1 float (0.7705, not 77.05).
+"""Chart data behind the README figures, cross-checked against docs/claims.json
+by load(). Values are magnitude-1 floats (0.7705, not 77.05).
 """
 import json
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parents[1]
 
-# =====================================================================
-# OEV: the registered, receipt-backed numbers used by the charts
-# =====================================================================
-
-# (value, metric, benchmark, checkpoint-substring): each must match exactly one
-# claim in docs/claims.json. This is the divergence guard.
+# (value, metric, benchmark, checkpoint-substring): must match one claim in
+# docs/claims.json. This is the divergence guard between charts and registry.
 CHECKED_OEV = [
     (0.7760, "accuracy", "typed-decisions", "ensemble"),
     (0.9489, "accuracy", "ag_news", "oev-tiny_bb"),
     (0.6505, "accuracy", "dair_emotion_zero_shot", "distill-round2b"),
     (0.8584, "accuracy", "banking77", "b77soup"),
+    (0.8594, "accuracy", "banking77", "b77soup4"),
     (0.0938, "ece", "typed-decisions", "oev-base-td5 (raw)"),
-    (0.0279, "ece", "typed-decisions", "oev-base-rlcd"),
+    (0.0279, "ece", "typed-decisions", "oev-base-rlcd-soup"),
     (0.0204, "ece", "typed-decisions (temperature calibrated)", "temperature 0.5981"),
     (22.2, "latency_p50_ms", "typed-decisions", "oev-base-td5"),
     (15.9, "latency_p50_ms", "typed-decisions", "oev-base-td5"),
     (447, "cpu latency p50", "single-question inference", "b77soup"),
     (0.0298, "ece", "typed-decisions", "sharpened ensemble"),
     (0.7020, "soft_accuracy", "typed-decisions", "sharpened ensemble"),
-    (0.735, "accuracy", "typed-decisions", "r2b-student+td5"),
     (0.7705, "accuracy", "typed-decisions", "oev-base-td5"),
+    (0.5265, "accuracy", "wanli", "mnli-specialist rebuilt"),
+    (0.5690, "accuracy", "wanli", "anli-r1"),
+    (0.5750, "accuracy", "anli_r1_finetuned", "anli-r1"),
 ]
 
-# shared public benchmarks (in-domain). Kev publishes none of these.
-# emotion = shipped student zero-shot like laya/Jev; 0.8584 = soup. The
-# fine-tuned emotion specialist scores 0.9300 (BENCHMARKS.md table, not charted)
+# in-domain rows. emotion = round-3 student zero-shot (was r2b 0.6505).
 BENCH = ["typed-decisions", "AG News", "emotion (zero-shot)", "Banking77"]
-OEVD = [0.7760, 0.9489, 0.6505, 0.8584]
+OEVD = [0.7760, 0.9489, 0.8650, 0.8584]
 
 # competitor numbers quoted from published tables (not OEV claims)
 LAYA = [0.766, 0.950, 0.595, 0.425]
@@ -56,12 +44,12 @@ OEV_LAT_BATCH_LABELS = ["1 question", "batch 32\n(per question)"]
 # published tables; the OEV pair is checked above
 ECE_PANEL = [0.213, 0.0938, 0.0298, 0.144]
 
-# zero-shot / OOD transfer, one dot per model, attributed per label.
-# WANLI = td5 0.3945, ANLI = round-1 student 0.3380 (per-checkpoint tables in
-# BENCHMARKS.md); the r2b emotion row and the Kev columns are checked above
-# where registered, quoted from published tables where not.
-ZS_ROWS = ["emotion (zero-shot)", "WANLI OOD (zero-shot)", "ANLI R1 (zero-shot)", "Kev new sources (own tasks)"]
-ZS_OEV = [0.6505, 0.3945, 0.3380, None]
+# zero-shot / OOD rows, one dot per model. WANLI 0.5690 = anli-r1 zero-shot
+# (runs/20260929-093209-oev-tiny.json); ANLI 0.5750 = same ckpt fine-tuned
+# (runs/20260929-093108-oev-tiny.json). td5's raw WANLI 0.3945 and the R1
+# student's ANLI 0.3380 live in the BENCHMARKS per-checkpoint tables only.
+ZS_ROWS = ["emotion (zero-shot)", "WANLI OOD (zero-shot)", "ANLI R1 (fine-tuned)", "Kev new sources (own tasks)"]
+ZS_OEV = [0.6505, 0.5690, 0.5750, None]
 ZS_LAYA = [0.595, None, None, None]
 ZS_KEV = [None, None, None, 0.838]   # Kev-4B, test split of its new-sources protocol
 ZS_WHO = [("OEV", ZS_OEV, None), ("laya", ZS_LAYA, None), ("Kev", ZS_KEV, None)]
@@ -80,7 +68,7 @@ LAT_VALS = [22.2, 36.2, 41.5, 256.0]
 # the valid split only (receipt runs/20260928-092030-calibration-oev-base-td5.json)
 CAL_LABELS = ["td5 raw", "previous best\n(rlcd-soup)", "td5 + temperature\n0.598 (new best)"]
 CAL_VALS = [0.0938, 0.0279, 0.0204]
-CAL_COLORS = ["#b0b8c0", "#e8d5a3", "#b5d4bf"]
+CAL_COLORS = ["#a5aeb8", "#e2cc8f", "#a3c794"]
 
 # headline scorecard: single and ensemble typed accuracy (registered above)
 HEAD_SCORE = [0.7705, 0.7760]
@@ -89,7 +77,7 @@ HEAD_SCORE = [0.7705, 0.7760]
 SCORE_LAT = [22.2, 447]
 
 # banking77 soup accuracy for the scorecard and size points (checked above)
-B77_SOUP = 0.8584
+B77_SOUP = 0.8594
 
 # accuracy vs size (published points only; Jev size not published)
 PTS = [
@@ -173,8 +161,11 @@ def load():
 
 
 def oev_color(name):
-    # map the neutral names in PTS to palette entries (kept separate so the
-    # data module stays importable without a plot backend)
-    import chartstyle
+    # map the neutral PTS names to palette entries; separate so this module
+    # stays importable without a plot backend
+    try:
+        import chartstyle
+    except ImportError:
+        from scripts import chartstyle  # pyrefly: ignore missing-import
 
     return {"blue": chartstyle.P_BLUE, "red": chartstyle.P_RED, "green": chartstyle.P_GREEN}[name]

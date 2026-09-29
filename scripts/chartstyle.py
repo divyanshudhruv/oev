@@ -1,18 +1,11 @@
-"""Shared chart style: palette, rcParams, and light/dark text colors.
-
-Imported by make_charts.py and make_bigfigure.py so colors and typography
-live in exactly one place. Charts are transparent-background pastel; light
-variants use dark text, dark variants light text.
-"""
+"""Shared chart style: one palette, rcParams, and light/dark text tones."""
 import matplotlib.pyplot as plt
 
-# pastel palette: legible on both light and dark pages
-P_BLUE, P_RED, P_GREEN, P_SAND, P_GRAY = "#a8c5e6", "#f0a8a8", "#b5d4bf", "#e8d5a3", "#b0b8c0"
+# pastel palette, nudged darker so blue/green separate clearly
+P_BLUE, P_RED, P_GREEN, P_SAND, P_GRAY = "#8db4e4", "#ee9e9e", "#a3c794", "#e2cc8f", "#a5aeb8"
 ACC = [P_BLUE, P_RED, P_GREEN, P_SAND, P_GRAY]
 
-# light-page text tones. SUB is the panel-footer gray; GRAY_ANNOT is the
-# lighter annotation gray used inside charts (zeroshot floor lines, bigfigure
-# reference annotations). They are intentionally different, as in the originals.
+# light-page text tones (SUB: footer gray, GRAY_ANNOT: in-chart annotations)
 TEXT, EDGE, SUB, LINE = "#24292f", "#57606a", "#6e7480", "#c8ccd0"
 GRAY_ANNOT = "#8b949e"
 # dark-page text tones

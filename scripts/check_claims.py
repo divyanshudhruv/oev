@@ -1,12 +1,8 @@
-"""Claims integrity checks. Run: python scripts/check_claims.py
+"""Claims integrity checks: python scripts/check_claims.py
 
-Fails (exit 1) if:
-- pyproject version != oev.__version__
-- an OEV accuracy-like number appears in README/BENCHMARKS but not in docs/claims.json
-- a claim eval command still contains a placeholder
-
-Published competitor numbers (laya, Jev, Kev) are quoted from their tables,
-not OEV claims, so they are allowlisted here.
+Fails on version mismatch, OEV numbers in docs missing from
+docs/claims.json, or placeholder eval commands. Competitor numbers are
+quoted from published tables, not claims.
 """
 import json
 import re
