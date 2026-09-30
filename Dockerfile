@@ -13,9 +13,14 @@ COPY ci/requirements-docker.txt ./ci/
 RUN pip install --require-hashes --no-deps -r ci/requirements-docker.txt \
         --extra-index-url https://download.pytorch.org/whl/cpu
 
+COPY ci/requirements-build.txt ./ci/
 COPY pyproject.toml README.md LICENSE ./
 COPY oev ./oev
-RUN pip install --no-deps .
+# build + pip-free install of the package itself (no unpinned pip command)
+RUN pip install --require-hashes --no-deps -r ci/requirements-build.txt \
+    && python -m build --wheel --no-isolation \
+    && python -m installer dist/*.whl \
+    && rm -rf dist build *.egg-info
 
 # non-root runtime user; owns only the cache dir
 RUN useradd --create-home --uid 1000 oev \

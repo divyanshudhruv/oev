@@ -25,7 +25,7 @@ from pathlib import Path
 
 import tomllib
 from packaging.requirements import Requirement
-from packaging.specifiers import SpecifierSet
+from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.version import InvalidVersion, Version
 
 HERE = Path(__file__).parent
@@ -36,10 +36,12 @@ LINUX = {"python_version": "3.11.16", "python_full_version": "3.11.16",
          "platform_python_implementation": "CPython", "extra": ""}
 WINDOWS = dict(LINUX, sys_platform="win32", platform_system="Windows", os_name="nt")
 ENVS = [LINUX, WINDOWS]  # union: locks must install on CI (linux) and locally (win)
+PY_TARGET = "3.11.16"  # CI runs python 3.11; never pick versions it cannot install
 TOOLCHAIN = {"ruff": "0.16.9", "pip": "26.2.1", "setuptools": "84.0.0",
              "pip-audit": "2.10.1", "build": "1.6.1", "twine": "7.0.0",
-             "matplotlib": "3.11.2", "numpy": "2.5.3", "pillow": "12.3.0",
+             "matplotlib": "3.11.2", "numpy": None, "pillow": "12.3.0",
              "huggingface_hub[cli]": "2.0.0"}
+BUILD = {"build": "1.6.1", "installer": None, "setuptools": "84.0.0"}
 
 
 def get(url, tries=4):
@@ -72,41 +74,27 @@ def dep_edges(meta, extras):
     return out
 
 
-def graph(root_specs):
-    """BFS the dependency graph using each package's latest-version metadata.
-    Returns {canonical name: [dependency requirement strings]}."""
-    edges, stack = {}, [Requirement(s) for s in root_specs]
-    seen = set()
-    while stack:
-        r = stack.pop()
-        key = canon(r.name)
-        if key in seen:
-            continue
-        seen.add(key)
-        meta = get(f"https://pypi.org/pypi/{key}/json")
-        edges[key] = dep_edges(meta, r.extras)
-        for rd in edges[key]:
-            stack.append(Requirement(rd))
-    return edges
-
-
-def constraints_of(root_specs, edges):
-    """Union of every specifier pointing at each package, incl. root specs."""
-    cons = defaultdict(list)
-    for s in root_specs:
-        r = Requirement(s)
-        if r.specifier:
-            cons[canon(r.name)].append(r.specifier)
-    for specs in edges.values():
-        for rd in specs:
-            r = Requirement(rd)
-            if r.specifier:
-                cons[canon(r.name)].append(r.specifier)
-    return cons
+def installable_on_target(ver, files):
+    """A release counts only if its wheel Requires-Python admits the CI
+    interpreter. sdists often omit requires_python, so only wheels are
+    trusted here (falling back to all files for sdist-only packages)."""
+    wheels = [f for f in files if f.get("packagetype") == "bdist_wheel"] or files
+    for f in wheels:
+        rp = f.get("requires_python")
+        if not rp:
+            return True
+        try:
+            if SpecifierSet(rp).contains(PY_TARGET):
+                return True
+        except InvalidSpecifier:
+            # legacy star forms like >=3.6.* - pip tolerates them, so do we
+            return True
+    return False
 
 
 def pick_version(key, cons_list, meta):
-    """Newest stable release satisfying all constraints."""
+    """Newest stable, non-yanked release satisfying all constraints AND
+    the target interpreter's Requires-Python."""
     spec = SpecifierSet(",".join(str(c) for c in cons_list))
     candidates = []
     for ver, files in meta["releases"].items():
@@ -118,26 +106,47 @@ def pick_version(key, cons_list, meta):
             continue
         if v.is_prerelease or all(f.get("yanked") for f in files):
             continue
+        if not installable_on_target(ver, files):
+            continue
         candidates.append(v)
     if cons_list:
         candidates = [v for v in candidates if v in spec]
-    assert candidates, f"{key}: no stable release satisfies {spec}"
+    assert candidates, f"{key}: no stable release for py{PY_TARGET} satisfies {spec}"
     return str(max(candidates))
 
 
 def lock(root_specs):
-    edges = graph(root_specs)
-    cons = constraints_of(root_specs, edges)
-    lines = []
-    for key in sorted(edges):
+    """Constraint-aware closure: dependencies are discovered from the
+    metadata of the version actually selected, not from latest - older
+    picks (e.g. huggingface-hub<2.0) declare dependencies the latest
+    metadata no longer has, and the lock must include them."""
+    cons = defaultdict(list)
+    for s in root_specs:
+        r = Requirement(s)
+        if r.specifier:
+            cons[canon(r.name)].append(r.specifier)
+    picked, lines, stack = {}, [], [Requirement(s) for s in root_specs]
+    while stack:
+        r = stack.pop()
+        key = canon(r.name)
         meta = get(f"https://pypi.org/pypi/{key}/json")
         ver = pick_version(key, cons.get(key, []), meta)
+        if picked.get(key) == ver:
+            continue
+        picked[key] = ver
         hashes = "".join(f" --hash=sha256:{f['digests']['sha256']}"
                          for f in meta["releases"][ver]
                          if f.get("digests", {}).get("sha256"))
         assert hashes, f"{key}=={ver}: no hashed files"
         lines.append(f"{key}=={ver}{hashes}")
-    return lines
+        # dependencies OF THE PICKED VERSION (per-version metadata)
+        vm = get(f"https://pypi.org/pypi/{key}/{ver}/json")
+        for rd in dep_edges(vm, r.extras):
+            d = Requirement(rd)
+            if d.specifier:
+                cons[canon(d.name)].append(d.specifier)
+            stack.append(d)
+    return sorted(lines)
 
 
 def torch_cpu_lines():
@@ -176,10 +185,14 @@ def pyproject_deps(*extras):
     return [d for d in deps if canon(Requirement(d).name) != "torch"]
 
 
+def spec_of(name, pin):
+    return f"{name}=={pin}" if pin else name
+
+
 torch = torch_cpu_lines()
 
-write(HERE / "requirements.txt", lock([f"{k}=={v}" if not k.endswith("]") else k
-                                       for k, v in TOOLCHAIN.items()]),
+write(HERE / "requirements.txt",
+      lock([spec_of(k, v) for k, v in TOOLCHAIN.items()]),
       "hash-locked CI toolchain: lint, audit, build, chart gates.")
 
 write(HERE / "requirements-oev.txt",
@@ -192,3 +205,7 @@ write(HERE / "requirements-docker.txt",
       lock(pyproject_deps("backbone", "serve")) + torch,
       "hash-locked closure of pyproject [backbone,serve]; same torch rule "
       "as requirements-oev.txt.")
+
+write(HERE / "requirements-build.txt", lock(BUILD),
+      "hash-locked build toolchain: wheel building and pip-free installs "
+      "(python -m build --no-isolation, python -m installer).")
