@@ -300,7 +300,7 @@ with gr.Blocks(title="OEV") as demo:
                                      elem_id="qs-box")
                     with gr.Accordion("Question schema help", open=False, elem_id="qs-help"):
                         gr.Markdown(ui_texts.QS_HELP)
-                    temp = gr.Slider(0.1, 3.0, value=1.0, step=0.05, label="temperature",
+                    temp = gr.Slider(0.1, 3.0, value=0.7, step=0.05, label="temperature",
                                      info="<1 sharpens · >1 flattens · argmax unchanged")
                     decide_btn = gr.Button("Decide", variant="primary", size="lg",
                                            elem_id="decide-btn")
@@ -335,14 +335,9 @@ with gr.Blocks(title="OEV") as demo:
                      "Hello, after five years on the Enterprise plan I have decided it is time "
                      "to close my account. Could you please start the cancellation process?")),
                      gr.State(ui_schemas.CUSTOMER_QS)], [state_box, qs_box], api_visibility="private")
-    ex_invoice.click(_fill, [gr.State(ui_schemas.invoice_state("Acme Fabrication", 300020.0, 300020.0,
-                     1000, 1000, 0)), gr.State(ui_schemas.INVOICE_QS)], [state_box, qs_box], api_visibility="private")
+    ex_invoice.click(_fill, [gr.State(ui_schemas.invoice_state_discrepant()), gr.State(ui_schemas.INVOICE_QS)], [state_box, qs_box], api_visibility="private")
     ex_security.click(_fill, [gr.State(ui_schemas.security_state(
-        "dormant_account_use", "a long-unused account became active",
-        "The unprivileged service account `svc_task_alpha` initiated a session from IP "
-        "`198.51.100.24` following 180 days of zero activity. Authentication was successful "
-        "without MFA using credentials that were last rotated six months ago.",
-        "low", "service_account")), gr.State(ui_schemas.SECURITY_QS)], [state_box, qs_box], api_visibility="private")
+        *ui_schemas.SUSPICIOUS_LOGIN)), gr.State(ui_schemas.SECURITY_QS)], [state_box, qs_box], api_visibility="private")
     ex_play.click(_fill, [gr.State(ui_schemas.PLAYGROUND_STATE), gr.State(ui_schemas.PLAYGROUND_QS)],
                   [state_box, qs_box], api_visibility="private")
 

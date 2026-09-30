@@ -98,6 +98,28 @@ def security_state(rule, desc, evid, crit, ptype):
     })
 
 
+# preset builders pass ready-made args; these two carry the story the demo
+# should tell: a real invoice discrepancy and a genuinely suspicious login
+def invoice_state_discrepant():
+    # invoice overbills 10% vs the PO on the same qty and sku: a material,
+    # unambiguous mismatch the generalist should call out
+    return invoice_state("Acme Fabrication", 330022.0, 300020.0, 1000, 1000, 0)
+
+
+SUSPICIOUS_LOGIN = (
+    "dormant_account_reactivation",
+    "a dormant privileged service account resumed production access",
+    ("The service account `svc_deploy_prod` with read-write access to the "
+     "payments database initiated a session from IP `198.51.100.24`, a range "
+     "never seen for this account. Authentication succeeded without MFA using "
+     "credentials last rotated 400 days ago. The session immediately ran a "
+     "bulk export against the customer_payments table at 03:12 local time, "
+     "outside any change window."),
+    "high",
+    "service_account",
+)
+
+
 PLAYGROUND_STATE = "Shoes arrived two weeks late and in the wrong size. Also I see two charges on my card. What are you going to do about this?"
 
 PLAYGROUND_QS = {
