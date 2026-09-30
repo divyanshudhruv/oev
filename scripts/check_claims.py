@@ -1,8 +1,10 @@
 """Claims integrity checks: python scripts/check_claims.py
 
 Fails on version mismatch, OEV numbers in docs missing from
-docs/claims.json, or placeholder eval commands. Competitor numbers are
-quoted from published tables, not claims.
+docs/claims.json, headline claims whose value diverges between
+README, BENCHMARKS and the registry (semantic pins), or placeholder
+eval commands. Competitor numbers are quoted from published tables,
+not claims.
 """
 import json
 import re

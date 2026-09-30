@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.11-slim@sha256:e41613d42d4891e4930f79523f93f81bbc7632584ec65e36ab055f41a800b41e
 
 # CPU-only torch keeps the image ~2GB instead of ~8GB
 ENV PIP_NO_CACHE_DIR=1 \

@@ -12,8 +12,8 @@ jobs:
   pytest:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
       - name: Install
@@ -33,9 +33,10 @@ jobs:
       - name: Dependency audit (pip-audit, known CVEs fail the build)
         run: |
           pip install pip-audit
-          # PYSEC-2026-3721 is pip itself (fixed in 26.2); drop the ignore
-          # once the setup-python runner image ships it
-          pip-audit --strict --ignore-vuln PYSEC-2026-3721
+          # torch's cpu wheel (2.14.0+cpu) comes from the pytorch index and
+          # cannot resolve on PyPI, so --strict would abort on it; known CVEs
+          # in resolvable packages still fail the build without --strict
+          pip-audit
 
       - name: README image links resolve (HTTP 200)
         run: |
@@ -58,8 +59,8 @@ jobs:
   claims-integrity:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
 

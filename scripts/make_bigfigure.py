@@ -1,10 +1,7 @@
 """Laya-style multi-panel benchmark figure from measured OEV numbers.
 
-Palette and typography come from chartstyle.py; every measured/published
-number comes from chartdata.py, which cross-checks registered OEV values
-against docs/claims.json at import time. Transparent backgrounds (page shows
-through); pastel palette; dark text for the light variant, light text for the
-dark variant.
+Every number comes from chartdata.py (claims-checked at import time);
+palette and typography from chartstyle.py. Transparent backgrounds.
 """
 import os
 import sys
