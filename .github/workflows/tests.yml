@@ -16,26 +16,25 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
-      - name: Install
+      - name: Install (hash-pinned)
         run: |
-          python -m pip install --upgrade pip
-          pip install torch --index-url https://download.pytorch.org/whl/cpu
-          pip install ".[dev,app]"
+          python -m pip install --require-hashes --no-deps -r ci/requirements-oev.txt --extra-index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --no-deps .
 
       - name: Run tests
         run: python -m pytest -q
 
       - name: Ruff
         run: |
-          pip install ruff==0.16.9
+          python -m pip install --require-hashes --no-deps -r ci/requirements.txt
           ruff check oev scripts tests app.py space_ui
 
       - name: Dependency audit (pip-audit, known CVEs fail the build)
         run: |
-          pip install pip-audit
-          # torch's cpu wheel (2.14.0+cpu) comes from the pytorch index and
-          # cannot resolve on PyPI, so --strict would abort on it; known CVEs
-          # in resolvable packages still fail the build without --strict
+          python -m pip install --require-hashes --no-deps -r ci/requirements.txt
+          # toolchain lock ships current pip-audit and setuptools (84.x,
+          # past PYSEC-2026-3447); torch's cpu wheel is index-only, so no
+          # --strict - known CVEs in resolvable packages still fail the build
           pip-audit
 
       - name: README image links resolve (HTTP 200)
@@ -89,7 +88,7 @@ jobs:
 
       - name: Chart freshness (tracked PNGs match the generator, pixel-identical)
         run: |
-          pip install matplotlib==3.11.2 numpy pillow
+          python -m pip install --require-hashes --no-deps -r ci/requirements.txt
           python - <<'PY'
           import os, shutil, subprocess, sys, tempfile
           from pathlib import Path

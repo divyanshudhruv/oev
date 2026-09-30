@@ -8,12 +8,14 @@ ENV PIP_NO_CACHE_DIR=1 \
 
 WORKDIR /app
 
-# torch first: it is the big, rarely-changing layer
-RUN pip install torch --index-url https://download.pytorch.org/whl/cpu
+# deps first: the hash-locked layer only rebuilds when the lock changes
+COPY ci/requirements-docker.txt ./ci/
+RUN pip install --require-hashes --no-deps -r ci/requirements-docker.txt \
+        --extra-index-url https://download.pytorch.org/whl/cpu
 
 COPY pyproject.toml README.md LICENSE ./
 COPY oev ./oev
-RUN pip install ".[backbone,serve]"
+RUN pip install --no-deps .
 
 # non-root runtime user; owns only the cache dir
 RUN useradd --create-home --uid 1000 oev \

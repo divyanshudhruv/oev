@@ -14,6 +14,7 @@ The single `184M` model scores `0.7705` on typed-decisions, slightly above laya'
 [![Hugging Face Model](https://img.shields.io/badge/%F0%9F%A4%97%20Model-divyanshudhruv%2Foev--typed-blue)](https://huggingface.co/divyanshudhruv/oev-typed)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Tests](https://github.com/divyanshudhruv/oev/actions/workflows/tests.yml/badge.svg)](https://github.com/divyanshudhruv/oev/actions/workflows/tests.yml)
+[![CodeQL](https://github.com/divyanshudhruv/oev/actions/workflows/codeql.yml/badge.svg)](https://github.com/divyanshudhruv/oev/actions/workflows/codeql.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/divyanshudhruv/oev/badge)](https://scorecard.dev/viewer/?uri=github.com/divyanshudhruv/oev)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.x-ee4c2c)](https://pytorch.org/get-started/locally/)
