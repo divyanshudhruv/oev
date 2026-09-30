@@ -33,10 +33,10 @@ plt.rcParams.update({
     "axes.titleweight": "bold",
 })
 
-# =====================================================================
+# =
 # data: single source in chartdata (competitor rows quoted from published
 # tables; OEV rows verified against docs/claims.json by chartdata.load())
-# =====================================================================
+# =
 
 bench = chartdata.BENCH
 jev = chartdata.JEV
@@ -58,7 +58,7 @@ hard = chartdata.GAMMA_HARD
 fig = plt.figure(figsize=(16, 10))
 gs = fig.add_gridspec(3, 3, hspace=0.45, wspace=0.3)
 
-# ---------- Panel 1: accuracy on public datasets ----------
+# Panel 1: accuracy on public datasets
 ax = fig.add_subplot(gs[0, 0])
 x = np.arange(len(bench))
 w = 0.26
@@ -75,7 +75,7 @@ ax.set_ylabel("accuracy")
 ax.set_title("Accuracy - shared public datasets")
 ax.legend(frameon=False, fontsize=7, loc="lower right")
 
-# ---------- Panel 2: typed-decisions vs baselines ----------
+# Panel 2: typed-decisions vs baselines
 ax = fig.add_subplot(gs[0, 1])
 cols = [GRAY, GRAY, GOLD, RED, RED, BLUE]
 bars = ax.bar(names, vals, color=cols)
@@ -87,7 +87,7 @@ ax.set_ylabel("accuracy")
 ax.set_title("typed-decisions: vs baselines and ceiling")
 ax.tick_params(axis="x", labelsize=7)
 
-# ---------- Panel 3: per-workflow (horizontal bars) ----------
+# Panel 3: per-workflow (horizontal bars)
 ax = fig.add_subplot(gs[0, 2])
 y = np.arange(len(wf))
 h = 0.35
@@ -103,7 +103,7 @@ ax.set_xlabel("accuracy")
 ax.set_title("typed-decisions: every workflow")
 ax.legend(frameon=False, fontsize=7, loc="lower right")
 
-# ---------- Panel 4: speed on one T4 (measured points only) ----------
+# Panel 4: speed on one T4 (measured points only)
 ax = fig.add_subplot(gs[1, 0])
 # measured: OEV p50 22.2ms at 1 question, 15.9ms/q at batch 32.
 # laya: published 39.5ms single (English). No measured multi-question curve.
@@ -118,7 +118,7 @@ ax.set_ylim(0, 50)
 ax.set_title("Speed on one T4 (measured points)")
 ax.legend(frameon=False, fontsize=7)
 
-# ---------- Panel 5: calibration ----------
+# Panel 5: calibration
 ax = fig.add_subplot(gs[1, 1])
 bars = ax.bar(models, ece, color=[RED, BLUE, BLUE, GRAY])
 cs.edge_bars(bars, EDGE)
@@ -127,7 +127,7 @@ ax.set_ylabel("mean ECE (lower is better)")
 ax.set_ylim(0, 0.3)
 ax.set_title("Calibration (post-temperature)")
 
-# ---------- Panel 6: accuracy vs size ----------
+# Panel 6: accuracy vs size
 ax = fig.add_subplot(gs[1, 2])
 pts = [(name, params, acc, chartdata.oev_color(color)) for name, params, acc, color in chartdata.BIGFIG_PTS]
 POFF = chartdata.BIGFIG_POFF
@@ -142,7 +142,7 @@ ax.set_xlabel("parameters (millions)")
 ax.set_ylabel("typed-decisions accuracy")
 ax.set_title("Accuracy vs model size")
 
-# ---------- Panel 7: soft accuracy sharpening (typed ensemble) ----------
+# Panel 7: soft accuracy sharpening (typed ensemble)
 ax = fig.add_subplot(gs[2, :])
 b1 = ax.bar(np.arange(4) - 0.2, hard, 0.4, label="hard accuracy", color=GREEN)
 b2 = ax.bar(np.arange(4) + 0.2, soft, 0.4, label="soft accuracy", color=BLUE)
@@ -167,7 +167,6 @@ plt.close(fig)
 print("written: assets/oev_vs_jev_full.png")
 
 
-# ---------------- dark variant ----------------
 cs.apply_dark()
 
 fig = plt.figure(figsize=(16, 10))

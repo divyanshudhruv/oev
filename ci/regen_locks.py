@@ -176,13 +176,20 @@ def write(path, lines, comment):
     print(f"{path.name}: {len(lines)} packages")
 
 
+# torch is appended as a CPU-build wheel line, so it is excluded from the
+# pyproject walk - but its OWN dependencies must still be walked or
+# --no-deps installs a torch that cannot import (sympy, networkx...)
+TORCH_CPU_DEPS = ["filelock", "typing-extensions>=4.10.0", "sympy>=1.13.3",
+                  "networkx", "jinja2", "fsspec"]
+
+
 def pyproject_deps(*extras):
     proj = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]
     deps = list(proj["dependencies"])
     for e in extras:
         deps += proj["optional-dependencies"][e]
-    # torch is replaced by the CPU-build lines appended separately
-    return [d for d in deps if canon(Requirement(d).name) != "torch"]
+    # torch replaced by CPU build; its runtime deps joined explicitly
+    return [d for d in deps if canon(Requirement(d).name) != "torch"] + TORCH_CPU_DEPS
 
 
 def spec_of(name, pin):

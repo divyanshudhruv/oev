@@ -31,9 +31,9 @@ DARK_TEXT, DARK_SUB, DARK_EDGE, DARK_LINE = cs.DARK_TEXT, cs.DARK_SUB, cs.DARK_E
 
 plt.rcParams.update(cs.BASE_RC)
 
-# =====================================================================
+# =
 # measured / published numbers (single source: chartdata, claims-checked)
-# =====================================================================
+# =
 
 BENCH = chartdata.BENCH
 OEVD = chartdata.OEVD
@@ -70,9 +70,9 @@ def _dot_legend(edge, size=9):
             for who, _, c in ZS_WHO]
 
 
-# =====================================================================
+# =
 # chart 1: shared in-domain benchmarks (OEV vs laya vs Jev)
-# =====================================================================
+# =
 
 fig, ax = plt.subplots(figsize=(12, 6.2))
 x = np.arange(len(BENCH))
@@ -108,10 +108,10 @@ def _zs_annotate(ax, i, v, who, color, size=9.5):
                 xytext=(dx, 12), ha=ha, fontsize=size, color=color)
 
 
-# =====================================================================
+# =
 # chart 2: zero-shot / OOD transfer as dumbbells. Replaces the congested
 # 12-bar grouped chart: one row per benchmark, one dot per model.
-# =====================================================================
+# =
 
 fig, ax = plt.subplots(figsize=(11, 4.6))
 for i in range(len(ZS_ROWS)):
@@ -141,9 +141,9 @@ fig.tight_layout()
 fig.savefig("assets/zeroshot.png", dpi=150, transparent=True)
 plt.close(fig)
 
-# =====================================================================
+# =
 # chart 2b: transfer + latency combined (one figure, two panels)
-# =====================================================================
+# =
 
 fig, (axt, axl) = plt.subplots(1, 2, figsize=(15.5, 5.2),
                                gridspec_kw={"width_ratios": [1.45, 1]})
@@ -318,9 +318,9 @@ _decision_primitives("assets/decision_primitives.png", _light_text, _light_edge,
 _latency_profile("assets/latency_profile.png", _light_text, _light_edge, _light_sub, _light_face)
 _calibration("assets/calibration.png", _light_text, _light_edge, _light_sub, _light_face)
 
-# =====================================================================
+# =
 # chart 7: per-workflow accuracy (typed-decisions)
-# =====================================================================
+# =
 
 fig, ax = plt.subplots(figsize=(9, 4.8))
 xw = np.arange(len(WF_LABELS))
@@ -344,9 +344,9 @@ plt.close(fig)
 print("light charts written: benchmarks, zeroshot, transfer_speed, "
       "headline_scorecard, decision_primitives, latency_profile, calibration, workflows")
 
-# =====================================================================
+# =
 # dark variants: same transparent figures, light text and edge swaps
-# =====================================================================
+# =
 
 cs.apply_dark()
 

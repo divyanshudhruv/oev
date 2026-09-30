@@ -7,7 +7,11 @@ TITLE_MD = """
 </div>
 """
 
-QS_HELP = """**Question schema** - one JSON object per question name:
+QS_HELP = """**Question schema** - one JSON object per question name. Two
+equivalent forms are accepted: the native one and the Jev/TypeSafe
+`criteria` one (so existing laya/Kev clients work as-is).
+
+Native (what the presets use):
 
 ```json
 {
@@ -16,6 +20,22 @@ QS_HELP = """**Question schema** - one JSON object per question name:
     "options": ["a", "b"],     // choice: the labels; score: level descriptions
     "levels": ["low", "high"], // score only: ordinal level descriptions
     "instructions": "what to decide"
+  }
+}
+```
+
+Jev/TypeSafe `criteria` - descriptions are ignored, the keys become the
+options (choice) and the list items become the levels (score):
+
+```json
+{
+  "question_name": {
+    "type": "choice",
+    "criteria": {"billing": "invoices, payments", "technical": "bugs, outages"}
+  },
+  "quality": {
+    "type": "score",
+    "criteria": ["poor", "mixed", "good"]
   }
 }
 ```
@@ -59,4 +79,8 @@ from oev.infer import OEV
 agent = OEV("divyanshudhruv/oev-typed/student-r3-oev-tiny.pt")
 result = agent.decide(state, questions)
 ```
+
+Questions accept both the native schema and the Jev/TypeSafe `criteria`
+form (`criteria` map for choice, list for score) - see the schema help
+in the Playground tab.
 """

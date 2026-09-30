@@ -32,9 +32,8 @@ Fine-tuned on the benchmark's train split, same protocol as [laya-typed-decision
 | **OEV calibrated single (oev-base-rlcd-soup)**       | **`184M`** |       0.7570 |       0.5854 | **`0.0279`** |    **`22.2 ms`** |
 | **OEV temperature-calibrated (oev-base-td5, T=0.598)**               | **`184M`** |       0.7705 |            - | **`0.0204`** |    **`22.2 ms`** |
 
-The temperature-calibrated row is the best calibrated single: temperature `0.598` fitted on the valid split only (receipt in the repo's `runs/`), accuracy unchanged by monotone scaling. Use it via `OEV(checkpoint, temperature=0.598)`.
+The temperature-calibrated row is the best calibrated single: temperature `0.598` fitted on the valid split only, accuracy unchanged by monotone scaling. Use it via `OEV(checkpoint, temperature=0.598)`.
 | **OEV ensemble (all four checkpoints, equal votes)** | 4 × `184M` | **`0.7760`** |       0.5830 |            - |                - |
-| OEV ensemble, sharpened (γ = 2.5)                    | 3 × `184M` |       0.7730 | **`0.7020`** |       0.0298 |                - |
 
 Per workflow (ensemble): invoice `0.836`, customer service `0.804`, agent-trace `0.740`, security incidents `0.722` (OEV leads three of the four workflows). Per primitive: noul `0.853`, choice `0.748`, score `0.738`.
 
@@ -54,7 +53,7 @@ Per workflow (ensemble): invoice `0.836`, customer service `0.804`, agent-trace 
 | b77b-oev-tiny.pt            | Banking77 warm-start re-tune, second ensemble member                                                                                                                                                                           |
 | b77soup-oev-tiny.pt         | weight-average of the three b77 members (0.8584)                                                                                                                                                                              |
 | b77soup4-oev-tiny.pt        | 4-member weight soup with a soup re-tune member - best single-file b77 accuracy (`0.8594`)                                                                                                                                     |
-| mnli-oev-tiny.pt            | MNLI specialist, WANLI zero-shot `0.5265` (rebuilt 2026-09-29 after the lost original scored `0.5645`). Warm-start for ANLI fine-tunes and NLI-domain distillation     |
+| mnli-oev-tiny.pt            | MNLI specialist, WANLI zero-shot `0.5265`. Warm-start for ANLI fine-tunes and NLI-domain distillation     |
 | anli-r1-oev-tiny.pt         | ANLI R1 fine-tune of the MNLI specialist: `0.5750` in-domain (chance `0.333`), WANLI zero-shot `0.5690` - the project's best NLI transfer. Overconfident OOD (ECE `0.2308`); calibrate before automated gating     |
 
 For the ensemble results, average the softmax probabilities of the members with equal weights: typed-decisions `0.7760` (four files), Banking77 `0.8529` with ECE `0.0595` (three files: `b77-oev-tiny.pt` + `b77a-oev-tiny.pt` + `b77b-oev-tiny.pt`).
@@ -111,7 +110,7 @@ The whole pipeline trains in about a day on one T4. `train_colab.ipynb` runs it 
 
 - Fine-tuned on each benchmark's own train split; comparison numbers are from the respective published tables.
 - OEV trains to match the teacher's full distributions (training Brier vs teacher: `0.058`).
-- English models. OEV latency is p50 of 50 warmed runs including sync on T4; per-run receipts with raw timing samples are archived in the repository's `runs/` directory.
+- English models. OEV latency is p50 of 50 warmed runs including sync on T4.
 
 ## License
 

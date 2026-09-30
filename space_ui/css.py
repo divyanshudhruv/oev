@@ -62,7 +62,7 @@ theme = gr.themes.Soft(
 )
 
 CSS = """
-/* --- page frame: centered column --- */
+# page frame: centered column
 .gradio-container { width: 1020px !important; max-width: calc(100vw - 32px) !important; min-width: 0 !important; box-sizing: border-box !important; margin: 0 auto; }
 footer { visibility: hidden; }
 :root, .gradio-container { --primary-pastel: #e8b48c; --color-accent: var(--primary-pastel); --border-color-accent: var(--primary-pastel); }
@@ -82,10 +82,9 @@ footer { visibility: hidden; }
 .gradio-container label, .gradio-container .form-label, .gradio-container .block-label { font-size: 12px; line-height: 1.4; font-weight: 500; }
 .gradio-container button, .tab-nav button { font-size: 13px; line-height: 1.25; }
 
-/* --- everything square: override any gradio rounding --- */
+# everything square: override any gradio rounding
 .gradio-container * { border-radius: 0 !important; }
 
-/* --- header --- */
 #header { padding: 12px 0 16px; border-bottom: 1px solid var(--border-color-primary);
           margin-bottom: 16px; }
 #header h1 { margin: 0 0 8px; letter-spacing: -0.01em; }
@@ -95,27 +94,24 @@ footer { visibility: hidden; }
                    letter-spacing: 0.02em; }
 #header .metrics b { color: var(--body-text-color); font-weight: 600; }
 
-/* --- preset buttons: equal width, one row --- */
+# preset buttons: equal width, one row
 #presets { gap: 8px; margin-bottom: 16px; }
 #presets button { flex: 1 1 0; min-width: 0; width: auto; height: 32px !important;
                   min-height: 32px !important; padding: 0 12px !important; }
 
-/* --- accordion header matches the preset button height --- */
 #qs-help { margin: 12px 0; }
 #qs-help button { min-height: 32px !important; padding: 4px 12px !important; }
 
-/* --- decide: full width, own row --- */
+# decide: full width, own row
 #decide-btn { width: 100%; min-height: 40px; margin-top: 16px; }
 .tab-container .row { gap: 16px; }
 
-/* --- code editors and viewers render mono --- */
 .cm-editor, .cm-content, .cm-line, textarea.code,
 #state-box textarea, #qs-box textarea {
   font-family: var(--font-mono) !important;
   font-size: 12px !important;
 }
 
-/* --- probability bars rendered from the payload markdown --- */
 .bars .qname { display: block; font-size: 12px; text-transform: uppercase;
                letter-spacing: 0.1em; color: var(--body-text-color-subdued);
                margin: 16px 0 8px; }
@@ -133,23 +129,20 @@ footer { visibility: hidden; }
                   color: var(--body-text-color-subdued); }
 .bars .row.win .val { color: var(--body-text-color); font-weight: 600; }
 
-/* --- status line --- */
 #statusline { font-family: var(--font-mono); font-size: 12px;
               color: var(--body-text-color-subdued); text-align: right;
               min-height: 1.4em; margin-top: 8px; }
 
-/* --- error: red left rule --- */
+# error: red left rule
 #errorbox { margin: 12px 0; padding: 12px;
             border-left: 3px solid var(--color-danger) !important; }
 
-/* --- focus rings --- */
 #state-box textarea:focus, #qs-box textarea:focus, #qs-box input:focus,
 .cm-editor.cm-focused, .cm-content:focus {
   outline: 2px solid var(--border-color-accent) !important;
   outline-offset: -1px;
 }
 
-/* --- tab nav --- */
 .tab-nav { display: flex; width: 100%; gap: 8px; margin-bottom: 16px; }
 .tab-nav button { flex: 1 1 0; min-width: 0; min-height: 32px; padding: 6px 12px; font-size: 13px; letter-spacing: 0.04em; }
 .tab-nav button:hover,
@@ -168,7 +161,7 @@ footer { visibility: hidden; }
   -webkit-text-fill-color: var(--color-accent) !important;
 }
 
-/* --- responsive: presets wrap on narrow screens --- */
+# responsive: presets wrap on narrow screens
 @media (max-width: 640px) {
   #presets { flex-wrap: wrap; }
   #presets button { flex: 1 1 45%; width: auto; }

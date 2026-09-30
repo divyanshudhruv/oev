@@ -53,9 +53,7 @@ def load():
     return agent
 
 
-# ----------------------------------------------------------------------
 # inference plumbing
-# ----------------------------------------------------------------------
 
 def _count_tokens(agent, state, questions):
     try:
@@ -275,42 +273,13 @@ def _decide(state, qs_json, t):
     return json.dumps(payload, indent=2), md, st, ""
 
 
-def _order_check(state, qs_json, t):
-    questions, err = _validate(state, qs_json)
-    if err or questions is None:
-        return "", "", _error_markdown(err or "questions are missing")
-    first = next((n for n, q in questions.items() if q.get("type") == "choice"), None)
-    if first is None:
-        return "", "", _error_markdown("order check needs at least one choice question")
-    q = questions[first]
-    k = len(q["options"])
-    rows, picks = [], []
-    for r in range(min(k, 6)):
-        rot = q["options"][r:] + q["options"][:r]
-        rq = dict(q, options=rot)
-        try:
-            payload, _, _ = _run(state, {first: rq}, t)
-        except Exception as e:  # noqa: BLE001 - UI boundary: show any inference failure as an error card, never crash the Space
-            return "", "", _error_markdown(f"{type(e).__name__}: {e}")
-        pick = payload[first]["answer"]
-        picks.append(pick)
-        rows.append(f"rotation {r}: `{html.escape(str(pick), quote=True)}`")
-    stable = len(set(picks)) == 1
-    verdict = "**stable under rotation**" if stable else "**flips across rotations**"
-    safe_first = html.escape(str(first), quote=True)
-    md = '<span class="qname">order check</span>' + safe_first + chr(10).join([""] + rows) + chr(10) + chr(10) + verdict
-    return "", md, f"{len(rows)} rotations of '{html.escape(str(first), quote=True)}'"
-
-
-# ----------------------------------------------------------------------
 # UI
-# ----------------------------------------------------------------------
 
 with gr.Blocks(title="OEV") as demo:
     gr.Markdown(ui_texts.TITLE_MD)
 
     with gr.Tabs():
-        # ================= playground =================
+# playground
         with gr.Tab("Playground"):
             with gr.Row(elem_id="presets"):
                 ex_support = gr.Button("support triage", size="sm")
@@ -320,7 +289,7 @@ with gr.Blocks(title="OEV") as demo:
                 ex_play = gr.Button("text playground", size="sm")
 
             with gr.Row(equal_height=False):
-                # -------- column 1: input --------
+# column 1: input
                 with gr.Column(scale=1):
                     state_box = gr.Textbox(label="State - plain text or JSON", elem_id="state-box",
                                            lines=8, value=ui_schemas.AGENT_STATE,
@@ -336,7 +305,7 @@ with gr.Blocks(title="OEV") as demo:
                     decide_btn = gr.Button("Decide", variant="primary", size="lg",
                                            elem_id="decide-btn")
 
-                # -------- column 2: output --------
+# column 2: output
                 with gr.Column(scale=1):
                     error_md = gr.Markdown("", visible=False, elem_id="errorbox")
                     json_out = gr.Code(label="Raw JSON", language="json",
@@ -346,31 +315,10 @@ with gr.Blocks(title="OEV") as demo:
                                           "probability bars below.",
                                           elem_classes=["bars"])
                     status_md = gr.Markdown("", elem_id="statusline")
-        # ================= verify =================
-        with gr.Tab("Verify the architecture"):
-            gr.Markdown(
-                "Live checks on the packed-sequence design.\n\n"
-                "**Isolation** - a secret in one question's instructions must not raise the "
-                "probe's probability of naming it above chance.\n\n"
-                "**Forgery** - anchor tokens, delimiter lookalikes and JSON injection in "
-                "option text must not change how many anchors the head scores.\n\n"
-                "**Order** - argmax stability under option rotation.")
-            verify_btn = gr.Button("Run checks", variant="primary")
-            verify_out = gr.Textbox(label="results", lines=14)
-
-        # ================= order check =================
-        with gr.Tab("Order check"):
-            gr.Markdown("Rotates the first choice question's options and reports whether the "
-                        "argmax answer moves. Uses the state and questions from the Playground "
-                        "tab - edit them there first.")
-            order_btn = gr.Button("Run order check", variant="primary")
-            order_out = gr.Markdown(elem_classes=["bars"])
-
-        # ================= api =================
+# api
         with gr.Tab("API"):
             gr.Markdown(ui_texts.API_DOCS)
 
-    # ---- wiring ----
 
     decide_btn.click(
         _gpu(_decide), [state_box, qs_box, temp],
@@ -397,30 +345,6 @@ with gr.Blocks(title="OEV") as demo:
         "low", "service_account")), gr.State(ui_schemas.SECURITY_QS)], [state_box, qs_box], api_visibility="private")
     ex_play.click(_fill, [gr.State(ui_schemas.PLAYGROUND_STATE), gr.State(ui_schemas.PLAYGROUND_QS)],
                   [state_box, qs_box], api_visibility="private")
-
-    @ _gpu
-    def _verify():
-        import contextlib
-        import io
-
-        from oev import probes as pr
-
-        a = load()
-        buf = io.StringIO()
-        with contextlib.redirect_stdout(buf):
-            pr.isolation(a.model, a.packer, a.device, repeats=2)
-            print()
-            pr.forgery(a.model, a.packer, a.device)
-            print()
-            pr.order(a.model, a.packer, a.device, rotations=6)
-        return buf.getvalue()
-
-    verify_btn.click(_verify, None, verify_out, api_visibility="private")
-
-    order_btn.click(
-        _gpu(_order_check), [state_box, qs_box, temp],
-        [json_out, order_out, status_md], api_visibility="private"
-    )
 
 
 PORT = int(os.environ.get("OEV_PORT") or os.environ.get("PORT") or 7860) or 7860

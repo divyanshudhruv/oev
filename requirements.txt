@@ -1,10 +1,10 @@
 # HF Space build: plain requirements, no editable install needed -
 # the oev/ package directory sits next to app.py on the Space.
-# torch / gradio / spaces versions are pinned by the HF base image around this file.
+# gradio and spaces versions are injected by the HF build template from
+# sdk_version in space/README.md - do not pin them here, a second pin
+# conflicts with the injected one and fails the build.
 numpy>=1.26
 transformers>=4.40
 sentencepiece
 protobuf
 huggingface_hub>=0.23
-gradio[oauth,mcp]==6.28.0
-spaces==0.51.3

@@ -42,7 +42,8 @@ known = {str(c["value"]) for c in claims}
 known |= {v.rstrip("0").rstrip(".") if "." in v else v for v in known}
 
 text = ""
-for f in ["README.md", "BENCHMARKS.md"]:
+DOC_FILES = ["README.md", "BENCHMARKS.md", "HF_MODEL_CARD.md"]
+for f in DOC_FILES:
     with open(f, encoding="utf-8") as fh:
         text += fh.read()
 accs = set(re.findall(r"0\.\d{3,4}", text))
@@ -52,32 +53,34 @@ unknown = {a for a in accs
 if unknown:
     fail.append(f"OEV numbers in docs but not in claims.json: {sorted(unknown)}")
 else:
-    print(f"claims cross-check OK ({len(accs)} accuracy-like numbers)")
+    print(f"claims cross-check OK ({len(accs)} accuracy-like numbers across {len(DOC_FILES)} docs)")
 
-# headline numbers that must resolve to the same registered claim everywhere
-# they appear. a number here must (a) exist as an exact claim of that metric
-# and benchmark in claims.json and (b) appear in both README.md and
-# BENCHMARKS.md - edit claims.json and both docs together, or drop the pin.
+# headline numbers that must resolve to the same registered claim wherever
+# they appear. value is (metric, benchmark, docs): docs lists the files the
+# number must appear in - edit claims.json and the pinned docs together,
+# or drop the pin.
 PINNED = {
-    "0.7705": ("accuracy", "typed-decisions", 0.7705),
-    "0.7760": ("accuracy", "typed-decisions", 0.776),
-    "0.8594": ("accuracy", "banking77", 0.8594),
-    "0.0583": ("ece", "banking77", 0.0583),
-    "0.8700": ("accuracy", "dair_emotion_zero_shot", 0.87),
-    "0.5750": ("accuracy", "anli_r1_finetuned", 0.575),
-    "22.2": ("latency_p50_ms", "typed-decisions", 22.2),
+    "0.7705": ("accuracy", "typed-decisions", {"README.md", "BENCHMARKS.md"}),
+    "0.7760": ("accuracy", "typed-decisions", {"README.md", "BENCHMARKS.md"}),
+    "0.8594": ("accuracy", "banking77", {"README.md", "BENCHMARKS.md"}),
+    "0.0583": ("ece", "banking77", {"README.md", "BENCHMARKS.md"}),
+    "0.8650": ("accuracy", "dair_emotion_zero_shot", {"README.md", "BENCHMARKS.md", "HF_MODEL_CARD.md"}),
+    "0.8700": ("accuracy", "dair_emotion_zero_shot", {"HF_MODEL_CARD.md"}),
+    "0.5750": ("accuracy", "anli_r1_finetuned", {"BENCHMARKS.md"}),
+    "22.2": ("latency_p50_ms", "typed-decisions", {"README.md", "BENCHMARKS.md"}),
 }
 
 texts = {}
-for f in ["README.md", "BENCHMARKS.md"]:
+for f in DOC_FILES:
     with open(f, encoding="utf-8") as fh:
         texts[f] = fh.read()
-for num, (metric, bench, value) in PINNED.items():
+for num, (metric, bench, docs) in PINNED.items():
     short = num.rstrip("0").rstrip(".") if "." in num else num
     if not any(str(c["value"]) in (num, short) and c["metric"] == metric
                and c["benchmark"].startswith(bench) for c in claims):
         fail.append(f"pinned {num}: no matching {metric}/{bench} claim in claims.json")
-    for f, body in texts.items():
+    for f in docs:
+        body = texts[f]
         if num not in body and f".{short.lstrip('0')}" not in body:
             fail.append(f"pinned {num}: missing from {f}")
 if not [x for x in fail if x.startswith("pinned")]:

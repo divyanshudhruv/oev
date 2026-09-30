@@ -21,9 +21,15 @@ EMAILS = [
 ]
 
 QUESTIONS = {
-    "department": {"type": "choice", "options": ["billing", "technical", "sales", "other"]},
+    # Jev/TypeSafe criteria form: keys become the scored options, the
+    # descriptions are ignored - exactly what an existing laya/Kev client sends
+    "department": {"type": "choice",
+                   "criteria": {"billing": "invoices, payments, refunds",
+                                "technical": "bugs, outages, integrations",
+                                "sales": "plans, quotes, enterprise",
+                                "other": "anything the three teams do not cover"}},
     "churn_risk": {"type": "noul"},
-    "urgency": {"type": "score", "levels": [1, 2, 3]},
+    "urgency": {"type": "score", "criteria": ["routine", "degrading", "blocking"]},
 }
 
 for email_id, body in EMAILS:

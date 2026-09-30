@@ -18,6 +18,10 @@ jobs:
           python-version: "3.11"
       - name: Install (hash-pinned)
         run: |
+          # toolchain first, oev closure last: where the locks disagree
+          # (huggingface-hub, numpy), the oev pins must win, and no step
+          # re-installs the toolchain afterwards
+          python -m pip install --require-hashes --no-deps -r ci/requirements.txt
           python -m pip install --require-hashes --no-deps -r ci/requirements-oev.txt --extra-index-url https://download.pytorch.org/whl/cpu
           python -m pip install --require-hashes --no-deps -r ci/requirements-build.txt
           python -m build --wheel --no-isolation
@@ -27,17 +31,13 @@ jobs:
         run: python -m pytest -q
 
       - name: Ruff
-        run: |
-          python -m pip install --require-hashes --no-deps -r ci/requirements.txt
-          ruff check oev scripts tests app.py space_ui
+        # ruff ships in the toolchain lock installed above
+        run: ruff check oev scripts tests app.py space_ui
 
       - name: Dependency audit (pip-audit, known CVEs fail the build)
-        run: |
-          python -m pip install --require-hashes --no-deps -r ci/requirements.txt
-          # toolchain lock ships current pip-audit and setuptools (84.x,
-          # past PYSEC-2026-3447); torch's cpu wheel is index-only, so no
-          # --strict - known CVEs in resolvable packages still fail the build
-          pip-audit
+        # pip-audit ships in the toolchain lock installed above; auditing
+        # this exact env, no reinstall that could clobber resolved pins
+        run: pip-audit
 
       - name: README image links resolve (HTTP 200)
         run: |

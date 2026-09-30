@@ -10,7 +10,7 @@ date-released: "2026-09-29"
 license: Apache-2.0
 repository-code: "https://github.com/divyanshudhruv/oev"
 url: "https://github.com/divyanshudhruv/oev"
-abstract: "OEV is a small neural decision engine. Instead of generating text, it scores typed answer options (choice, yes/no, ordinal score) directly: state, question and every option are packed into one sequence, and one forward pass returns a calibrated probability distribution. The single 184M model scores 0.7705 on typed-decisions above laya's 0.766 from 421M parameters, reaches 0.8594 on Banking77 from one soup checkpoint, transfers to zero-shot emotion at 0.8700 and to adversarial NLI at 0.5750, and answers a single question in 22.2 ms on a Tesla T4."
+abstract: "OEV is a small neural decision engine. Instead of generating text, it scores typed answer options (choice, yes/no, ordinal score) directly: state, question and every option are packed into one sequence, and one forward pass returns a calibrated probability distribution. The single 184M model scores 0.7705 on typed-decisions above laya's 0.766 from 421M parameters, reaches 0.8594 on Banking77 from one soup checkpoint, transfers to zero-shot emotion at 0.8650 and to adversarial NLI at 0.5750, and answers a single question in 22.2 ms on a Tesla T4."
 keywords:
   - decision-model
   - classification

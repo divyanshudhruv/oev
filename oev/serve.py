@@ -50,7 +50,7 @@ def health():
     return {"status": "ok", **agent.describe()}
 
 
-# ---- Jev-compatible endpoint (TypeSafe System One schema) ----
+# Jev-compatible endpoint (TypeSafe System One schema)
 
 class SystemOneRequest(BaseModel):
     model: str = "oev"

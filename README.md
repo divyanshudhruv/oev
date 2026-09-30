@@ -15,7 +15,6 @@ The single `184M` model scores `0.7705` on typed-decisions, slightly above laya'
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Tests](https://github.com/divyanshudhruv/oev/actions/workflows/tests.yml/badge.svg)](https://github.com/divyanshudhruv/oev/actions/workflows/tests.yml)
 [![CodeQL](https://github.com/divyanshudhruv/oev/actions/workflows/codeql.yml/badge.svg)](https://github.com/divyanshudhruv/oev/actions/workflows/codeql.yml)
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/divyanshudhruv/oev/badge)](https://scorecard.dev/viewer/?uri=github.com/divyanshudhruv/oev)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.x-ee4c2c)](https://pytorch.org/get-started/locally/)
 [![HF Space](https://img.shields.io/badge/%F0%9F%A4%97%20Space-oev--demo-yellow)](https://huggingface.co/spaces/divyanshudhruv/oev-demo)
@@ -49,13 +48,14 @@ The single `184M` model scores `0.7705` on typed-decisions, slightly above laya'
 | claim                 | result                                                                                                  |
 | --------------------- | ------------------------------------------------------------------------------------------------------- |
 | best accuracy         | **0.7705** single model, **0.7760** ensemble - typed-decisions (laya 0.766 from 421M)                   |
-| high-cardinality      | **0.8594** Banking77, one soup checkpoint (`ECE 0.0583` best ensemble; laya 0.425)                      |
+| high-cardinality      | **0.8594** Banking77, single `184M` file (`ECE 0.0583` best ensemble; laya 0.425)                       |
 | speed                 | **22.2 ms** single question (laya 32.8-39.5 ms published range)                                         |
+| zero-shot emotion     | **0.8650** DAIR Emotion zero-shot (laya 0.595)                                                           |
 | size                  | **184M** params, 0.44x laya                                                                             |
 | weights & checkpoints | Apache 2.0 - [huggingface.co/divyanshudhruv/oev-typed](https://huggingface.co/divyanshudhruv/oev-typed) |
 
 - `22.2 ms` per question on a `T4` (GPU); on CPU the ONNX INT8 build runs at `54.2 ms` p50 on 8 threads (`228 MB` artifact, 3.2x smaller)
-- `0.8594` on 77-label `Banking77` from a single soup checkpoint (the 4-checkpoint ensemble holds best ECE `0.0583`): each option is embedded as its own anchor with full tokens, so accuracy scales with label count (gap to Jev 1.06 pts)
+- `0.8594` on 77-label `Banking77` from a single file (the ensemble holds best ECE `0.0583`): each option is embedded as its own anchor with full tokens, so accuracy scales with label count (gap to Jev 1.06 pts)
 - `184M` params, `Apache 2.0` weights
 - Kev (0.8B / 4B) publishes no in-domain numbers on these datasets, so it is not in the tables; see [BENCHMARKS.md](BENCHMARKS.md) for the like-for-like comparison plan
 
@@ -254,14 +254,9 @@ python -m pytest -q
 
 ## Roadmap
 
-- [x] Round 3 distillation: 3 teachers, 5 domains including NLI - typed `0.6895` (r2b `0.6480`), Banking77 `0.8370`, emotion zero-shot `0.8650`, checkpoint on the Hub
-- [ ] Push Banking77 past Jev's `0.870`: soup4 landed `0.8594`; the lever is lineage diversity, data augmentation or distillation, not more warm-starts
-- [x] Round 4: 10-domain distill from the round-3 student - typed `0.6985`, emotion zero-shot `0.8700`, b77 `0.8188` (stated trade), 5 h2h fix domains in
-- [x] MNLI specialist rebuilt: WANLI zero-shot `0.5265` (lost original `0.5645`), Hub file fixed
-- [x] ANLI R1 fine-tune: first adversarial NLI row, `0.5750` in-domain (chance `0.333`), WANLI transfer up to `0.5690`
-- [x] INT8 / ONNX CPU deployment: `54.2 ms` p50 on 8 threads, `228 MB` artifact (`scripts/bench_latency.py`)
+- [ ] Push Banking77 past Jev's `0.870`: current best `0.8594` - lineage diversity, data augmentation or distillation, not more warm-starts
 - [ ] Multi-question shared-state encoding (one pass, many questions)
-- [ ] Robustness: reduce mild overconfidence on out-of-distribution inputs
+- [ ] Robustness: reduce overconfidence on out-of-distribution inputs
 - [ ] Non-English checkpoints (the interface is language-agnostic; the weights are not yet)
 
 Full list: [ROADMAP.md](ROADMAP.md).

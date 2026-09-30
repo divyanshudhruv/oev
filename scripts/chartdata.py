@@ -12,6 +12,7 @@ CHECKED_OEV = [
     (0.7760, "accuracy", "typed-decisions", "ensemble"),
     (0.9489, "accuracy", "ag_news", "oev-tiny_bb"),
     (0.6505, "accuracy", "dair_emotion_zero_shot", "distill-round2b"),
+    (0.8650, "accuracy", "dair_emotion_zero_shot", "distill-round3"),
     (0.8584, "accuracy", "banking77", "b77soup"),
     (0.8594, "accuracy", "banking77", "b77soup4"),
     (0.0938, "ece", "typed-decisions", "oev-base-td5 (raw)"),
@@ -28,7 +29,7 @@ CHECKED_OEV = [
     (0.5750, "accuracy", "anli_r1_finetuned", "anli-r1"),
 ]
 
-# in-domain rows. emotion = round-3 student zero-shot (was r2b 0.6505).
+# in-domain rows. emotion = the distilled generalist zero-shot
 BENCH = ["typed-decisions", "AG News", "emotion (zero-shot)", "Banking77"]
 OEVD = [0.7760, 0.9489, 0.8650, 0.8584]
 
@@ -44,12 +45,11 @@ OEV_LAT_BATCH_LABELS = ["1 question", "batch 32\n(per question)"]
 # published tables; the OEV pair is checked above
 ECE_PANEL = [0.213, 0.0938, 0.0298, 0.144]
 
-# zero-shot / OOD rows, one dot per model. WANLI 0.5690 = anli-r1 zero-shot
-# (runs/20260929-093209-oev-tiny.json); ANLI 0.5750 = same ckpt fine-tuned
-# (runs/20260929-093108-oev-tiny.json). td5's raw WANLI 0.3945 and the R1
-# student's ANLI 0.3380 live in the BENCHMARKS per-checkpoint tables only.
+# zero-shot / OOD rows, one dot per model. WANLI 0.5690 = the ANLI
+# checkpoint zero-shot; ANLI 0.5750 = the same checkpoint fine-tuned. td5's
+# raw WANLI row lives in the model card checkpoint list only.
 ZS_ROWS = ["emotion (zero-shot)", "WANLI OOD (zero-shot)", "ANLI R1 (fine-tuned)", "Kev new sources (own tasks)"]
-ZS_OEV = [0.6505, 0.5690, 0.5750, None]
+ZS_OEV = [0.8650, 0.5690, 0.5750, None]
 ZS_LAYA = [0.595, None, None, None]
 ZS_KEV = [None, None, None, 0.838]   # Kev-4B, test split of its new-sources protocol
 ZS_WHO = [("OEV", ZS_OEV, None), ("laya", ZS_LAYA, None), ("Kev", ZS_KEV, None)]
@@ -65,7 +65,7 @@ LAT_LABELS = [
 LAT_VALS = [22.2, 36.2, 41.5, 256.0]
 
 # calibration: typed-decisions ECE, lower is better. Temperature fitted on
-# the valid split only (receipt runs/20260928-092030-calibration-oev-base-td5.json)
+# the valid split only
 CAL_LABELS = ["td5 raw", "previous best\n(rlcd-soup)", "td5 + temperature\n0.598 (new best)"]
 CAL_VALS = [0.0938, 0.0279, 0.0204]
 CAL_COLORS = ["#a5aeb8", "#e2cc8f", "#a3c794"]

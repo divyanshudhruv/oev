@@ -542,6 +542,105 @@
       "params": "184M",
       "eval": "phase 3 OOD sweep, receipt runs/20260928-092113-ood-sweep-student-r2b.json",
       "note": "0 of 800 WANLI answers and 0 of 6 garbage-input answers reach p >= 0.9; emotion: 14 of 800 confident, 1 confidently wrong. Quantifies the mild OOD overconfidence noted in the roadmap"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.7570,
+      "benchmark": "typed-decisions",
+      "checkpoint": "oev-base-rlcd-soup",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint checkpoints_rlcd_soup/oev-tiny.pt --data-dir data/typed",
+      "note": "most calibrated single: accuracy/soft-acc pair with its 0.0279 ECE row"
+    },
+    {
+      "metric": "soft_accuracy",
+      "value": 0.5854,
+      "benchmark": "typed-decisions",
+      "checkpoint": "oev-base-rlcd-soup",
+      "params": "184M",
+      "eval": "python -m oev.benchmark_ext --checkpoint checkpoints_rlcd_soup/oev-tiny.pt --data-dir data/typed",
+      "note": "pairs with the rlcd-soup ECE 0.0279 row"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.836,
+      "benchmark": "typed-decisions workflow breakdown",
+      "checkpoint": "ensemble of oev-base-td5, oev-base-rlcd, oev-base-rlcd-soup, oev-base-rlcd-seed1",
+      "params": "4 x 184M",
+      "eval": "python -m oev.benchmark_ext --ckpts checkpoints_td5/oev-tiny.pt,checkpoints_rlcd/oev-tiny.pt,checkpoints_rlcd_soup/oev-tiny.pt,checkpoints_rlcd_seed1/oev-tiny.pt --data-dir data/typed",
+      "note": "invoice processing; per-workflow split of the ensemble run"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.804,
+      "benchmark": "typed-decisions workflow breakdown",
+      "checkpoint": "ensemble of oev-base-td5, oev-base-rlcd, oev-base-rlcd-soup, oev-base-rlcd-seed1",
+      "params": "4 x 184M",
+      "eval": "python -m oev.benchmark_ext --ckpts checkpoints_td5/oev-tiny.pt,checkpoints_rlcd/oev-tiny.pt,checkpoints_rlcd_soup/oev-tiny.pt,checkpoints_rlcd_seed1/oev-tiny.pt --data-dir data/typed",
+      "note": "customer service; per-workflow split of the ensemble run"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.74,
+      "benchmark": "typed-decisions workflow breakdown",
+      "checkpoint": "ensemble of oev-base-td5, oev-base-rlcd, oev-base-rlcd-soup, oev-base-rlcd-seed1",
+      "params": "4 x 184M",
+      "eval": "python -m oev.benchmark_ext --ckpts checkpoints_td5/oev-tiny.pt,checkpoints_rlcd/oev-tiny.pt,checkpoints_rlcd_soup/oev-tiny.pt,checkpoints_rlcd_seed1/oev-tiny.pt --data-dir data/typed",
+      "note": "agent-trace observability; per-workflow split of the ensemble run"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.722,
+      "benchmark": "typed-decisions workflow breakdown",
+      "checkpoint": "ensemble of oev-base-td5, oev-base-rlcd, oev-base-rlcd-soup, oev-base-rlcd-seed1",
+      "params": "4 x 184M",
+      "eval": "python -m oev.benchmark_ext --ckpts checkpoints_td5/oev-tiny.pt,checkpoints_rlcd/oev-tiny.pt,checkpoints_rlcd_soup/oev-tiny.pt,checkpoints_rlcd_seed1/oev-tiny.pt --data-dir data/typed",
+      "note": "security incidents; per-workflow split of the ensemble run"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.853,
+      "benchmark": "typed-decisions primitive breakdown",
+      "checkpoint": "ensemble of oev-base-td5, oev-base-rlcd, oev-base-rlcd-soup, oev-base-rlcd-seed1",
+      "params": "4 x 184M",
+      "eval": "python -m oev.benchmark_ext --ckpts checkpoints_td5/oev-tiny.pt,checkpoints_rlcd/oev-tiny.pt,checkpoints_rlcd_soup/oev-tiny.pt,checkpoints_rlcd_seed1/oev-tiny.pt --data-dir data/typed",
+      "note": "noul (yes/no); per-primitive split of the ensemble run"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.748,
+      "benchmark": "typed-decisions primitive breakdown",
+      "checkpoint": "ensemble of oev-base-td5, oev-base-rlcd, oev-base-rlcd-soup, oev-base-rlcd-seed1",
+      "params": "4 x 184M",
+      "eval": "python -m oev.benchmark_ext --ckpts checkpoints_td5/oev-tiny.pt,checkpoints_rlcd/oev-tiny.pt,checkpoints_rlcd_soup/oev-tiny.pt,checkpoints_rlcd_seed1/oev-tiny.pt --data-dir data/typed",
+      "note": "choice; per-primitive split of the ensemble run"
+    },
+    {
+      "metric": "accuracy",
+      "value": 0.738,
+      "benchmark": "typed-decisions primitive breakdown",
+      "checkpoint": "ensemble of oev-base-td5, oev-base-rlcd, oev-base-rlcd-soup, oev-base-rlcd-seed1",
+      "params": "4 x 184M",
+      "eval": "python -m oev.benchmark_ext --ckpts checkpoints_td5/oev-tiny.pt,checkpoints_rlcd/oev-tiny.pt,checkpoints_rlcd_soup/oev-tiny.pt,checkpoints_rlcd_seed1/oev-tiny.pt --data-dir data/typed",
+      "note": "score; per-primitive split of the ensemble run"
+    },
+    {
+      "metric": "training_brier",
+      "value": 0.058,
+      "benchmark": "typed-decisions teacher match",
+      "checkpoint": "oev-base-td5",
+      "params": "184M",
+      "eval": "training Brier against teacher distributions on data/typed",
+      "note": "the model trains to match the teacher's full distributions"
+    },
+    {
+      "metric": "ece",
+      "value": 0.1905,
+      "benchmark": "banking77",
+      "checkpoint": "oev-base-banking77-a (historical warm-start re-tune)",
+      "params": "184M",
+      "eval": "python -m oev.benchmark --checkpoint checkpoints_b77_a/oev-tiny.pt --data-dir data/banking77",
+      "note": "historical re-tune row in the model card, pairs with its 0.8403 accuracy claim"
     }
   ]
 }
